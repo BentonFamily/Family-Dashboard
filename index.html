@@ -29,6 +29,8 @@
       font-size: 1.5rem;
       font-weight: bold;
       border-bottom: 3px solid #fff;
+      position: relative;
+      z-index: 1;
     }
     .dark header {
       background: rgba(0, 0, 0, 0.8);
@@ -60,29 +62,30 @@
       margin-bottom: 0.5rem;
     }
     .toggle-mode {
-      position: fixed;
-      top: 10px;
-      right: 10px;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
       padding: 0.5rem 1rem;
       background: #000;
       color: #fff;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      z-index: 1000;
+      z-index: 10;
     }
   </style>
 </head>
 <body>
-  <button class="toggle-mode" onclick="toggleDarkMode()">Toggle Dark Mode</button>
-  <header>🏡 Family Life Dashboard</header>
+  <header>
+    🏡 Family Life Dashboard
+    <button class="toggle-mode" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+  </header>
 
   <section>
     <h2>📶 Wi-Fi QR Code</h2>
-    <input id="ssid" placeholder="Wi-Fi Name (SSID)" />
-    <input id="password" placeholder="Wi-Fi Password" type="password" />
-    <button onclick="generateQRCode()">Generate QR Code</button>
-    <div class="qr-output" id="qrcode"></div>
+    <div class="qr-output">
+      <canvas id="qrcode"></canvas>
+    </div>
   </section>
 
   <section>
@@ -110,29 +113,22 @@
   </section>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script src="config.js"></script>
   <script>
-    function populateFields() {
-      if (window.config) {
-        document.getElementById("ssid").value = config.wifiName || "";
-        document.getElementById("password").value = config.wifiPassword || "";
-        document.getElementById("calendarFrame").src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(config.calendarEmail)}&ctz=Europe%2FLondon`;
-      }
-    }
+    window.onload = function () {
+      const calendarEmail = "benton.family19@gmail.com";
+      const ssid = "BenBen";
+      const password = "CarHenRobMea!123";
 
-    function generateQRCode() {
-      const ssid = document.getElementById("ssid").value;
-      const password = document.getElementById("password").value;
-      if (!ssid || !password) {
-        alert("Please enter both SSID and password.");
-        return;
-      }
+      // Set calendar iframe
+      document.getElementById("calendarFrame").src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarEmail)}&ctz=Europe%2FLondon`;
+
+      // Auto-generate QR
       const qr = new QRious({
         element: document.getElementById("qrcode"),
         size: 200,
         value: `WIFI:T:WPA;S:${ssid};P:${password};;`
       });
-    }
+    };
 
     function updatePoints() {
       const checkboxes = document.querySelectorAll(".chore-list input[type='checkbox']");
@@ -157,8 +153,6 @@
     function toggleDarkMode() {
       document.body.classList.toggle("dark");
     }
-
-    window.onload = populateFields;
   </script>
 </body>
 </html>
