@@ -78,6 +78,11 @@
       align-items: center;
       justify-content: center;
       box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      transition: background 0.3s, transform 0.3s;
+    }
+    .toggle-mode.sun {
+      background: #ffd700;
+      color: #333;
     }
   </style>
 </head>
@@ -86,7 +91,7 @@
     🏡 Family Life Dashboard
   </header>
 
-  <button class="toggle-mode" onclick="toggleDarkMode()">🌙</button>
+  <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
 
   <section>
     <h2>📶 Wi-Fi QR Code</h2>
@@ -133,6 +138,18 @@
         size: 200,
         value: `WIFI:T:WPA;S:${ssid};P:${password};;`
       });
+
+      const storedTheme = localStorage.getItem("theme");
+      const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
+
+      if (shouldUseDark) {
+        document.body.classList.add("dark");
+        setModeIcon(true);
+      } else {
+        document.body.classList.remove("dark");
+        setModeIcon(false);
+      }
     };
 
     function updatePoints() {
@@ -156,7 +173,20 @@
     }
 
     function toggleDarkMode() {
-      document.body.classList.toggle("dark");
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+      setModeIcon(isDark);
+    }
+
+    function setModeIcon(isDark) {
+      const button = document.getElementById("modeToggle");
+      if (isDark) {
+        button.textContent = "☀️";
+        button.classList.add("sun");
+      } else {
+        button.textContent = "🌙";
+        button.classList.remove("sun");
+      }
     }
   </script>
 </body>
