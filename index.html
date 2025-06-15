@@ -5,12 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Life Dashboard</title>
   <style>
+    :root {
+      --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet);
+      --text: #333;
+      --section-bg: white;
+    }
+    body.dark {
+      --bg: #111;
+      --text: #f1f1f1;
+      --section-bg: #222;
+    }
     body {
       font-family: sans-serif;
       margin: 0;
       padding: 0;
-      background: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet);
-      color: #333;
+      background: var(--bg);
+      color: var(--text);
     }
     header {
       background: rgba(255, 255, 255, 0.8);
@@ -20,15 +30,19 @@
       font-weight: bold;
       border-bottom: 3px solid #fff;
     }
+    .dark header {
+      background: rgba(0, 0, 0, 0.8);
+      border-bottom: 3px solid #444;
+    }
     section {
-      background: white;
+      background: var(--section-bg);
       margin: 1rem;
       padding: 1rem;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     h2 {
-      color: #444;
+      color: var(--text);
     }
     input, select, button, textarea {
       width: 100%;
@@ -45,9 +59,22 @@
     .chore-list li {
       margin-bottom: 0.5rem;
     }
+    .toggle-mode {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 0.5rem 1rem;
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
+  <button class="toggle-mode" onclick="toggleDarkMode()">Toggle Dark Mode</button>
   <header>🏡 Family Life Dashboard</header>
 
   <section>
@@ -85,17 +112,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="config.js"></script>
   <script>
-    window.onload = function () {
+    function populateFields() {
       if (window.config) {
-        document.getElementById("ssid").value = config.wifiName;
-        document.getElementById("password").value = config.wifiPassword;
+        document.getElementById("ssid").value = config.wifiName || "";
+        document.getElementById("password").value = config.wifiPassword || "";
         document.getElementById("calendarFrame").src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(config.calendarEmail)}&ctz=Europe%2FLondon`;
       }
-    };
+    }
 
     function generateQRCode() {
       const ssid = document.getElementById("ssid").value;
       const password = document.getElementById("password").value;
+      if (!ssid || !password) {
+        alert("Please enter both SSID and password.");
+        return;
+      }
       const qr = new QRious({
         element: document.getElementById("qrcode"),
         size: 200,
@@ -122,6 +153,12 @@
       mealList.appendChild(li);
       mealInput.value = "";
     }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    window.onload = populateFields;
   </script>
 </body>
 </html>
