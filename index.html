@@ -84,6 +84,11 @@
       background: #ffd700;
       color: #333;
     }
+    details summary {
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -94,10 +99,12 @@
   <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
 
   <section>
-    <h2>📶 Wi-Fi QR Code</h2>
-    <div class="qr-output">
-      <canvas id="qrcode"></canvas>
-    </div>
+    <details>
+      <summary>📶 Show Wi-Fi QR Code</summary>
+      <div class="qr-output">
+        <canvas id="qrcode"></canvas>
+      </div>
+    </details>
   </section>
 
   <section>
@@ -127,6 +134,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script>
     window.onload = function () {
+      const wifiDetails = document.querySelector("section details");
+      const wifiOpened = localStorage.getItem("wifiExpanded");
+      if (!wifiOpened) {
+        wifiDetails.setAttribute("open", "true");
+        localStorage.setItem("wifiExpanded", "true");
+      }
       const calendarEmail = "benton.family19@gmail.com";
       const ssid = "BenBen";
       const password = "CarHenRobMea!123";
