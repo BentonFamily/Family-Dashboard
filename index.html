@@ -1,9 +1,11 @@
+<!-- Full updated HTML with live chore sync to Google Sheet -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Life Dashboard</title>
+  <script src="https://apis.google.com/js/api.js"></script>
   <style>
     :root {
       --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet);
@@ -54,13 +56,6 @@
       border-radius: 5px;
       border: 1px solid #ccc;
     }
-    .qr-output {
-      text-align: center;
-      margin-top: 1rem;
-    }
-    .chore-list li {
-      margin-bottom: 0.5rem;
-    }
     .toggle-mode {
       position: fixed;
       bottom: 1rem;
@@ -83,6 +78,9 @@
     .toggle-mode.sun {
       background: #ffd700;
       color: #333;
+    }
+    .child-container {
+      margin-bottom: 1rem;
     }
     details summary {
       font-weight: bold;
@@ -109,80 +107,56 @@
 
   <section>
     <h2>🧹 Chores & Pocket Money</h2>
-    <ul class="chore-list">
-      <li><input type="checkbox" onchange="updatePoints()" /> Tidy Room (5 points)</li>
-      <li><input type="checkbox" onchange="updatePoints()" /> Feed Pets (3 points)</li>
-      <li><input type="checkbox" onchange="updatePoints()" /> Help Set Table (2 points)</li>
-    </ul>
-    <p>Total Points: <strong id="points">0</strong></p>
-  </section>
-
+    <div class="child-container">
+      <h3>Robin</h3>
+      <select id="robinChores" multiple size="6" onchange="calculateAndWrite('robinChores', 'robinEarnings', 'Robin', 'B2')">
+  <option value="Tidy Room">Tidy Room</option>
+  <option value="Empty/Refill Dishwasher">Empty/Refill Dishwasher</option>
+  <option value="Set the table">Set the table</option>
+  <option value="Help with washing">Help with washing</option>
+  <option value="House Cleaning">House Cleaning</option>
+  <option value="Other">Other</option>
+</select>
+      <p>Money Earned: £<span id="robinEarnings">0</span></p>
+    </div>
+    <div class="child-container">
+      <h3>Méabh</h3>
+      <select id="meabhChores" multiple size="6" onchange="calculateAndWrite('meabhChores', 'meabhEarnings', 'Méabh', 'B3')">
+  <option value="Tidy Room">Tidy Room</option>
+  <option value="Empty/Refill Dishwasher">Empty/Refill Dishwasher</option>
+  <option value="Set the table">Set the table</option>
+  <option value="Help with washing">Help with washing</option>
+  <option value="House Cleaning">House Cleaning</option>
+  <option value="Other">Other</option>
+</select>
+      <p>Money Earned: £<span id="meabhEarnings">0</span></p>
+    </div>
   <section>
-    <h2>🍽️ Meal Planner & Shopping List</h2>
-    <input id="mealInput" placeholder="Enter Meal Name" />
-    <button onclick="addMeal()">Add Meal</button>
-    <ul id="mealList"></ul>
-    <h3>🛒 Shopping List</h3>
-    <textarea id="shoppingList" rows="5" placeholder="List of items..."></textarea>
-  </section>
+  <h2>📅 Family Calendar</h2>
+  <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no" src="https://calendar.google.com/calendar/embed?src=benton.family19%40gmail.com&ctz=Europe%2FLondon"></iframe>
+</section>
+<script>
+    function calculateAndWrite(selectId, outputId, name, cellRow) {
+      const select = document.getElementById(selectId);
+      const selected = Array.from(select.selectedOptions).map(o => o.value);
+      let amount = 0;
+      if (selected.length === 1) amount = 1;
+      else if (selected.length === 2) amount = 3;
+      else if (selected.length >= 3) amount = 5;
+      document.getElementById(outputId).textContent = amount;
 
-  <section>
-    <h2>📅 Family Calendar</h2>
-    <iframe id="calendarFrame" style="border: 0" width="100%" height="400" frameborder="0" scrolling="no"></iframe>
-  </section>
+      // Prepare payload for Apps Script
+      const data = {
+        range: `ChoresList!${cellRow}:D${cellRow.charAt(1)}`,
+        values: [[selected.join(", "), amount]]
+      };
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script>
-    window.onload = function () {
-      const wifiDetails = document.querySelector("section details");
-      const wifiOpened = localStorage.getItem("wifiExpanded");
-      if (!wifiOpened) {
-        wifiDetails.setAttribute("open", "true");
-        localStorage.setItem("wifiExpanded", "true");
-      }
-      const calendarEmail = "benton.family19@gmail.com";
-      const ssid = "BenBen";
-      const password = "CarHenRobMea!123";
-
-      document.getElementById("calendarFrame").src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarEmail)}&ctz=Europe%2FLondon`;
-
-      const qr = new QRious({
-        element: document.getElementById("qrcode"),
-        size: 200,
-        value: `WIFI:T:WPA;S:${ssid};P:${password};;`
+      fetch("https://script.google.com/macros/s/AKfycbxfo_m2B3wEVgRKHwDpaKZWXAHs91yDGKnCYoOQSLjt36l9y11aYKxuVmfZwbQdoRSrHA/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
       });
-
-      const storedTheme = localStorage.getItem("theme");
-      const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
-
-      if (shouldUseDark) {
-        document.body.classList.add("dark");
-        setModeIcon(true);
-      } else {
-        document.body.classList.remove("dark");
-        setModeIcon(false);
-      }
-    };
-
-    function updatePoints() {
-      const checkboxes = document.querySelectorAll(".chore-list input[type='checkbox']");
-      let total = 0;
-      checkboxes.forEach((cb, i) => {
-        if (cb.checked) {
-          total += [5, 3, 2][i];
-        }
-      });
-      document.getElementById("points").textContent = total;
-    }
-
-    function addMeal() {
-      const mealInput = document.getElementById("mealInput");
-      const mealList = document.getElementById("mealList");
-      const li = document.createElement("li");
-      li.textContent = mealInput.value;
-      mealList.appendChild(li);
-      mealInput.value = "";
     }
 
     function toggleDarkMode() {
