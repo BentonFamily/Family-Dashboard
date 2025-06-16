@@ -1,0 +1,25 @@
+function weeklyChoreSync() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+  // Define static chore data
+  const kids = [
+    { name: "Robin", range: "B2:D2" },
+    { name: "Méabh", range: "B3:D3" }
+  ];
+
+  kids.forEach(kid => {
+    const row = sheet.getRange(kid.range).getValues()[0];
+    const chores = row[0]; // Comma-separated string
+    const amount = row[1];
+
+    sheet.appendRow([
+      new Date(),
+      kid.name,
+      chores,
+      amount
+    ]);
+
+    // Reset original row data after logging
+    sheet.getRange(kid.range).clearContent();
+  });
+}
