@@ -5,7 +5,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Life Dashboard</title>
-  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://apis.google.com/js/api.js">function fetchTotals() {
+  fetch("https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Totals!B2:B3?majorDimension=COLUMNS&key=AIzaSyAzLBA3Hirfns2CEy2rjm4UpaatNJ45P8s")
+    .then(response => response.json())
+    .then(data => {
+      const [robin, meabh] = data.values[0];
+      document.getElementById("robinTotal").textContent = robin || 0;
+      document.getElementById("meabhTotal").textContent = meabh || 0;
+    })
+    .catch(() => {
+      document.getElementById("robinTotal").textContent = "-";
+      document.getElementById("meabhTotal").textContent = "-";
+    });
+}
+
+window.onload = function() {
+  initializePage();
+  fetchTotals();
+};
+</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <style>
     :root {
@@ -90,7 +108,7 @@
     }
   </style>
 </head>
-<body onload="initializePage()">
+<body>
   <header>
     🏡 Family Life Dashboard
   </header>
@@ -119,6 +137,7 @@
         <option value="Other">Other</option>
       </select>
       <p>Money Earned: £<span id="robinEarnings">0</span></p>
+<p>🔁 Total Earned: £<span id="robinTotal">...</span></p>
     </div>
     <div class="child-container">
       <h3>Méabh</h3>
@@ -131,6 +150,7 @@
         <option value="Other">Other</option>
       </select>
       <p>Money Earned: £<span id="meabhEarnings">0</span></p>
+<p>🔁 Total Earned: £<span id="meabhTotal">...</span></p>
     </div>
   </section>
 
