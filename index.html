@@ -163,7 +163,7 @@
           new QRious({
             element: document.getElementById("qrcode"),
             size: 200,
-            value: `WIFI:T:WPA;S=BenBen;P=CarHenRobMea!123;;`
+            value: `WIFI:T:WPA;S:${window.config.wifiName};P:${window.config.wifiPassword};;`
           });
         }
       });
