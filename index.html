@@ -1,4 +1,3 @@
-<!-- Full updated HTML with secure API key handling and stable feature behavior -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -138,13 +137,12 @@
   </section>
 
   <section>
-    <h2>📅 Family Calendar</h2>
+    <h2>🗕️ Family Calendar</h2>
     <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no"></iframe>
   </section>
 
   <script>
     function initializePage() {
-      // Theme setup
       const storedTheme = localStorage.getItem("theme");
       const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
@@ -156,35 +154,20 @@
         setModeIcon(false);
       }
 
-      // QR Setup
-      const wifiDetails = document.getElementById("wifiDetails");
-      wifiDetails.addEventListener("toggle", () => {
+      document.getElementById("wifiDetails").addEventListener("toggle", () => {
         if (wifiDetails.open) {
           new QRious({
             element: document.getElementById("qrcode"),
             size: 200,
-            value: `WIFI:T:WPA;S:${window.config.wifiName};P:${window.config.wifiPassword};;`
+            value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
           });
         }
       });
 
-      // Calendar setup
-      document.getElementById("calendarFrame").src = "https://calendar.google.com/calendar/embed?src=benton.family19%40gmail.com&ctz=Europe%2FLondon";
+      document.getElementById("calendarFrame").src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(window.config.calendarEmail)}&ctz=Europe%2FLondon`;
 
-      // Only fetch totals if config is loaded
-      if (window.config && window.config.sheetsApiKey) {
-        fetch(`https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Totals!B2:B3?majorDimension=COLUMNS&key=${window.config.sheetsApiKey}`)
-          .then(r => r.json())
-          .then(data => {
-            const [robin, meabh] = data.values[0];
-            document.getElementById("robinTotal").textContent = robin || 0;
-            document.getElementById("meabhTotal").textContent = meabh || 0;
-          })
-          .catch(() => {
-            document.getElementById("robinTotal").textContent = "-";
-            document.getElementById("meabhTotal").textContent = "-";
-          });
-      }
+      populateChoreSelections();
+      fetchTotals();
     }
 
     function calculateAndWrite(selectId, outputId, name, cellRow) {
@@ -197,7 +180,7 @@
       document.getElementById(outputId).textContent = amount;
 
       const data = {
-        range: `ChoresList!${cellRow}:D${cellRow.charAt(1)}`,
+        range: `Selections!${cellRow}:D${cellRow.charAt(1)}`,
         values: [[selected.join(", "), amount]]
       };
 
@@ -207,6 +190,41 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
+    }
+
+    function populateChoreSelections() {
+      const kids = [
+        { id: "robinChores", cell: "B2" },
+        { id: "meabhChores", cell: "B3" }
+      ];
+      kids.forEach(kid => {
+        fetch(`https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Selections!${kid.cell}?key=${window.config.sheetsApiKey}`)
+          .then(res => res.json())
+          .then(data => {
+            const chores = data.values?.[0]?.[0];
+            if (!chores) return;
+            const selected = chores.split(",").map(s => s.trim());
+            const select = document.getElementById(kid.id);
+            Array.from(select.options).forEach(option => {
+              option.selected = selected.includes(option.value);
+            });
+            select.dispatchEvent(new Event("change"));
+          });
+      });
+    }
+
+    function fetchTotals() {
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Totals!B2:B3?majorDimension=COLUMNS&key=${window.config.sheetsApiKey}`)
+        .then(r => r.json())
+        .then(data => {
+          const [robin, meabh] = data.values?.[0] || [];
+          document.getElementById("robinTotal").textContent = robin || "-";
+          document.getElementById("meabhTotal").textContent = meabh || "-";
+        })
+        .catch(() => {
+          document.getElementById("robinTotal").textContent = "-";
+          document.getElementById("meabhTotal").textContent = "-";
+        });
     }
 
     function toggleDarkMode() {
