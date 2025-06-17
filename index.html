@@ -1,4 +1,4 @@
-<!-- Full updated HTML with live chore sync to Google Sheet -->
+<!-- Full updated HTML with corrected QR and theme logic -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Life Dashboard</title>
   <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <style>
     :root {
       --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet);
@@ -89,7 +90,7 @@
     }
   </style>
 </head>
-<body>
+<body onload="initializePage()">
   <header>
     🏡 Family Life Dashboard
   </header>
@@ -97,12 +98,12 @@
   <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
 
   <section>
-    <details>
-      <summary>📶 Show Wi-Fi QR Code</summary>
-      <div class="qr-output">
-        <canvas id="qrcode"></canvas>
-      </div>
-    </details>
+    <details id="wifiDetails">
+  <summary>📶 Show Wi-Fi QR Code</summary>
+  <div class="qr-output">
+    <canvas id="qrcode"></canvas>
+  </div>
+</details>
   </section>
 
   <section>
@@ -110,32 +111,76 @@
     <div class="child-container">
       <h3>Robin</h3>
       <select id="robinChores" multiple size="6" onchange="calculateAndWrite('robinChores', 'robinEarnings', 'Robin', 'B2')">
-  <option value="Tidy Room">Tidy Room</option>
-  <option value="Empty/Refill Dishwasher">Empty/Refill Dishwasher</option>
-  <option value="Set the table">Set the table</option>
-  <option value="Help with washing">Help with washing</option>
-  <option value="House Cleaning">House Cleaning</option>
-  <option value="Other">Other</option>
-</select>
+        <option value="Tidy Room">Tidy Room</option>
+        <option value="Empty/Refill Dishwasher">Empty/Refill Dishwasher</option>
+        <option value="Set the table">Set the table</option>
+        <option value="Help with washing">Help with washing</option>
+        <option value="House Cleaning">House Cleaning</option>
+        <option value="Other">Other</option>
+      </select>
       <p>Money Earned: £<span id="robinEarnings">0</span></p>
     </div>
     <div class="child-container">
       <h3>Méabh</h3>
       <select id="meabhChores" multiple size="6" onchange="calculateAndWrite('meabhChores', 'meabhEarnings', 'Méabh', 'B3')">
-  <option value="Tidy Room">Tidy Room</option>
-  <option value="Empty/Refill Dishwasher">Empty/Refill Dishwasher</option>
-  <option value="Set the table">Set the table</option>
-  <option value="Help with washing">Help with washing</option>
-  <option value="House Cleaning">House Cleaning</option>
-  <option value="Other">Other</option>
-</select>
+        <option value="Tidy Room">Tidy Room</option>
+        <option value="Empty/Refill Dishwasher">Empty/Refill Dishwasher</option>
+        <option value="Set the table">Set the table</option>
+        <option value="Help with washing">Help with washing</option>
+        <option value="House Cleaning">House Cleaning</option>
+        <option value="Other">Other</option>
+      </select>
       <p>Money Earned: £<span id="meabhEarnings">0</span></p>
     </div>
+  </section>
+
   <section>
-  <h2>📅 Family Calendar</h2>
-  <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no" src="https://calendar.google.com/calendar/embed?src=benton.family19%40gmail.com&ctz=Europe%2FLondon"></iframe>
-</section>
-<script>
+    <h2>📅 Family Calendar</h2>
+    <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no"></iframe>
+  </section>
+
+  <script>
+    function initializePage() {
+  const wifiDetails = document.getElementById("wifiDetails");
+  wifiDetails.addEventListener("toggle", () => {
+    if (wifiDetails.open) {
+      const ssid = "BenBen";
+      const password = "CarHenRobMea!123";
+      new QRious({
+        element: document.getElementById("qrcode"),
+        size: 200,
+        value: `WIFI:T:WPA;S:${ssid};P:${password};;`
+      });
+    }
+  });
+      const calendarEmail = "benton.family19@gmail.com";
+      const ssid = "BenBen";
+      const password = "CarHenRobMea!123";
+
+      const qrCanvas = document.getElementById("qrcode");
+      if (qrCanvas) {
+        new QRious({
+          element: qrCanvas,
+          size: 200,
+          value: `WIFI:T:WPA;S:${ssid};P:${password};;`
+        });
+      }
+
+      document.getElementById("calendarFrame").src = "https://calendar.google.com/calendar/embed?src=benton.family19%40gmail.com&ctz=Europe%2FLondon";
+
+      const storedTheme = localStorage.getItem("theme");
+      const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
+
+      if (shouldUseDark) {
+        document.body.classList.add("dark");
+        setModeIcon(true);
+      } else {
+        document.body.classList.remove("dark");
+        setModeIcon(false);
+      }
+    }
+
     function calculateAndWrite(selectId, outputId, name, cellRow) {
       const select = document.getElementById(selectId);
       const selected = Array.from(select.selectedOptions).map(o => o.value);
@@ -145,7 +190,6 @@
       else if (selected.length >= 3) amount = 5;
       document.getElementById(outputId).textContent = amount;
 
-      // Prepare payload for Apps Script
       const data = {
         range: `ChoresList!${cellRow}:D${cellRow.charAt(1)}`,
         values: [[selected.join(", "), amount]]
