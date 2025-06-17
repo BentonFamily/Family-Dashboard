@@ -1,29 +1,12 @@
-<!-- Full updated HTML with corrected QR and theme logic -->
+<!-- Full updated HTML with secure API key handling and stable feature behavior -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Life Dashboard</title>
-  <script src="https://apis.google.com/js/api.js">function fetchTotals() {
-  fetch("https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Totals!B2:B3?majorDimension=COLUMNS&key=AIzaSyAzLBA3Hirfns2CEy2rjm4UpaatNJ45P8s")
-    .then(response => response.json())
-    .then(data => {
-      const [robin, meabh] = data.values[0];
-      document.getElementById("robinTotal").textContent = robin || 0;
-      document.getElementById("meabhTotal").textContent = meabh || 0;
-    })
-    .catch(() => {
-      document.getElementById("robinTotal").textContent = "-";
-      document.getElementById("meabhTotal").textContent = "-";
-    });
-}
-
-window.onload = function() {
-  initializePage();
-  fetchTotals();
-};
-</script>
+  <script src="config.js"></script>
+  <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <style>
     :root {
@@ -112,16 +95,15 @@ window.onload = function() {
   <header>
     🏡 Family Life Dashboard
   </header>
-
   <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
 
   <section>
     <details id="wifiDetails">
-  <summary>📶 Show Wi-Fi QR Code</summary>
-  <div class="qr-output">
-    <canvas id="qrcode"></canvas>
-  </div>
-</details>
+      <summary>📶 Show Wi-Fi QR Code</summary>
+      <div class="qr-output">
+        <canvas id="qrcode"></canvas>
+      </div>
+    </details>
   </section>
 
   <section>
@@ -137,7 +119,7 @@ window.onload = function() {
         <option value="Other">Other</option>
       </select>
       <p>Money Earned: £<span id="robinEarnings">0</span></p>
-<p>🔁 Total Earned: £<span id="robinTotal">...</span></p>
+      <p>🔁 Total Earned: £<span id="robinTotal">...</span></p>
     </div>
     <div class="child-container">
       <h3>Méabh</h3>
@@ -150,7 +132,7 @@ window.onload = function() {
         <option value="Other">Other</option>
       </select>
       <p>Money Earned: £<span id="meabhEarnings">0</span></p>
-<p>🔁 Total Earned: £<span id="meabhTotal">...</span></p>
+      <p>🔁 Total Earned: £<span id="meabhTotal">...</span></p>
     </div>
   </section>
 
@@ -161,43 +143,46 @@ window.onload = function() {
 
   <script>
     function initializePage() {
-  const wifiDetails = document.getElementById("wifiDetails");
-  wifiDetails.addEventListener("toggle", () => {
-    if (wifiDetails.open) {
-      const ssid = "BenBen";
-      const password = "CarHenRobMea!123";
-      new QRious({
-        element: document.getElementById("qrcode"),
-        size: 200,
-        value: `WIFI:T:WPA;S:${ssid};P:${password};;`
-      });
-    }
-  });
-      const calendarEmail = "benton.family19@gmail.com";
-      const ssid = "BenBen";
-      const password = "CarHenRobMea!123";
-
-      const qrCanvas = document.getElementById("qrcode");
-      if (qrCanvas) {
-        new QRious({
-          element: qrCanvas,
-          size: 200,
-          value: `WIFI:T:WPA;S:${ssid};P:${password};;`
-        });
-      }
-
-      document.getElementById("calendarFrame").src = "https://calendar.google.com/calendar/embed?src=benton.family19%40gmail.com&ctz=Europe%2FLondon";
-
+      // Theme setup
       const storedTheme = localStorage.getItem("theme");
       const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
-
       if (shouldUseDark) {
         document.body.classList.add("dark");
         setModeIcon(true);
       } else {
         document.body.classList.remove("dark");
         setModeIcon(false);
+      }
+
+      // QR Setup
+      const wifiDetails = document.getElementById("wifiDetails");
+      wifiDetails.addEventListener("toggle", () => {
+        if (wifiDetails.open) {
+          new QRious({
+            element: document.getElementById("qrcode"),
+            size: 200,
+            value: `WIFI:T:WPA;S=BenBen;P=CarHenRobMea!123;;`
+          });
+        }
+      });
+
+      // Calendar setup
+      document.getElementById("calendarFrame").src = "https://calendar.google.com/calendar/embed?src=benton.family19%40gmail.com&ctz=Europe%2FLondon";
+
+      // Only fetch totals if config is loaded
+      if (window.config && window.config.sheetsApiKey) {
+        fetch(`https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Totals!B2:B3?majorDimension=COLUMNS&key=${window.config.sheetsApiKey}`)
+          .then(r => r.json())
+          .then(data => {
+            const [robin, meabh] = data.values[0];
+            document.getElementById("robinTotal").textContent = robin || 0;
+            document.getElementById("meabhTotal").textContent = meabh || 0;
+          })
+          .catch(() => {
+            document.getElementById("robinTotal").textContent = "-";
+            document.getElementById("meabhTotal").textContent = "-";
+          });
       }
     }
 
@@ -231,14 +216,11 @@ window.onload = function() {
 
     function setModeIcon(isDark) {
       const button = document.getElementById("modeToggle");
-      if (isDark) {
-        button.textContent = "☀️";
-        button.classList.add("sun");
-      } else {
-        button.textContent = "🌙";
-        button.classList.remove("sun");
-      }
+      button.textContent = isDark ? "☀️" : "🌙";
+      button.classList.toggle("sun", isDark);
     }
+
+    window.onload = initializePage;
   </script>
 </body>
 </html>
