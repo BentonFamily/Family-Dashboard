@@ -159,7 +159,7 @@
           new QRious({
             element: document.getElementById("qrcode"),
             size: 200,
-            value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
+            value: `WIFI:T:WPA;S:${window.config.wifiName};P:${window.config.wifiPassword};;`
           });
         }
       });
@@ -186,9 +186,16 @@
 
       fetch("https://script.google.com/macros/s/AKfycbxfo_m2B3wEVgRKHwDpaKZWXAHs91yDGKnCYoOQSLjt36l9y11aYKxuVmfZwbQdoRSrHA/exec", {
         method: "POST",
-        mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("Failed to save chore selection");
+        console.log("Saved successfully");
+      })
+      .catch(error => {
+        alert("Error saving chores. Try again?");
+        console.error(error);
       });
     }
 
@@ -198,12 +205,14 @@
         { id: "meabhChores", cell: "B3" }
       ];
       kids.forEach(kid => {
-        fetch(`https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Selections!${kid.cell}?key=${window.config.sheetsApiKey}`)
+        fetch(`https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Selections!${kid.cell}:D${kid.cell.charAt(1)}?key=${window.config.sheetsApiKey}`)
           .then(res => res.json())
           .then(data => {
-            const chores = data.values?.[0]?.[0];
-            if (!chores) return;
-            const selected = chores.split(",").map(s => s.trim());
+            const row = data.values?.[0];
+            const choreString = row?.[0];
+            if (!choreString) return;
+
+            const selected = choreString.split(",").map(s => s.trim());
             const select = document.getElementById(kid.id);
             Array.from(select.options).forEach(option => {
               option.selected = selected.includes(option.value);
