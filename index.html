@@ -186,20 +186,11 @@
 
       fetch("https://script.google.com/macros/s/AKfycbxfo_m2B3wEVgRKHwDpaKZWXAHs91yDGKnCYoOQSLjt36l9y11aYKxuVmfZwbQdoRSrHA/exec", {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  mode: "no-cors",
+  headers: {
+    "Content-Type": "application/json"
+  },
   body: JSON.stringify(data)
-})
-.then(async response => {
-  const text = await response.text();
-  if (!response.ok) {
-    console.error("Server responded with:", text);
-    throw new Error("Server error while saving chore.");
-  }
-  console.log("Saved OK:", text);
-})
-.catch(error => {
-  alert("Error saving chores. Try again?");
-  console.error("Fetch failed:", error);
 });
     }
 
