@@ -6,7 +6,6 @@
   <title>Family Life Dashboard</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <script src="config.js"></script>
-  <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <style>
     :root {
@@ -47,16 +46,24 @@
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h2 {
+    h2, h3 {
       color: var(--text);
     }
-    input, select, button, textarea {
-      width: 100%;
+    ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    li a {
+      display: inline-block;
+      margin: 0.25rem 0;
+      text-decoration: none;
+      background: #f0f0f0;
       padding: 0.5rem;
-      margin-top: 0.5rem;
-      margin-bottom: 1rem;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+      border-radius: 6px;
+      color: #333;
+    }
+    li a:hover {
+      background: #ddd;
     }
     .toggle-mode {
       position: fixed;
@@ -81,14 +88,6 @@
       background: #ffd700;
       color: #333;
     }
-    .child-container {
-      margin-bottom: 1rem;
-    }
-    details summary {
-      font-weight: bold;
-      cursor: pointer;
-      margin-bottom: 1rem;
-    }
   </style>
 </head>
 <body>
@@ -106,38 +105,36 @@
     </details>
   </section>
 
-  <section>
-    <h2>🧹 Chores & Pocket Money</h2>
-    <div class="child-container">
-      <h3>Robin</h3>
-      <select id="robinChores" multiple size="6" onchange="calculateAndWrite('robinChores', 'robinEarnings', 'Robin', 'B2')">
-        <option value="Tidy Room">Tidy Room</option>
-        <option value="Empty/Refill Dishwasher">Empty/Refill Dishwasher</option>
-        <option value="Set the table">Set the table</option>
-        <option value="Help with washing">Help with washing</option>
-        <option value="House Cleaning">House Cleaning</option>
-        <option value="Other">Other</option>
-      </select>
-      <p>Money Earned: £<span id="robinEarnings">0</span></p>
-      <p>🔁 Total Earned: £<span id="robinTotal">...</span></p>
-    </div>
-    <div class="child-container">
-      <h3>Méabh</h3>
-      <select id="meabhChores" multiple size="6" onchange="calculateAndWrite('meabhChores', 'meabhEarnings', 'Méabh', 'B3')">
-        <option value="Tidy Room">Tidy Room</option>
-        <option value="Empty/Refill Dishwasher">Empty/Refill Dishwasher</option>
-        <option value="Set the table">Set the table</option>
-        <option value="Help with washing">Help with washing</option>
-        <option value="House Cleaning">House Cleaning</option>
-        <option value="Other">Other</option>
-      </select>
-      <p>Money Earned: £<span id="meabhEarnings">0</span></p>
-      <p>🔁 Total Earned: £<span id="meabhTotal">...</span></p>
-    </div>
-  </section>
+  
 
   <section>
-    <h2>🗕️ Family Calendar</h2>
+    <h2>🧒 Log a Chore</h2>
+    <p>Select your name and the chore you completed. It will open a pre-filled form — just tap Submit.</p>
+    <div>
+      <h3>Robin</h3>
+      <ul>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Other" target="_blank">Other</a></li>
+      </ul>
+
+      <h3>Méabh</h3>
+      <ul>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Other" target="_blank">Other</a></li>
+      </ul>
+</div>
+</section>
+
+  <section>
+    <h2>📅 Family Calendar</h2>
     <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no"></iframe>
   </section>
 
@@ -159,76 +156,12 @@
           new QRious({
             element: document.getElementById("qrcode"),
             size: 200,
-            value: `WIFI:T:WPA;S:${window.config.wifiName};P:${window.config.wifiPassword};;`
+            value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
           });
         }
       });
 
       document.getElementById("calendarFrame").src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(window.config.calendarEmail)}&ctz=Europe%2FLondon`;
-
-      populateChoreSelections();
-      fetchTotals();
-    }
-
-    function calculateAndWrite(selectId, outputId, name, cellRow) {
-      const select = document.getElementById(selectId);
-      const selected = Array.from(select.selectedOptions).map(o => o.value);
-      let amount = 0;
-      if (selected.length === 1) amount = 1;
-      else if (selected.length === 2) amount = 3;
-      else if (selected.length >= 3) amount = 5;
-      document.getElementById(outputId).textContent = amount;
-
-      const data = {
-        range: `Selections!${cellRow}:D${cellRow.charAt(1)}`,
-        values: [[selected.join(", "), amount]]
-      };
-
-      fetch("https://script.google.com/macros/s/AKfycbxJYUzzBId-b1kaztZe7anRVAx6rg9GCUDJ9soLI4HO2sxZPz3SKgqKjkaI5PaEVGvXkA/exec", {
-  method: "POST",
-  mode: "no-cors",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(data)
-});
-    }
-
-    function populateChoreSelections() {
-      const kids = [
-        { id: "robinChores", cell: "B2" },
-        { id: "meabhChores", cell: "B3" }
-      ];
-      kids.forEach(kid => {
-        fetch(`https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Selections!${kid.cell}:D${kid.cell.charAt(1)}?key=${window.config.sheetsApiKey}`)
-          .then(res => res.json())
-          .then(data => {
-            const row = data.values?.[0];
-            const choreString = row?.[0];
-            if (!choreString) return;
-
-            const selected = choreString.split(",").map(s => s.trim());
-            const select = document.getElementById(kid.id);
-            Array.from(select.options).forEach(option => {
-              option.selected = selected.includes(option.value);
-            });
-            select.dispatchEvent(new Event("change"));
-          });
-      });
-    }
-
-    function fetchTotals() {
-      fetch(`https://sheets.googleapis.com/v4/spreadsheets/1BjGD5IQOpxut5UWG9feESm-lZdOTuLpaFVh66AmgJCg/values/Totals!B2:B3?majorDimension=COLUMNS&key=${window.config.sheetsApiKey}`)
-        .then(r => r.json())
-        .then(data => {
-          const [robin, meabh] = data.values?.[0] || [];
-          document.getElementById("robinTotal").textContent = robin || "-";
-          document.getElementById("meabhTotal").textContent = meabh || "-";
-        })
-        .catch(() => {
-          document.getElementById("robinTotal").textContent = "-";
-          document.getElementById("meabhTotal").textContent = "-";
-        });
     }
 
     function toggleDarkMode() {
