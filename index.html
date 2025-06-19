@@ -96,14 +96,51 @@
     .qr-output {
       margin-top: 1rem;
     }
+    .chore-summary h3 {
+      margin-top: 1rem;
+      color: #555;
+    }
+    .chore-summary p span {
+      display: inline-block;
+      min-width: 3em;
+      text-align: right;
+      font-weight: bold;
+      color: #2c3e50;
+      background: #ecf0f1;
+      border-radius: 5px;
+      padding: 2px 6px;
+    }
+    .dark .chore-summary p span {
+      background: #444;
+      color: #f1f1f1;
+    }
+    .progress-bar {
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      height: 20px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2ecc71, #27ae60);
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    .earnings-badge {
+      display: inline-block;
+      min-width: 3em;
+      text-align: right;
+      font-weight: bold;
+      color: white;
+      border-radius: 5px;
+      padding: 2px 8px;
+    }
   </style>
 </head>
 <body>
-  <header>
-    🏡 Family Life Dashboard
-  </header>
+  <header>🏡 Family Life Dashboard</header>
   <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
-
   <section>
     <details id="wifiDetails">
       <summary>📶 Show Wi-Fi QR Code</summary>
@@ -112,79 +149,38 @@
       </div>
     </details>
   </section>
-
   <section>
     <details open>
       <summary>🧒 Log a Chore</summary>
-      <p>Select your name and the chore you completed. It will open a pre-filled form — just tap Submit.</p>
-      <div>
+      <!-- Robin & Méabh links go here -->
+    </details>
+  </section>
+  <section>
+    <details open>
+      <summary>📈 Weekly Chore Summary</summary>
+      <div class="chore-summary">
         <h3>Robin</h3>
-        <ul>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Other" target="_blank">Other</a></li>
-        </ul>
+        <p>Chores completed this week: <span id="robinCount">0</span></p>
+        <p>Weekly earnings: £<span id="robinEarnings" class="earnings-badge">0.00</span></p>
+        <p>🎯 Goal: £60</p>
+        <div class="progress-bar"><div id="robinGoal" class="progress-fill"></div></div>
+        <p>Total so far: £<span id="robinTotal">0.00</span></p>
 
         <h3>Méabh</h3>
-        <ul>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Other" target="_blank">Other</a></li>
-        </ul>
+        <p>Chores completed this week: <span id="meabhCount">0</span></p>
+        <p>Weekly earnings: £<span id="meabhEarnings" class="earnings-badge">0.00</span></p>
+        <p>🎯 Goal: £60</p>
+        <div class="progress-bar"><div id="meabhGoal" class="progress-fill"></div></div>
+        <p>Total so far: £<span id="meabhTotal">0.00</span></p>
       </div>
     </details>
   </section>
-
-<section>
-  <details open>
-    <summary>📈 Weekly Chore Summary</summary>
-    <style>
-        .chore-summary h3 {
-          margin-top: 1rem;
-          color: #555;
-        }
-        .chore-summary p span {
-          display: inline-block;
-          min-width: 3em;
-          text-align: right;
-          font-weight: bold;
-          color: #2c3e50;
-          background: #ecf0f1;
-          border-radius: 5px;
-          padding: 2px 6px;
-        }
-        .dark .chore-summary p span {
-          background: #444;
-          color: #f1f1f1;
-        }
-      </style>
-      <div class="chore-summary">
-      <h3>Robin</h3>
-      <p>Chores completed this week: <span id="robinCount">0</span></p>
-      <p>Weekly earnings: £<span id="robinEarnings">0.00</span></p>
-      <p>Total so far: £<span id="robinTotal">0.00</span></p>
-
-      <h3>Méabh</h3>
-      <p>Chores completed this week: <span id="meabhCount">0</span></p>
-      <p>Weekly earnings: £<span id="meabhEarnings">0.00</span></p>
-      <p>Total so far: £<span id="meabhTotal">0.00</span></p>
-    </div>
-  </details>
-</section>
-
-<section>
-  <details open>
-    <summary>📅 Family Calendar</summary>
+  <section>
+    <details open>
+      <summary>📅 Family Calendar</summary>
       <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no"></iframe>
     </details>
   </section>
-
   <script>
     function initializePage() {
       const storedTheme = localStorage.getItem("theme");
@@ -223,13 +219,9 @@
       button.classList.toggle("sun", isDark);
     }
 
-    window.onload = initializePage;
-  </script>
-
-  <script>
     async function fetchChoreSummary() {
       try {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec");
+        const res = await fetch("https://script.google.com/macros/s/YOUR_DEPLOYED_URL/exec");
         const data = await res.json();
 
         document.getElementById("robinCount").textContent = data.Robin.count;
@@ -239,6 +231,21 @@
         document.getElementById("meabhCount").textContent = data["Méabh"].count;
         document.getElementById("meabhEarnings").textContent = data["Méabh"].weekly.toFixed(2);
         document.getElementById("meabhTotal").textContent = data["Méabh"].total.toFixed(2);
+
+        function setBadge(id, value) {
+          const el = document.getElementById(id);
+          if (value >= 5) el.style.backgroundColor = '#2ecc71';
+          else if (value === 3) el.style.backgroundColor = '#f1c40f';
+          else if (value === 1) el.style.backgroundColor = '#e67e22';
+          else el.style.backgroundColor = '#7f8c8d';
+        }
+        setBadge("robinEarnings", data.Robin.weekly);
+        setBadge("meabhEarnings", data["Méabh"].weekly);
+
+        const robinPercent = Math.min((data.Robin.total / 60) * 100, 100);
+        const meabhPercent = Math.min((data["Méabh"].total / 60) * 100, 100);
+        document.getElementById("robinGoal").style.width = robinPercent + "%";
+        document.getElementById("meabhGoal").style.width = meabhPercent + "%";
 
       } catch (e) {
         console.error("Failed to fetch chore summary:", e);
