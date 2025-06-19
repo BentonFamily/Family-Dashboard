@@ -205,5 +205,30 @@
 
     window.onload = initializePage;
   </script>
+
+  <script>
+    async function fetchChoreSummary() {
+      try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec");
+        const data = await res.json();
+
+        document.getElementById("robinCount").textContent = data.Robin.count;
+        document.getElementById("robinEarnings").textContent = data.Robin.weekly.toFixed(2);
+        document.getElementById("robinTotal").textContent = data.Robin.total.toFixed(2);
+
+        document.getElementById("meabhCount").textContent = data["Méabh"].count;
+        document.getElementById("meabhEarnings").textContent = data["Méabh"].weekly.toFixed(2);
+        document.getElementById("meabhTotal").textContent = data["Méabh"].total.toFixed(2);
+
+      } catch (e) {
+        console.error("Failed to fetch chore summary:", e);
+      }
+    }
+
+    window.onload = () => {
+      initializePage();
+      fetchChoreSummary();
+    }
+  </script>
 </body>
 </html>
