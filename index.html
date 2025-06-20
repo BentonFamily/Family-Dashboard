@@ -202,10 +202,21 @@
 
   <script>
     window.onload = () => {
+      const storedTheme = localStorage.getItem("theme");
+      const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
+      if (shouldUseDark) {
+        document.body.classList.add("dark");
+        setModeIcon(true);
+      } else {
+        document.body.classList.remove("dark");
+        setModeIcon(false);
+      }
+
       new QRious({
         element: document.getElementById("qrcode"),
         size: 200,
-        value: `WIFI:T:WPA;S=${encodeURIComponent(window.config.wifiName)};P=${encodeURIComponent(window.config.wifiPassword)};;`
+        value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
       });
 
       document.getElementById("calendarFrame").src =
@@ -216,6 +227,7 @@
       fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
         .then(res => res.json())
         .then(data => {
+          console.log("Returned chore data:", data);
           ["Robin", "Méabh"].forEach(name => {
             const id = name === "Robin" ? "robin" : "meabh";
             document.getElementById(id + "Count").textContent = data[name].count;
@@ -231,13 +243,16 @@
             else if (data[name].weekly === 1) el.style.backgroundColor = '#e67e22';
             else el.style.backgroundColor = '#7f8c8d';
 
-            if (data[name].count >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
-            if (data[name].total >= data[name].goalAmount) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
+            setTimeout(() => {
+              if (data[name].count >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
+              if (data[name].total >= data[name].goalAmount) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
+            }, 300);
           });
         })
         .catch(err => console.error("Error loading chore data", err));
     };
-  function toggleDarkMode() {
+
+    function toggleDarkMode() {
       const isDark = document.body.classList.toggle("dark");
       localStorage.setItem("theme", isDark ? "dark" : "light");
       setModeIcon(isDark);
