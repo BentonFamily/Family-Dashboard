@@ -244,6 +244,8 @@
             const id = idMap[name];
             const person = normalisedData[name];
 
+            console.log(`Loaded ${name}:`, JSON.stringify(person));
+
             if (!person) {
               console.warn(`No data found for ${name}`);
               return;
