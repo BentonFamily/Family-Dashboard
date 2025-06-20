@@ -7,103 +7,55 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
-    :root {
-      --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet);
-      --text: #333;
-      --section-bg: white;
-    }
-    body.dark {
-      --bg: #111;
-      --text: #f1f1f1;
-      --section-bg: #222;
-    }
     body {
       font-family: sans-serif;
+      background: #f8f8f8;
       margin: 0;
       padding: 0;
-      background: var(--bg);
-      color: var(--text);
-    }
-    header {
-      background: rgba(255, 255, 255, 0.8);
-      padding: 1rem;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-      border-bottom: 3px solid #fff;
-      position: relative;
-      z-index: 1;
-    }
-    .dark header {
-      background: rgba(0, 0, 0, 0.8);
-      border-bottom: 3px solid #444;
     }
     section {
-      background: var(--section-bg);
+      background: #fff;
       margin: 1rem;
       padding: 1rem;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h2, h3 {
-      color: var(--text);
-    }
-    ul {
-      list-style: none;
-      padding-left: 0;
-    }
-    li a {
-      display: inline-block;
-      margin: 0.25rem 0;
-      text-decoration: none;
-      background: #f0f0f0;
-      padding: 0.5rem;
-      border-radius: 6px;
-      color: #333;
-    }
-    li a:hover {
-      background: #ddd;
-    }
-    .toggle-mode {
-      position: fixed;
-      bottom: 1rem;
-      right: 1rem;
-      width: 50px;
-      height: 50px;
-      background: #000;
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      font-size: 24px;
-      cursor: pointer;
-      z-index: 999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-      transition: background 0.3s, transform 0.3s;
-    }
-    .toggle-mode.sun {
-      background: #ffd700;
-      color: #333;
-    }
-    details summary {
-      font-weight: bold;
-      cursor: pointer;
-      margin-bottom: 1rem;
-    }
-    .qr-output {
+    .chore-summary h3 {
       margin-top: 1rem;
+    }
+    .chore-summary p span {
+      display: inline-block;
+      min-width: 3em;
+      text-align: right;
+      font-weight: bold;
+    }
+    .progress-bar {
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      height: 20px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2ecc71, #27ae60);
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    .earnings-badge {
+      display: inline-block;
+      min-width: 3em;
+      text-align: right;
+      font-weight: bold;
+      color: white;
+      border-radius: 5px;
+      padding: 2px 8px;
     }
   </style>
 </head>
 <body>
-  <header>
-    🏡 Family Life Dashboard
-  </header>
-  <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
-
   <section>
     <details id="wifiDetails">
       <summary>📶 Show Wi-Fi QR Code</summary>
@@ -112,143 +64,93 @@
       </div>
     </details>
   </section>
+<section>
+    <details open>
+      <summary>🧒 Log a Chore</summary>
+      <ul>
+        <h3>Robin</h3>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Other" target="_blank">Other</a></li>
+        <h3>Méabh</h3>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Other" target="_blank">Other</a></li>
+      </ul>
+    </details>
+  </section>
 
   <section>
     <details open>
-      <summary>🧒 Log a Chore</summary>
-      <p>Select your name and the chore you completed. It will open a pre-filled form — just tap Submit.</p>
-      <div>
+      <summary>📈 Weekly Chore Summary</summary>
+      <div class="chore-summary">
         <h3>Robin</h3>
-        <ul>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Other" target="_blank">Other</a></li>
-        </ul>
+        <p>Chores completed this week: <span id="robinCount">0</span></p>
+        <p>Weekly earnings: £<span id="robinEarnings" class="earnings-badge">0.00</span></p>
+        <p>🎯 Goal: <span id="robinGoalName">Loading...</span> (£<span id="robinGoalAmount">0.00</span>)</p>
+        <div class="progress-bar"><div id="robinGoal" class="progress-fill"></div></div>
+        <p>Total so far: £<span id="robinTotal">0.00</span></p>
 
         <h3>Méabh</h3>
-        <ul>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
-          <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Other" target="_blank">Other</a></li>
-        </ul>
+        <p>Chores completed this week: <span id="meabhCount">0</span></p>
+        <p>Weekly earnings: £<span id="meabhEarnings" class="earnings-badge">0.00</span></p>
+        <p>🎯 Goal: <span id="meabhGoalName">Loading...</span> (£<span id="meabhGoalAmount">0.00</span>)</p>
+        <div class="progress-bar"><div id="meabhGoal" class="progress-fill"></div></div>
+        <p>Total so far: £<span id="meabhTotal">0.00</span></p>
       </div>
     </details>
   </section>
 
-<section>
-  <details open>
-    <summary>📈 Weekly Chore Summary</summary>
-    <style>
-        .chore-summary h3 {
-          margin-top: 1rem;
-          color: #555;
-        }
-        .chore-summary p span {
-          display: inline-block;
-          min-width: 3em;
-          text-align: right;
-          font-weight: bold;
-          color: #2c3e50;
-          background: #ecf0f1;
-          border-radius: 5px;
-          padding: 2px 6px;
-        }
-        .dark .chore-summary p span {
-          background: #444;
-          color: #f1f1f1;
-        }
-      </style>
-      <div class="chore-summary">
-      <h3>Robin</h3>
-      <p>Chores completed this week: <span id="robinCount">0</span></p>
-      <p>Weekly earnings: £<span id="robinEarnings">0.00</span></p>
-      <p>Total so far: £<span id="robinTotal">0.00</span></p>
-
-      <h3>Méabh</h3>
-      <p>Chores completed this week: <span id="meabhCount">0</span></p>
-      <p>Weekly earnings: £<span id="meabhEarnings">0.00</span></p>
-      <p>Total so far: £<span id="meabhTotal">0.00</span></p>
-    </div>
-  </details>
-</section>
-
-<section>
-  <details open>
-    <summary>📅 Family Calendar</summary>
+  <section>
+    <details open>
+      <summary>📅 Family Calendar</summary>
       <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no"></iframe>
     </details>
   </section>
 
   <script>
-    function initializePage() {
-      const storedTheme = localStorage.getItem("theme");
-      const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
-      if (shouldUseDark) {
-        document.body.classList.add("dark");
-        setModeIcon(true);
-      } else {
-        document.body.classList.remove("dark");
-        setModeIcon(false);
-      }
-
-      document.getElementById("wifiDetails").addEventListener("toggle", () => {
-        if (wifiDetails.open) {
-          new QRious({
-            element: document.getElementById("qrcode"),
-            size: 200,
-            value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
-          });
-        }
+    window.onload = () => {
+      new QRious({
+        element: document.getElementById("qrcode"),
+        size: 200,
+        value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
       });
 
-      document.getElementById("calendarFrame").src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(window.config.calendarEmail)}&ctz=Europe%2FLondon`;
-    }
+      document.getElementById("calendarFrame").src =
+        "https://calendar.google.com/calendar/embed?src=" +
+        encodeURIComponent(window.config.calendarEmail) +
+        "&ctz=Europe%2FLondon";
 
-    function toggleDarkMode() {
-      const isDark = document.body.classList.toggle("dark");
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-      setModeIcon(isDark);
-    }
+      fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
+        .then(res => res.json())
+        .then(data => {
+          ["Robin", "Méabh"].forEach(name => {
+            const id = name === "Robin" ? "robin" : "meabh";
+            document.getElementById(id + "Count").textContent = data[name].count;
+            document.getElementById(id + "Earnings").textContent = data[name].weekly.toFixed(2);
+            document.getElementById(id + "Total").textContent = data[name].total.toFixed(2);
+            document.getElementById(id + "GoalName").textContent = data[name].goalName;
+            document.getElementById(id + "GoalAmount").textContent = data[name].goalAmount.toFixed(2);
+            document.getElementById(id + "Goal").style.width = Math.min((data[name].total / data[name].goalAmount) * 100, 100) + "%";
 
-    function setModeIcon(isDark) {
-      const button = document.getElementById("modeToggle");
-      button.textContent = isDark ? "☀️" : "🌙";
-      button.classList.toggle("sun", isDark);
-    }
+            const el = document.getElementById(id + "Earnings");
+            if (data[name].weekly >= 5) el.style.backgroundColor = '#2ecc71';
+            else if (data[name].weekly === 3) el.style.backgroundColor = '#f1c40f';
+            else if (data[name].weekly === 1) el.style.backgroundColor = '#e67e22';
+            else el.style.backgroundColor = '#7f8c8d';
 
-    window.onload = initializePage;
-  </script>
-
-  <script>
-    async function fetchChoreSummary() {
-      try {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec");
-        const data = await res.json();
-
-        document.getElementById("robinCount").textContent = data.Robin.count;
-        document.getElementById("robinEarnings").textContent = data.Robin.weekly.toFixed(2);
-        document.getElementById("robinTotal").textContent = data.Robin.total.toFixed(2);
-
-        document.getElementById("meabhCount").textContent = data["Méabh"].count;
-        document.getElementById("meabhEarnings").textContent = data["Méabh"].weekly.toFixed(2);
-        document.getElementById("meabhTotal").textContent = data["Méabh"].total.toFixed(2);
-
-      } catch (e) {
-        console.error("Failed to fetch chore summary:", e);
-      }
-    }
-
-    window.onload = () => {
-      initializePage();
-      fetchChoreSummary();
-    }
+            if (data[name].count >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
+            if (data[name].total >= data[name].goalAmount) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
+          });
+        })
+        .catch(err => console.error("Error loading chore data", err));
+    };
   </script>
 </body>
 </html>
