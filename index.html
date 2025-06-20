@@ -181,14 +181,14 @@
         <h3>Robin</h3>
         <p>Chores completed this week: <span id="robinCount">0</span></p>
         <p>Weekly earnings: £<span id="robinEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <span id="robinGoal">Loading...</span> (£<span id="robinGoalAmount">0.00</span>)</p>
+        <p>🎯 Goal: <span id="robinGoalName">Loading...</span> (£<span id="robinGoalAmount">0.00</span>)</p>
         <div class="progress-bar"><div id="robinGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="robinTotal">0.00</span></p>
 
         <h3>Méabh</h3>
         <p>Chores completed this week: <span id="meabhCount">0</span></p>
         <p>Weekly earnings: £<span id="meabhEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <span id="meabhGoal">Loading...</span> (£<span id="meabhGoalAmount">0.00</span>)</p>
+        <p>🎯 Goal: <span id="meabhGoalName">Loading...</span> (£<span id="meabhGoalAmount">0.00</span>)</p>
         <div class="progress-bar"><div id="meabhGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="meabhTotal">0.00</span></p>
       </div>
@@ -254,7 +254,7 @@
             document.getElementById(id + "Count").textContent = person.count ?? 0;
             document.getElementById(id + "Earnings").textContent = (person.weekly ?? 0).toFixed(2);
             document.getElementById(id + "Total").textContent = (person.total ?? 0).toFixed(2);
-            document.getElementById(id + "Goal").textContent = person.goal ?? "Goal";
+            document.getElementById(id + "GoalName").textContent = person.goal ?? "Goal";
             document.getElementById(id + "GoalAmount").textContent = (person.goalAmount ?? 0).toFixed(2);
 
             const progress = Math.min(((person.total ?? 0) / (person.goalAmount ?? 1)) * 100, 100);
