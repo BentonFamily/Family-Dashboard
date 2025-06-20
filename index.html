@@ -142,6 +142,7 @@
 <body>
   <header>🏡 Family Life Dashboard</header>
   <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
+
   <section>
     <details id="wifiDetails">
       <summary>📶 Show Wi-Fi QR Code</summary>
@@ -150,7 +151,8 @@
       </div>
     </details>
   </section>
-<section>
+
+  <section>
     <details open>
       <summary>🧒 Log a Chore</summary>
       <ul>
@@ -216,7 +218,7 @@
       new QRious({
         element: document.getElementById("qrcode"),
         size: 200,
-        value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
+        value: `WIFI:S:${window.config.wifiName};T:WPA;P:${window.config.wifiPassword};;`
       });
 
       document.getElementById("calendarFrame").src =
@@ -227,25 +229,42 @@
       fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
         .then(res => res.json())
         .then(data => {
-          console.log("Returned chore data:", data);
+          const normalisedData = {};
+          for (const key in data) {
+            const safeKey = key.toString().trim().normalize("NFC");
+            normalisedData[safeKey] = data[key];
+          }
+
+          const idMap = {
+            "Robin": "robin",
+            "Méabh": "meabh"
+          };
+
           ["Robin", "Méabh"].forEach(name => {
-            const id = name === "Robin" ? "robin" : "meabh";
-            document.getElementById(id + "Count").textContent = data[name].count;
-            document.getElementById(id + "Earnings").textContent = data[name].weekly.toFixed(2);
-            document.getElementById(id + "Total").textContent = data[name].total.toFixed(2);
-            document.getElementById(id + "GoalName").textContent = data[name].goalName;
-            document.getElementById(id + "GoalAmount").textContent = data[name].goalAmount.toFixed(2);
-            document.getElementById(id + "Goal").style.width = Math.min((data[name].total / data[name].goalAmount) * 100, 100) + "%";
+            const id = idMap[name];
+            const person = normalisedData[name];
+
+            if (!person) {
+              console.warn(`No data found for ${name}`);
+              return;
+            }
+
+            document.getElementById(id + "Count").textContent = person.count;
+            document.getElementById(id + "Earnings").textContent = person.weekly.toFixed(2);
+            document.getElementById(id + "Total").textContent = person.total.toFixed(2);
+            document.getElementById(id + "GoalName").textContent = person.goalName;
+            document.getElementById(id + "GoalAmount").textContent = person.goalAmount.toFixed(2);
+            document.getElementById(id + "Goal").style.width = Math.min((person.total / person.goalAmount) * 100, 100) + "%";
 
             const el = document.getElementById(id + "Earnings");
-            if (data[name].weekly >= 5) el.style.backgroundColor = '#2ecc71';
-            else if (data[name].weekly === 3) el.style.backgroundColor = '#f1c40f';
-            else if (data[name].weekly === 1) el.style.backgroundColor = '#e67e22';
+            if (person.weekly >= 5) el.style.backgroundColor = '#2ecc71';
+            else if (person.weekly === 3) el.style.backgroundColor = '#f1c40f';
+            else if (person.weekly === 1) el.style.backgroundColor = '#e67e22';
             else el.style.backgroundColor = '#7f8c8d';
 
             setTimeout(() => {
-              if (data[name].count >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
-              if (data[name].total >= data[name].goalAmount) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
+              if (person.count >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
+              if (person.total >= person.goalAmount) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
             }, 300);
           });
         })
@@ -263,54 +282,6 @@
       button.textContent = isDark ? "☀️" : "🌙";
       button.classList.toggle("sun", isDark);
     }
-
-    window.onload = () => {
-      const storedTheme = localStorage.getItem("theme");
-      const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
-      if (shouldUseDark) {
-        document.body.classList.add("dark");
-        setModeIcon(true);
-      } else {
-        document.body.classList.remove("dark");
-        setModeIcon(false);
-      }
-
-      new QRious({
-        element: document.getElementById("qrcode"),
-        size: 200,
-        value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
-      });
-
-      document.getElementById("calendarFrame").src =
-        "https://calendar.google.com/calendar/embed?src=" +
-        encodeURIComponent(window.config.calendarEmail) +
-        "&ctz=Europe%2FLondon";
-
-      fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
-        .then(res => res.json())
-        .then(data => {
-          ["Robin", "Méabh"].forEach(name => {
-            const id = name === "Robin" ? "robin" : "meabh";
-            document.getElementById(id + "Count").textContent = data[name].count;
-            document.getElementById(id + "Earnings").textContent = data[name].weekly.toFixed(2);
-            document.getElementById(id + "Total").textContent = data[name].total.toFixed(2);
-            document.getElementById(id + "GoalName").textContent = data[name].goalName;
-            document.getElementById(id + "GoalAmount").textContent = data[name].goalAmount.toFixed(2);
-            document.getElementById(id + "Goal").style.width = Math.min((data[name].total / data[name].goalAmount) * 100, 100) + "%";
-
-            const el = document.getElementById(id + "Earnings");
-            if (data[name].weekly >= 5) el.style.backgroundColor = '#2ecc71';
-            else if (data[name].weekly === 3) el.style.backgroundColor = '#f1c40f';
-            else if (data[name].weekly === 1) el.style.backgroundColor = '#e67e22';
-            else el.style.backgroundColor = '#7f8c8d';
-
-            if (data[name].count >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
-            if (data[name].total >= data[name].goalAmount) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
-          });
-        })
-        .catch(err => console.error("Error loading chore data", err));
-    };
   </script>
 </body>
 </html>
