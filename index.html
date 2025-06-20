@@ -240,47 +240,39 @@
             "Méabh": "meabh"
           };
 
-          ["Robin", "Méabh"].forEach(name => {
-            const id = idMap[name];
-            const person = normalisedData[name];
+      ["Robin", "Méabh"].forEach(name => {
+      const id = idMap[name];
+      const person = normalisedData[name];
 
-            console.log("DOM Check:", {
-            idPrefix: id,
-            countId: document.getElementById(id + "Count"),
-            earningsId: document.getElementById(id + "Earnings"),
-            totalId: document.getElementById(id + "Total"),
-            goalNameId: document.getElementById(id + "GoalName"),
-            goalAmountId: document.getElementById(id + "GoalAmount")
-        });
+      console.log(`Loaded ${name}:`, JSON.stringify(person));
 
-            console.log(`Loaded ${name}:`, JSON.stringify(person));
+      if (!person) {
+      console.warn(`No data found for ${name}`);
+      return;
+      }
 
-            if (!person) {
-              console.warn(`No data found for ${name}`);
-              return;
-            }
+   setTimeout(() => {
+    document.getElementById(id + "Count").textContent = person.weeklyChores ?? 0;
+    document.getElementById(id + "Earnings").textContent = (person.weeklyEarnings ?? 0).toFixed(2);
+    document.getElementById(id + "Total").textContent = (person.totalEarned ?? 0).toFixed(2);
+    document.getElementById(id + "GoalName").textContent = person.goal ?? "Goal";
+    document.getElementById(id + "GoalAmount").textContent = (person.goalAmount ?? 0).toFixed(2);
 
-            document.getElementById(id + "Count").textContent = person.weeklyChores ?? 0;
-            document.getElementById(id + "Earnings").textContent = (person.weeklyEarnings ?? 0).toFixed(2);
-            document.getElementById(id + "Total").textContent = (person.totalEarned ?? 0).toFixed(2);
-            document.getElementById(id + "GoalName").textContent = person.goal ?? "Goal";
-            document.getElementById(id + "GoalAmount").textContent = (person.goalAmount ?? 0).toFixed(2);
+    const progress = Math.min(((person.totalEarned ?? 0) / (person.goalAmount ?? 1)) * 100, 100);
+    document.getElementById(id + "Goal").style.width = `${progress}%`;
 
-            const progress = Math.min(((person.totalEarned ?? 0) / (person.goalAmount ?? 1)) * 100, 100);
-            document.getElementById(id + "Goal").style.width = `${progress}%`;
+    const el = document.getElementById(id + "Earnings");
+    const earnings = person.weeklyEarnings ?? 0;
+    if (earnings >= 5) el.style.backgroundColor = '#2ecc71';
+    else if (earnings === 3) el.style.backgroundColor = '#f1c40f';
+    else if (earnings === 1) el.style.backgroundColor = '#e67e22';
+    else el.style.backgroundColor = '#7f8c8d';
 
-            const el = document.getElementById(id + "Earnings");
-            const earnings = person.weeklyEarnings ?? 0;
-            if (earnings >= 5) el.style.backgroundColor = '#2ecc71';
-            else if (earnings === 3) el.style.backgroundColor = '#f1c40f';
-            else if (earnings === 1) el.style.backgroundColor = '#e67e22';
-            else el.style.backgroundColor = '#7f8c8d';
+    if ((person.weeklyChores ?? 0) >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
+    if ((person.totalEarned ?? 0) >= (person.goalAmount ?? 1)) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
+  }, 300); // Delay to allow DOM to finish loading
+});
 
-            setTimeout(() => {
-              if ((person.count ?? 0) >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
-              if ((person.total ?? 0) >= (person.goalAmount ?? 1)) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
-            }, 300);
-          });
         })
         .catch(err => console.error("Error loading chore data", err));
     };
