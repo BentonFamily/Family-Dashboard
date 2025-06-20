@@ -101,19 +101,19 @@
       margin-top: 1rem;
       color: #555;
     }
-    .chore-summary p span {
+    .chore-summary p input {
+      padding: 2px 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .earnings-badge {
       display: inline-block;
       min-width: 3em;
       text-align: right;
       font-weight: bold;
-      color: #2c3e50;
-      background: #ecf0f1;
+      color: white;
       border-radius: 5px;
-      padding: 2px 6px;
-    }
-    .dark .chore-summary p span {
-      background: #444;
-      color: #f1f1f1;
+      padding: 2px 8px;
     }
     .progress-bar {
       background: #ddd;
@@ -127,15 +127,6 @@
       background: linear-gradient(90deg, #2ecc71, #27ae60);
       width: 0%;
       transition: width 0.5s ease;
-    }
-    .earnings-badge {
-      display: inline-block;
-      min-width: 3em;
-      text-align: right;
-      font-weight: bold;
-      color: white;
-      border-radius: 5px;
-      padding: 2px 8px;
     }
   </style>
 </head>
@@ -154,41 +145,19 @@
 
   <section>
     <details open>
-      <summary>🧒 Log a Chore</summary>
-      <ul>
-        <h3>Robin</h3>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Set+the+Table" target="_blank">Set the Table</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Help+with+the+Washing" target="_blank">Help with the Washing</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Other" target="_blank">Other</a></li>
-        <h3>Méabh</h3>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Set+the+Table" target="_blank">Set the Table</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Help+with+the+Washing" target="_blank">Help with the Washing</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Méabh&entry.1927254214=Other" target="_blank">Other</a></li>
-      </ul>
-    </details>
-  </section>
-
-  <section>
-    <details open>
       <summary>📈 Weekly Chore Summary</summary>
       <div class="chore-summary">
         <h3>Robin</h3>
         <p>Chores completed this week: <span id="robinCount">0</span></p>
         <p>Weekly earnings: £<span id="robinEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <span id="robinGoalName">Loading...</span> (£<span id="robinGoalAmount">0.00</span>)</p>
+        <p>🎯 Goal: <input id="robinGoalNameInput" placeholder="e.g. LEGO Set"> (£<input id="robinGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
         <div class="progress-bar"><div id="robinGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="robinTotal">0.00</span></p>
 
         <h3>Méabh</h3>
         <p>Chores completed this week: <span id="meabhCount">0</span></p>
         <p>Weekly earnings: £<span id="meabhEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <span id="meabhGoalName">Loading...</span> (£<span id="meabhGoalAmount">0.00</span>)</p>
+        <p>🎯 Goal: <input id="meabhGoalNameInput" placeholder="e.g. Art Set"> (£<input id="meabhGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
         <div class="progress-bar"><div id="meabhGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="meabhTotal">0.00</span></p>
       </div>
@@ -202,18 +171,36 @@
     </details>
   </section>
 
-<script>
-    window.onload = () => {
+  <script>
+    const updateProgress = (id, total) => {
+      const goalAmount = parseFloat(document.getElementById(`${id}GoalAmountInput`).value);
+      const bar = document.getElementById(`${id}Goal`);
+      const progress = goalAmount > 0 ? Math.min((total / goalAmount) * 100, 100) : 0;
+      bar.style.width = `${progress}%`;
+      localStorage.setItem(`${id}_goalAmount`, goalAmount);
+      localStorage.setItem(`${id}_goalName`, document.getElementById(`${id}GoalNameInput`).value);
+    };
+
+    const toggleDarkMode = () => {
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+      document.getElementById("modeToggle").textContent = isDark ? "☀️" : "🌙";
+      document.getElementById("modeToggle").classList.toggle("sun", isDark);
+    };
+
+    const setInitialTheme = () => {
       const storedTheme = localStorage.getItem("theme");
-      const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const shouldUseDark = storedTheme === "dark" || (!storedTheme && systemPrefersDark);
-      if (shouldUseDark) {
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const useDark = storedTheme === "dark" || (!storedTheme && prefersDark);
+      if (useDark) {
         document.body.classList.add("dark");
-        setModeIcon(true);
-      } else {
-        document.body.classList.remove("dark");
-        setModeIcon(false);
+        document.getElementById("modeToggle").textContent = "☀️";
+        document.getElementById("modeToggle").classList.add("sun");
       }
+    };
+
+    window.onload = () => {
+      setInitialTheme();
 
       new QRious({
         element: document.getElementById("qrcode"),
@@ -226,67 +213,35 @@
         encodeURIComponent(window.config.calendarEmail) +
         "&ctz=Europe%2FLondon";
 
+      const idMap = { Robin: "robin", Méabh: "meabh" };
+
       fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
         .then(res => res.json())
         .then(data => {
-          const normalisedData = {};
-          for (const key in data) {
-            const safeKey = key.toString().trim().normalize("NFC");
-            normalisedData[safeKey] = data[key];
-          }
-
-          const idMap = {
-            "Robin": "robin",
-            "Méabh": "meabh"
-          };
-
-          ["Robin", "Méabh"].forEach(name => {
+          Object.keys(idMap).forEach(name => {
             const id = idMap[name];
-            const person = normalisedData[name];
+            const person = data[name];
+            if (!person) return;
 
-            console.log(`Loaded ${name}:`, JSON.stringify(person));
+            document.getElementById(`${id}Count`).textContent = person.count ?? 0;
+            document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
+            document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
 
-            if (!person) {
-              console.warn(`No data found for ${name}`);
-              return;
-            }
+            const storedGoalAmount = localStorage.getItem(`${id}_goalAmount`) || "";
+            const storedGoalName = localStorage.getItem(`${id}_goalName`) || "";
 
-            document.getElementById(id + "Count").textContent = person.count ?? 0;
-            document.getElementById(id + "Earnings").textContent = (person.weekly ?? 0).toFixed(2);
-            document.getElementById(id + "Total").textContent = (person.total ?? 0).toFixed(2);
-            document.getElementById(id + "GoalName").textContent = person.goal ?? "Goal";
-            document.getElementById(id + "GoalAmount").textContent = (person.goalAmount ?? 0).toFixed(2);
+            document.getElementById(`${id}GoalAmountInput`).value = storedGoalAmount;
+            document.getElementById(`${id}GoalNameInput`).value = storedGoalName;
+            updateProgress(id, person.total ?? 0);
 
-            const progress = Math.min(((person.total ?? 0) / (person.goalAmount ?? 1)) * 100, 100);
-            document.getElementById(id + "Goal").style.width = `${progress}%`;
-
-            const el = document.getElementById(id + "Earnings");
-            const earnings = person.weekly ?? 0;
-            if (earnings >= 5) el.style.backgroundColor = '#2ecc71';
-            else if (earnings === 3) el.style.backgroundColor = '#f1c40f';
-            else if (earnings === 1) el.style.backgroundColor = '#e67e22';
-            else el.style.backgroundColor = '#7f8c8d';
-
-            setTimeout(() => {
-              if ((person.count ?? 0) >= 3) confetti({ particleCount: 80, spread: 60, origin: { y: 0.4 } });
-              if ((person.total ?? 0) >= (person.goalAmount ?? 1)) confetti({ particleCount: 150, spread: 100, startVelocity: 40 });
-            }, 300);
+            ["GoalAmountInput", "GoalNameInput"].forEach(suffix => {
+              document.getElementById(`${id}${suffix}`).addEventListener("input", () => {
+                updateProgress(id, person.total ?? 0);
+              });
+            });
           });
-        })
-        .catch(err => console.error("Error loading chore data", err));
+        });
     };
-
-    function toggleDarkMode() {
-      const isDark = document.body.classList.toggle("dark");
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-      setModeIcon(isDark);
-    }
-
-    function setModeIcon(isDark) {
-      const button = document.getElementById("modeToggle");
-      button.textContent = isDark ? "☀️" : "🌙";
-      button.classList.toggle("sun", isDark);
-    }
   </script>
 </body>
 </html>
