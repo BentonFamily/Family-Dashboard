@@ -202,7 +202,7 @@
     </details>
   </section>
 
-  <script>
+<script>
     window.onload = () => {
       const storedTheme = localStorage.getItem("theme");
       const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -252,7 +252,7 @@
             document.getElementById(id + "Count").textContent = person.count ?? 0;
             document.getElementById(id + "Earnings").textContent = (person.weekly ?? 0).toFixed(2);
             document.getElementById(id + "Total").textContent = (person.total ?? 0).toFixed(2);
-            document.getElementById(id + "GoalName").textContent = person.goalName ?? "Goal";
+            document.getElementById(id + "GoalName").textContent = person.goal ?? "Goal";
             document.getElementById(id + "GoalAmount").textContent = (person.goalAmount ?? 0).toFixed(2);
 
             const progress = Math.min(((person.total ?? 0) / (person.goalAmount ?? 1)) * 100, 100);
@@ -288,4 +288,5 @@
   </script>
 </body>
 </html>
+
 
