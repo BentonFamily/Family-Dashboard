@@ -251,17 +251,17 @@
               return;
             }
 
-            document.getElementById(id + "Count").textContent = person.count ?? 0;
-            document.getElementById(id + "Earnings").textContent = (person.weekly ?? 0).toFixed(2);
-            document.getElementById(id + "Total").textContent = (person.total ?? 0).toFixed(2);
+            document.getElementById(id + "Count").textContent = person.weeklyChores ?? 0;
+            document.getElementById(id + "Earnings").textContent = (person.weeklyEarnings ?? 0).toFixed(2);
+            document.getElementById(id + "Total").textContent = (person.totalEarned ?? 0).toFixed(2);
             document.getElementById(id + "GoalName").textContent = person.goal ?? "Goal";
             document.getElementById(id + "GoalAmount").textContent = (person.goalAmount ?? 0).toFixed(2);
 
-            const progress = Math.min(((person.total ?? 0) / (person.goalAmount ?? 1)) * 100, 100);
+            const progress = Math.min(((person.totalEarned ?? 0) / (person.goalAmount ?? 1)) * 100, 100);
             document.getElementById(id + "Goal").style.width = `${progress}%`;
 
             const el = document.getElementById(id + "Earnings");
-            const earnings = person.weekly ?? 0;
+            const earnings = person.weeklyEarnings ?? 0;
             if (earnings >= 5) el.style.backgroundColor = '#2ecc71';
             else if (earnings === 3) el.style.backgroundColor = '#f1c40f';
             else if (earnings === 1) el.style.backgroundColor = '#e67e22';
