@@ -1,0 +1,54 @@
+function doGet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const choreSheet = ss.getSheetByName("ChoreLog");
+  const totalSheet = ss.getSheetByName("Totals");
+  const goalSheet = ss.getSheetByName("Goals");
+
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+
+  const summary = {
+    Robin: { count: 0, weekly: 0, total: 0, goalName: "", goalAmount: 0 },
+    "Méabh": { count: 0, weekly: 0, total: 0, goalName: "", goalAmount: 0 }
+  };
+
+  // Chore counts this week
+  const data = choreSheet.getDataRange().getValues();
+  data.slice(1).forEach(row => {
+    const timestamp = new Date(row[0]);
+    const name = row[1];
+    if (timestamp >= weekStart && summary[name]) {
+      summary[name].count++;
+    }
+  });
+
+  // Earnings logic
+  for (const name in summary) {
+    const count = summary[name].count;
+    summary[name].weekly = count >= 3 ? 5 : count === 2 ? 3 : count === 1 ? 1 : 0;
+  }
+
+  // Total earnings
+  const totals = totalSheet.getDataRange().getValues();
+  totals.slice(1).forEach(row => {
+    const name = row[0];
+    if (summary[name]) {
+      summary[name].total = typeof row[1] === 'number' ? row[1] : 0;
+    }
+  });
+
+  // Goals
+  const goals = goalSheet.getDataRange().getValues();
+  goals.slice(1).forEach(row => {
+    const name = row[0];
+    if (summary[name]) {
+      summary[name].goalName = row[1] || "Goal";
+      summary[name].goalAmount = typeof row[2] === 'number' ? row[2] : 0;
+    }
+  });
+
+  return ContentService
+    .createTextOutput(JSON.stringify(summary))
+    .setMimeType(ContentService.MimeType.JSON);
+}
