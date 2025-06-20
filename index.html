@@ -226,7 +226,7 @@
         encodeURIComponent(window.config.calendarEmail) +
         "&ctz=Europe%2FLondon";
 
-      fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
+      fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec?ts=" + Date.now())
         .then(res => res.json())
         .then(data => {
           const normalisedData = {};
