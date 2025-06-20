@@ -157,8 +157,8 @@
         <h3>Robin</h3>
         <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Tidy+Room" target="_blank">Tidy Room</a></li>
         <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Empty%2FRefill+Dishwasher" target="_blank">Empty/Refill Dishwasher</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Set+the+table" target="_blank">Set the table</a></li>
-        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Help+with+washing" target="_blank">Help with washing</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Set+the+Table" target="_blank">Set the table</a></li>
+        <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Help+with+Washing" target="_blank">Help with washing</a></li>
         <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=House+Cleaning" target="_blank">House Cleaning</a></li>
         <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=Robin&entry.1927254214=Other" target="_blank">Other</a></li>
         <h3>Méabh</h3>
@@ -205,7 +205,7 @@
       new QRious({
         element: document.getElementById("qrcode"),
         size: 200,
-        value: `WIFI:T:WPA;S=${window.config.wifiName};P=${window.config.wifiPassword};;`
+        value: `WIFI:T:WPA;S=${encodeURIComponent(window.config.wifiName)};P=${encodeURIComponent(window.config.wifiPassword)};;`
       });
 
       document.getElementById("calendarFrame").src =
