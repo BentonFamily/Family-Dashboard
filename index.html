@@ -244,6 +244,15 @@
             const id = idMap[name];
             const person = normalisedData[name];
 
+            console.log("DOM Check:", {
+            idPrefix: id,
+            countId: document.getElementById(id + "Count"),
+            earningsId: document.getElementById(id + "Earnings"),
+            totalId: document.getElementById(id + "Total"),
+            goalNameId: document.getElementById(id + "GoalName"),
+            goalAmountId: document.getElementById(id + "GoalAmount")
+        });
+
             console.log(`Loaded ${name}:`, JSON.stringify(person));
 
             if (!person) {
