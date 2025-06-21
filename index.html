@@ -175,24 +175,27 @@
         <h3>Robin</h3>
         <p>Chores completed this week: <span id="robinCount">0</span></p>
         <p>Weekly earnings: £<span id="robinEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <input id="robinGoalNameInput"> (£<input id="robinGoalAmountInput" inputmode="decimal">)</p>
+        <p>🎯 Goal: <input id="robinGoalNameInput" placeholder="e.g. LEGO Set"> (£<input id="robinGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
         <div class="progress-bar"><div id="robinGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="robinTotal">0.00</span></p>
+
         <h3>Méabh</h3>
         <p>Chores completed this week: <span id="meabhCount">0</span></p>
         <p>Weekly earnings: £<span id="meabhEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <input id="meabhGoalNameInput"> (£<input id="meabhGoalAmountInput" inputmode="decimal">)</p>
+        <p>🎯 Goal: <input id="meabhGoalNameInput" placeholder="e.g. Art Set"> (£<input id="meabhGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
         <div class="progress-bar"><div id="meabhGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="meabhTotal">0.00</span></p>
       </div>
     </details>
   </section>
+
   <section>
     <details open>
       <summary>📅 Family Calendar</summary>
       <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no"></iframe>
     </details>
   </section>
+
   <script>
     function applyEarningsBadge(el, earnings) {
       el.classList.remove("badge-green", "badge-yellow", "badge-orange", "badge-grey");
@@ -225,8 +228,6 @@
       const bar = document.getElementById(`${id}Goal`);
       const progress = goalAmount > 0 ? Math.min((total / goalAmount) * 100, 100) : 0;
       bar.style.width = `${progress}%`;
-      localStorage.setItem(`${id}_goalAmount`, goalAmount);
-      localStorage.setItem(`${id}_goalName`, document.getElementById(`${id}GoalNameInput`).value);
     }
 
     window.onload = () => {
@@ -258,15 +259,20 @@
             applyEarningsBadge(document.getElementById(`${id}Earnings`), person.weekly ?? 0);
             document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
 
-            const storedGoalAmount = localStorage.getItem(`${id}_goalAmount`) || "";
-            const storedGoalName = localStorage.getItem(`${id}_goalName`) || "";
-
-            document.getElementById(`${id}GoalAmountInput`).value = storedGoalAmount;
-            document.getElementById(`${id}GoalNameInput`).value = storedGoalName;
+            document.getElementById(`${id}GoalAmountInput`).value = person.goalAmount ?? "";
+            document.getElementById(`${id}GoalNameInput`).value = person.goal ?? "";
             updateProgress(id, person.total ?? 0);
 
             ["GoalAmountInput", "GoalNameInput"].forEach(suffix => {
-              document.getElementById(`${id}${suffix}`).addEventListener("input", () => {
+              document.getElementById(`${id}${suffix}`).addEventListener("change", () => {
+                const goalName = document.getElementById(`${id}GoalNameInput`).value;
+                const goalAmount = document.getElementById(`${id}GoalAmountInput`).value;
+                fetch("https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse", {
+                  method: "POST",
+                  mode: "no-cors",
+                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                  body: `entry.1735294996=${encodeURIComponent(name)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
+                });
                 updateProgress(id, person.total ?? 0);
               });
             });
