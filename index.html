@@ -260,10 +260,11 @@
             document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
 
           setTimeout(() => {
-            document.getElementById(`${id}GoalAmountInput`).value = person.goalAmount ?? "";
+            console.log("Setting goal for", id, "→", person.goal, person.goalAmount);
             document.getElementById(`${id}GoalNameInput`).value = person.goal ?? "";
+            document.getElementById(`${id}GoalAmountInput`).value = person.goalAmount ?? "";
             updateProgress(id, person.total ?? 0);
-          }, 200);
+          }, 100);
 
             ["GoalAmountInput", "GoalNameInput"].forEach(suffix => {
               document.getElementById(`${id}${suffix}`).addEventListener("change", () => {
