@@ -256,10 +256,11 @@
           return;
           }
 
-          document.getElementById(`${id}Count`).textContent = person.weeklyChores ?? 0;
-          document.getElementById(`${id}Earnings`).textContent = (person.weeklyEarnings ?? 0).toFixed(2);
-          applyEarningsBadge(document.getElementById(`${id}Earnings`), person.weeklyEarnings ?? 0);
-          document.getElementById(`${id}Total`).textContent = (person.totalEarned ?? 0).toFixed(2);
+          document.getElementById(`${id}Count`).textContent = person.count ?? 0;
+          document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
+          applyEarningsBadge(document.getElementById(`${id}Earnings`), person.weekly ?? 0);
+          document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
+
 
 
         setTimeout(() => {
