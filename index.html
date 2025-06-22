@@ -249,6 +249,7 @@
       fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
         .then(res => res.json())
         .then(data => {
+          window.fetchedData = data;
           console.log("Fetched data from backend:", data);
           Object.entries(idMap).forEach(([name, id]) => {
             const person = data[name];
