@@ -250,6 +250,16 @@
         .then(res => res.json())
         .then(data => {
           window.fetchedData = data;
+          console.log("Full data dump:");
+          console.dir(data);
+
+          console.log("Robin:");
+          console.log("Count:", data.Robin.count);
+          console.log("Weekly:", data.Robin.weekly);
+          console.log("Total:", data.Robin.total);
+          console.log("Goal:", data.Robin.goal);
+          console.log("GoalAmount:", data.Robin.goalAmount);
+
           console.log("Fetched data from backend:", data);
           Object.entries(idMap).forEach(([name, id]) => {
             const person = data[name];
