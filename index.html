@@ -261,11 +261,13 @@
             document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
 
           requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-            document.getElementById(`${id}GoalNameInput`).value = person.goal ?? "";
-            document.getElementById(`${id}GoalAmountInput`).value = person.goalAmount ?? "";
-            updateProgress(id, person.total ?? 0);
-            });
+            const goalNameEl = document.getElementById(`${id}GoalNameInput`);
+            const goalAmountEl = document.getElementById(`${id}GoalAmountInput`);
+            if (goalNameEl && goalAmountEl) {
+              goalNameEl.value = person.goal ?? "";
+              goalAmountEl.value = person.goalAmount ?? "";
+              updateProgress(id, person.total ?? 0);
+            }
           });
 
             ["GoalAmountInput", "GoalNameInput"].forEach(suffix => {
