@@ -246,15 +246,15 @@
 
       const idMap = { Robin: "robin", Méabh: "meabh" };
 
-fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
-  .then(res => res.json())
-  .then(data => {
-    window.fetchedData = data; // For debugging
-    console.log("Fetched data from backend:", data);
+    fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
+      .then(res => res.json())
+      .then(data => {
+        window.fetchedData = data; // For debugging
+        console.log("Fetched data from backend:", data);
 
-    Object.entries(idMap).forEach(([name, id]) => {
-      const person = data[name];
-      if (!person) return;
+      Object.entries(idMap).forEach(([name, id]) => {
+        const person = data[name];
+        if (!person) return;
 
       document.getElementById(`${id}Count`).textContent = person.count ?? 0;
       document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
@@ -262,19 +262,19 @@ fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc
       document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
 
       // ✅ Directly apply goal and amount once DOM is ready
-      requestAnimationFrame(() => {
-        const goalNameEl = document.getElementById(`${id}GoalNameInput`);
-        const goalAmountEl = document.getElementById(`${id}GoalAmountInput`);
-        if (goalNameEl && goalAmountEl) {
-          goalNameEl.value = person.goal ?? "";
-          goalAmountEl.value = person.goalAmount ?? "";
-          updateProgress(id, person.total ?? 0);
-        }
-      });
+        requestAnimationFrame(() => {
+          const goalNameEl = document.getElementById(`${id}GoalNameInput`);
+          const goalAmountEl = document.getElementById(`${id}GoalAmountInput`);
+          if (goalNameEl && goalAmountEl) {
+            goalNameEl.value = person.goal ?? "";
+            goalAmountEl.value = person.goalAmount ?? "";
+            updateProgress(id, person.total ?? 0);
+          }
+        });
 
       // 📝 Submit changes to Google Form when either input changes
-      ["GoalNameInput", "GoalAmountInput"].forEach(suffix => {
-        document.getElementById(`${id}${suffix}`).addEventListener("change", () => {
+          ["GoalNameInput", "GoalAmountInput"].forEach(suffix => {
+          document.getElementById(`${id}${suffix}`).addEventListener("change", () => {
           const goalName = document.getElementById(`${id}GoalNameInput`).value;
           const goalAmount = document.getElementById(`${id}GoalAmountInput`).value;
 
@@ -287,12 +287,13 @@ fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc
           });
 
           updateProgress(id, person.total ?? 0);
+          });
+        });
+
+          if ((person.weekly ?? 0) >= 5) confetti();
         });
       });
-
-      if ((person.weekly ?? 0) >= 5) confetti();
     });
-  });
   </script>
 </body>
 </html>
