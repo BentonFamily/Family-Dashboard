@@ -230,38 +230,38 @@
       bar.style.width = `${progress}%`;
     }
 
-    window.onload = () => {
-      setInitialTheme();
+<script>
+window.onload = () => {
+  setInitialTheme();
 
-      new QRious({
-        element: document.getElementById("qrcode"),
-        size: 200,
-        value: `WIFI:S:${window.config.wifiName};T:WPA;P:${window.config.wifiPassword};;`
-      });
+  new QRious({
+    element: document.getElementById("qrcode"),
+    size: 200,
+    value: `WIFI:S:${window.config.wifiName};T:WPA;P:${window.config.wifiPassword};;`
+  });
 
-      document.getElementById("calendarFrame").src =
-        "https://calendar.google.com/calendar/embed?src=" +
-        encodeURIComponent(window.config.calendarEmail) +
-        "&ctz=Europe%2FLondon";
+  document.getElementById("calendarFrame").src =
+    "https://calendar.google.com/calendar/embed?src=" +
+    encodeURIComponent(window.config.calendarEmail) +
+    "&ctz=Europe%2FLondon";
 
-      const idMap = { Robin: "robin", Méabh: "meabh" };
+  const idMap = { Robin: "robin", Méabh: "meabh" };
 
-    fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
-      .then(res => res.json())
-      .then(data => {
-        window.fetchedData = data; // For debugging
-        console.log("Fetched data from backend:", data);
+  fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
+    .then(res => res.json())
+    .then(data => {
+      window.fetchedData = data;
+      console.log("Fetched data from backend:", data);
 
       Object.entries(idMap).forEach(([name, id]) => {
         const person = data[name];
         if (!person) return;
 
-      document.getElementById(`${id}Count`).textContent = person.count ?? 0;
-      document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
-      applyEarningsBadge(document.getElementById(`${id}Earnings`), person.weekly ?? 0);
-      document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
+        document.getElementById(`${id}Count`).textContent = person.count ?? 0;
+        document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
+        applyEarningsBadge(document.getElementById(`${id}Earnings`), person.weekly ?? 0);
+        document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
 
-      // ✅ Directly apply goal and amount once DOM is ready
         requestAnimationFrame(() => {
           const goalNameEl = document.getElementById(`${id}GoalNameInput`);
           const goalAmountEl = document.getElementById(`${id}GoalAmountInput`);
@@ -272,27 +272,26 @@
           }
         });
 
-      // 📝 Submit changes to Google Form when either input changes
-          ["GoalNameInput", "GoalAmountInput"].forEach(suffix => {
+        ["GoalNameInput", "GoalAmountInput"].forEach(suffix => {
           document.getElementById(`${id}${suffix}`).addEventListener("change", () => {
-          const goalName = document.getElementById(`${id}GoalNameInput`).value;
-          const goalAmount = document.getElementById(`${id}GoalAmountInput`).value;
+            const goalName = document.getElementById(`${id}GoalNameInput`).value;
+            const goalAmount = document.getElementById(`${id}GoalAmountInput`).value;
 
-          // Submit to Google Form (GoalLog)
-          fetch("https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse", {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `entry.1735294996=${encodeURIComponent(name)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
-          });
+            fetch("https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse", {
+              method: "POST",
+              mode: "no-cors",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: `entry.1735294996=${encodeURIComponent(name)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
+            });
 
-          updateProgress(id, person.total ?? 0);
+            updateProgress(id, person.total ?? 0);
           });
         });
 
-          if ((person.weekly ?? 0) >= 5) confetti();
-        });
+        if ((person.weekly ?? 0) >= 5) confetti();
       });
-  </script>
+    });
+};
+</script>
 </body>
 </html>
