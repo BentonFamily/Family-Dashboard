@@ -226,7 +226,7 @@
     }
 
     function updateProgress(id, total) {
-      const goalAmount = parseFloat(document.getElementById(`${id}GoalAmountInput`).value) || 0;
+      const goalAmount = parseFloat(person.goalAmount) || 0;
       const bar = document.getElementById(`${id}Goal`);
       const progress = goalAmount > 0 ? Math.min((total / goalAmount) * 100, 100) : 0;
       bar.style.width = `${progress}%`;
@@ -276,24 +276,6 @@ fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc
 
       document.getElementById(`${id}GoalNameDisplay`).textContent = person.goal || "—";
       document.getElementById(`${id}GoalAmountDisplay`).textContent = person.goalAmount || "—";
-
-      // 📝 Submit changes to Google Form when either input changes
-      ["GoalNameInput", "GoalAmountInput"].forEach(suffix => {
-        document.getElementById(`${id}${suffix}`).addEventListener("change", () => {
-          const goalName = document.getElementById(`${id}GoalNameInput`).value;
-          const goalAmount = document.getElementById(`${id}GoalAmountInput`).value;
-
-          // Submit to Google Form (GoalLog)
-          fetch("https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse", {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `entry.1735294996=${encodeURIComponent(name)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
-          });
-
-          updateProgress(id, person.total ?? 0);
-        });
-      });
 
       if ((person.weekly ?? 0) >= 5) confetti();
     });
