@@ -175,7 +175,7 @@
         <h3>Robin</h3>
         <p>Chores completed this week: <span id="robinCount">0</span></p>
         <p>Weekly earnings: £<span id="robinEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <input id="robinGoalNameInput" placeholder="e.g. LEGO Set"> (£<input id="robinGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
+        <p>🎯 Goal: <span id="robinGoalNameDisplay">—</span> (£<span id="robinGoalAmountDisplay">—</span>)</p>
         <div class="progress-bar"><div id="robinGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="robinTotal">0.00</span></p>
         <button onclick="openGoalModal('Robin')">Set Goal</button>
@@ -183,7 +183,7 @@
         <h3>Méabh</h3>
         <p>Chores completed this week: <span id="meabhCount">0</span></p>
         <p>Weekly earnings: £<span id="meabhEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <input id="meabhGoalNameInput" placeholder="e.g. Art Set"> (£<input id="meabhGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
+        <p>🎯 Goal: <span id="meabhGoalNameDisplay">—</span> (£<span id="meabhGoalAmountDisplay">—</span>)</p>
         <div class="progress-bar"><div id="meabhGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="meabhTotal">0.00</span></p>
         <button onclick="openGoalModal('Méabh')">Set Goal</button>
@@ -273,6 +273,9 @@ fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc
           updateProgress(id, person.total ?? 0);
         }
       });
+
+      document.getElementById(`${id}GoalNameDisplay`).textContent = person.goal || "—";
+      document.getElementById(`${id}GoalAmountDisplay`).textContent = person.goalAmount || "—";
 
       // 📝 Submit changes to Google Form when either input changes
       ["GoalNameInput", "GoalAmountInput"].forEach(suffix => {
