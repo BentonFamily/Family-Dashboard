@@ -175,18 +175,16 @@
         <h3>Robin</h3>
         <p>Chores completed this week: <span id="robinCount">0</span></p>
         <p>Weekly earnings: £<span id="robinEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <span id="robinGoalNameDisplay">—</span> (£<span id="robinGoalAmountDisplay">—</span>)</p>
+        <p>🎯 Goal: <input id="robinGoalNameInput" placeholder="e.g. LEGO Set"> (£<input id="robinGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
         <div class="progress-bar"><div id="robinGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="robinTotal">0.00</span></p>
-        <button onclick="openGoalModal('Robin')">Set Goal</button>
 
         <h3>Méabh</h3>
         <p>Chores completed this week: <span id="meabhCount">0</span></p>
         <p>Weekly earnings: £<span id="meabhEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <span id="meabhGoalNameDisplay">—</span> (£<span id="meabhGoalAmountDisplay">—</span>)</p>
+        <p>🎯 Goal: <input id="meabhGoalNameInput" placeholder="e.g. Art Set"> (£<input id="meabhGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
         <div class="progress-bar"><div id="meabhGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="meabhTotal">0.00</span></p>
-        <button onclick="openGoalModal('Méabh')">Set Goal</button>
       </div>
     </details>
   </section>
@@ -226,7 +224,7 @@
     }
 
     function updateProgress(id, total) {
-      const goalAmount = parseFloat(person.goalAmount) || 0;
+      const goalAmount = parseFloat(document.getElementById(`${id}GoalAmountInput`).value) || 0;
       const bar = document.getElementById(`${id}Goal`);
       const progress = goalAmount > 0 ? Math.min((total / goalAmount) * 100, 100) : 0;
       bar.style.width = `${progress}%`;
@@ -246,88 +244,63 @@ window.onload = () => {
     encodeURIComponent(window.config.calendarEmail) +
     "&ctz=Europe%2FLondon";
 
-const idMap = { Robin: "robin", Méabh: "meabh" };
+  const idMap = { Robin: "robin", Méabh: "meabh" };
 
-fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
-  .then(res => res.json())
-  .then(data => {
-    window.fetchedData = data; // For debugging
-    console.log("Fetched data from backend:", data);
+  fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
+    .then(res => res.json())
+    .then(data => {
+      window.fetchedData = data;
+      console.log("Full data dump:");
+      console.dir(data);
 
-    Object.entries(idMap).forEach(([name, id]) => {
-      const person = data[name];
-      if (!person) return;
+      console.log("Robin:");
+      console.log("Count:", data.Robin.count);
+      console.log("Weekly:", data.Robin.weekly);
+      console.log("Total:", data.Robin.total);
+      console.log("Goal:", data.Robin.goal);
+      console.log("GoalAmount:", data.Robin.goalAmount);
 
-      document.getElementById(`${id}Count`).textContent = person.count ?? 0;
-      document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
-      applyEarningsBadge(document.getElementById(`${id}Earnings`), person.weekly ?? 0);
-      document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
+      console.log("Fetched data from backend:", data);
 
-      // ✅ Directly apply goal and amount once DOM is ready
-      requestAnimationFrame(() => {
-        const goalNameEl = document.getElementById(`${id}GoalNameInput`);
-        const goalAmountEl = document.getElementById(`${id}GoalAmountInput`);
-        if (goalNameEl && goalAmountEl) {
-          goalNameEl.value = person.goal ?? "";
-          goalAmountEl.value = person.goalAmount ?? "";
-          updateProgress(id, person.total ?? 0);
-        }
-      });
+      Object.entries(idMap).forEach(([name, id]) => {
+        const person = data[name];
+        if (!person) return;
 
-      document.getElementById(`${id}GoalNameDisplay`).textContent = person.goal || "—";
-      document.getElementById(`${id}GoalAmountDisplay`).textContent = person.goalAmount || "—";
+        document.getElementById(`${id}Count`).textContent = person.count ?? 0;
+        document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
+        applyEarningsBadge(document.getElementById(`${id}Earnings`), person.weekly ?? 0);
+        document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
 
-      if ((person.weekly ?? 0) >= 5) confetti();
-    });
-  });
+        requestAnimationFrame(() => {
+          const goalNameEl = document.getElementById(`${id}GoalNameInput`);
+          const goalAmountEl = document.getElementById(`${id}GoalAmountInput`);
+          if (goalNameEl && goalAmountEl) {
+            goalNameEl.value = person.goal ?? "";
+            goalAmountEl.value = person.goalAmount ?? "";
+            updateProgress(id, person.total ?? 0);
+          }
+        });
 
+        ["GoalAmountInput", "GoalNameInput"].forEach(suffix => {
+          document.getElementById(`${id}${suffix}`).addEventListener("change", () => {
+            const goalName = document.getElementById(`${id}GoalNameInput`).value;
+            const goalAmount = document.getElementById(`${id}GoalAmountInput`).value;
 
-// ✅ MODAL LOGIC FOR GOAL SETTING
-let activeChild = "";
+            fetch("https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse", {
+              method: "POST",
+              mode: "no-cors",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: `entry.1735294996=${encodeURIComponent(name)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
+            });
 
-function openGoalModal(name) {
-  activeChild = name;
-  const id = name === "Robin" ? "robin" : "meabh";
-  document.getElementById("modalChildName").textContent = name;
-  document.getElementById("modalGoalName").value = document.getElementById(`${id}GoalNameInput`).value || "";
-  document.getElementById("modalGoalAmount").value = document.getElementById(`${id}GoalAmountInput`).value || "";
-  document.getElementById("goalModal").style.display = "flex";
-}
+            updateProgress(id, person.total ?? 0);
+          });
+        });
 
-function closeModal() {
-  document.getElementById("goalModal").style.display = "none";
-}
-
-function submitGoal() {
-  const goalName = document.getElementById("modalGoalName").value;
-  const goalAmount = document.getElementById("modalGoalAmount").value;
-
-  if (!goalName || !goalAmount) {
-    alert("Please enter both name and amount.");
-    return;
-  }
-
-  fetch("https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse", {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `entry.1735294996=${encodeURIComponent(activeChild)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
-  });
-
-  closeModal();
-  alert("Goal submitted!");
-} 
+        if ((person.weekly ?? 0) >= 5) confetti();
+      }); // End forEach
+    }); // End fetch .then
+}; // End window.onload
 </script>
-<!-- 🎯 Goal Modal -->
-<div id="goalModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
-  <div style="background:#fff; padding:20px; border-radius:12px; width:90%; max-width:400px; box-shadow:0 2px 10px rgba(0,0,0,0.25); position:relative;">
-    <h3>Set Goal for <span id="modalChildName"></span></h3>
-    <p><label>Goal Name: <input type="text" id="modalGoalName" /></label></p>
-    <p><label>Goal Amount: <input type="number" id="modalGoalAmount" inputmode="decimal" /></label></p>
-    <button onclick="submitGoal()">Submit</button>
-    <button onclick="closeModal()" style="margin-left:10px;">Cancel</button>
-  </div>
-</div>
-
 </body>
 </html>
