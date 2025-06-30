@@ -101,11 +101,6 @@
       margin-top: 1rem;
       color: #555;
     }
-    .chore-summary p input {
-      padding: 2px 6px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
     .earnings-badge {
       display: inline-block;
       min-width: 3em;
@@ -146,8 +141,8 @@
     </details>
   </section>
 
-<section>
-    <details open>
+  <section>
+    <details>
       <summary>🧽🧹🧼👖👗👚 Log a Chore</summary>
       <ul>
         <h3>Robin</h3>
@@ -175,14 +170,12 @@
         <h3>Robin</h3>
         <p>Chores completed this week: <span id="robinCount">0</span></p>
         <p>Weekly earnings: £<span id="robinEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <input id="robinGoalNameInput" placeholder="e.g. LEGO Set"> (£<input id="robinGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
         <div class="progress-bar"><div id="robinGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="robinTotal">0.00</span></p>
 
         <h3>Méabh</h3>
         <p>Chores completed this week: <span id="meabhCount">0</span></p>
         <p>Weekly earnings: £<span id="meabhEarnings" class="earnings-badge">0.00</span></p>
-        <p>🎯 Goal: <input id="meabhGoalNameInput" placeholder="e.g. Art Set"> (£<input id="meabhGoalAmountInput" inputmode="decimal" placeholder="e.g. 50">)</p>
         <div class="progress-bar"><div id="meabhGoal" class="progress-fill"></div></div>
         <p>Total so far: £<span id="meabhTotal">0.00</span></p>
       </div>
@@ -190,45 +183,35 @@
   </section>
 
   <section>
-    <details open>
+    <details>
       <summary>📅 Family Calendar</summary>
       <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no"></iframe>
     </details>
   </section>
 
 <script>
-    function applyEarningsBadge(el, earnings) {
-      el.classList.remove("badge-green", "badge-yellow", "badge-orange", "badge-grey");
-      if (earnings >= 5) el.classList.add("badge-green");
-      else if (earnings === 3) el.classList.add("badge-yellow");
-      else if (earnings === 1) el.classList.add("badge-orange");
-      else el.classList.add("badge-grey");
-    }
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle("dark");
+  localStorage.setItem("theme", isDark ? "dark" : "light");
+  document.getElementById("modeToggle").textContent = isDark ? "☀️" : "🌙";
+  document.getElementById("modeToggle").classList.toggle("sun", isDark);
+}
 
-    function toggleDarkMode() {
-      const isDark = document.body.classList.toggle("dark");
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-      document.getElementById("modeToggle").textContent = isDark ? "☀️" : "🌙";
-      document.getElementById("modeToggle").classList.toggle("sun", isDark);
-    }
+function setInitialTheme() {
+  const storedTheme = localStorage.getItem("theme");
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const useDark = storedTheme === "dark" || (!storedTheme && prefersDark);
+  if (useDark) {
+    document.body.classList.add("dark");
+    document.getElementById("modeToggle").textContent = "☀️";
+    document.getElementById("modeToggle").classList.add("sun");
+  }
+}
 
-    function setInitialTheme() {
-      const storedTheme = localStorage.getItem("theme");
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const useDark = storedTheme === "dark" || (!storedTheme && prefersDark);
-      if (useDark) {
-        document.body.classList.add("dark");
-        document.getElementById("modeToggle").textContent = "☀️";
-        document.getElementById("modeToggle").classList.add("sun");
-      }
-    }
-
-    function updateProgress(id, total) {
-      const goalAmount = parseFloat(document.getElementById(`${id}GoalAmountInput`).value) || 0;
-      const bar = document.getElementById(`${id}Goal`);
-      const progress = goalAmount > 0 ? Math.min((total / goalAmount) * 100, 100) : 0;
-      bar.style.width = `${progress}%`;
-    }
+function updateProgress(id, total) {
+  const bar = document.getElementById(`${id}Goal`);
+  bar.style.width = `0%`;
+}
 
 window.onload = () => {
   setInitialTheme();
@@ -249,58 +232,17 @@ window.onload = () => {
   fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
     .then(res => res.json())
     .then(data => {
-      window.fetchedData = data;
-      console.log("Full data dump:");
-      console.dir(data);
-
-      console.log("Robin:");
-      console.log("Count:", data.Robin.count);
-      console.log("Weekly:", data.Robin.weekly);
-      console.log("Total:", data.Robin.total);
-      console.log("Goal:", data.Robin.goal);
-      console.log("GoalAmount:", data.Robin.goalAmount);
-
-      console.log("Fetched data from backend:", data);
-
       Object.entries(idMap).forEach(([name, id]) => {
         const person = data[name];
         if (!person) return;
-
         document.getElementById(`${id}Count`).textContent = person.count ?? 0;
         document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
-        applyEarningsBadge(document.getElementById(`${id}Earnings`), person.weekly ?? 0);
         document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
-
-        requestAnimationFrame(() => {
-          const goalNameEl = document.getElementById(`${id}GoalNameInput`);
-          const goalAmountEl = document.getElementById(`${id}GoalAmountInput`);
-          if (goalNameEl && goalAmountEl) {
-            goalNameEl.value = person.goal ?? "";
-            goalAmountEl.value = person.goalAmount ?? "";
-            updateProgress(id, person.total ?? 0);
-          }
-        });
-
-        ["GoalAmountInput", "GoalNameInput"].forEach(suffix => {
-          document.getElementById(`${id}${suffix}`).addEventListener("change", () => {
-            const goalName = document.getElementById(`${id}GoalNameInput`).value;
-            const goalAmount = document.getElementById(`${id}GoalAmountInput`).value;
-
-            fetch("https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse", {
-              method: "POST",
-              mode: "no-cors",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: `entry.1735294996=${encodeURIComponent(name)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
-            });
-
-            updateProgress(id, person.total ?? 0);
-          });
-        });
-
+        updateProgress(id, person.total);
         if ((person.weekly ?? 0) >= 5) confetti();
-      }); // End forEach
-    }); // End fetch .then
-}; // End window.onload
+      });
+    });
+};
 </script>
 </body>
 </html>
