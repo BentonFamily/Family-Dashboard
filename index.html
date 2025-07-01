@@ -132,8 +132,9 @@
 <body>
   <header>🏡 Family Life Dashboard</header>
   <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
+
   <section>
-    <details id="wifiDetails">
+    <details>
       <summary>📶 Show Wi-Fi QR Code</summary>
       <div class="qr-output">
         <canvas id="qrcode"></canvas>
@@ -189,6 +190,17 @@
     </details>
   </section>
 
+<!-- 🎯 Goal Modal -->
+  <div id="goalModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:20px; border-radius:12px; width:90%; max-width:400px; box-shadow:0 2px 10px rgba(0,0,0,0.25); position:relative;">
+      <h3>Set Goal for <span id="modalChildName"></span></h3>
+      <p><label>Goal Name: <input type="text" id="modalGoalName" /></label></p>
+      <p><label>Goal Amount: <input type="number" id="modalGoalAmount" inputmode="decimal" /></label></p>
+      <button onclick="submitGoal()">Submit</button>
+      <button onclick="closeModal()" style="margin-left:10px;">Cancel</button>
+    </div>
+  </div>
+
 <script>
 function toggleDarkMode() {
   const isDark = document.body.classList.toggle("dark");
@@ -208,9 +220,34 @@ function setInitialTheme() {
   }
 }
 
-function updateProgress(id, total) {
-  const bar = document.getElementById(`${id}Goal`);
-  bar.style.width = `0%`;
+function openGoalModal(name) {
+  activeChild = name;
+  const id = name === "Robin" ? "robin" : "meabh";
+  document.getElementById("modalChildName").textContent = name;
+  document.getElementById("modalGoalName").value = window.fetchedData?.[name]?.goal || "";
+  document.getElementById("modalGoalAmount").value = window.fetchedData?.[name]?.goalAmount || "";
+  document.getElementById("goalModal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("goalModal").style.display = "none";
+}
+
+function submitGoal() {
+  const goalName = document.getElementById("modalGoalName").value;
+  const goalAmount = document.getElementById("modalGoalAmount").value;
+  const activeChildName = document.getElementById("modalChildName").textContent;
+  if (!goalName || !goalAmount) return alert("Please enter both name and amount.");
+
+  fetch("https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse", {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `entry.1735294996=${encodeURIComponent(activeChildName)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
+  });
+
+  closeModal();
+  alert("Goal submitted!");
 }
 
 window.onload = () => {
@@ -227,19 +264,55 @@ window.onload = () => {
     encodeURIComponent(window.config.calendarEmail) +
     "&ctz=Europe%2FLondon";
 
-  const idMap = { Robin: "robin", Méabh: "meabh" };
+  const chores = {
+    "Robin": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"],
+    "Méabh": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"]
+  };
 
+  const choreList = document.getElementById("choreLinks");
+  for (const name in chores) {
+    choreList.innerHTML += `<h3>${name}</h3>`;
+    chores[name].forEach(chore => {
+      const url = `https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=${encodeURIComponent(name)}&entry.1927254214=${encodeURIComponent(chore)}`;
+      choreList.innerHTML += `<li><a href="${url}" target="_blank">${chore}</a></li>`;
+    });
+  }
+
+  const idMap = { Robin: "robin", Méabh: "meabh" };
   fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
     .then(res => res.json())
     .then(data => {
+      window.fetchedData = data;
+      const container = document.getElementById("summaryContainer");
+
       Object.entries(idMap).forEach(([name, id]) => {
         const person = data[name];
         if (!person) return;
-        document.getElementById(`${id}Count`).textContent = person.count ?? 0;
-        document.getElementById(`${id}Earnings`).textContent = (person.weekly ?? 0).toFixed(2);
-        document.getElementById(`${id}Total`).textContent = (person.total ?? 0).toFixed(2);
-        updateProgress(id, person.total);
-        if ((person.weekly ?? 0) >= 5) confetti();
+
+        container.innerHTML += `
+          <h3>${name}</h3>
+          <p>Chores completed this week: <span id="${id}Count">${person.count ?? 0}</span></p>
+          <p>Weekly earnings: £<span id="${id}Earnings" class="earnings-badge">${(person.weekly ?? 0).toFixed(2)}</span></p>
+          <p>🎯 Goal: <span>${person.goal || "—"}</span> (£<span>${person.goalAmount || "—"}</span>)</p>
+          <div class="progress-bar"><div id="${id}Goal" class="progress-fill"></div></div>
+          <p>Total so far: £<span id="${id}Total">${(person.total ?? 0).toFixed(2)}</span></p>
+          <button onclick="openGoalModal('${name}')">Set Goal</button>
+        `;
+
+        const fill = document.getElementById(`${id}Goal`);
+        const goal = parseFloat(person.goalAmount) || 0;
+        const total = parseFloat(person.total) || 0;
+        const progress = goal > 0 ? Math.min((total / goal) * 100, 100) : 0;
+        fill.style.width = `${progress}%`;
+
+        const badge = document.getElementById(`${id}Earnings`);
+        badge.classList.remove("badge-green", "badge-yellow", "badge-orange", "badge-grey");
+        if (person.weekly >= 5) badge.classList.add("badge-green");
+        else if (person.weekly === 3) badge.classList.add("badge-yellow");
+        else if (person.weekly === 1) badge.classList.add("badge-orange");
+        else badge.classList.add("badge-grey");
+
+        if (person.weekly >= 5) confetti();
       });
     });
 };
