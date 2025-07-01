@@ -127,6 +127,25 @@
       width: 0%;
       transition: width 0.5s ease;
     }
+    #goalModal input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      background: white;
+      color: black;
+    }
+    #goalModal label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+    body.dark #goalModal {
+      color: #000;
+    }
   </style>
 </head>
 <body>
@@ -218,7 +237,8 @@ function submitGoal() {
 
   closeModal();
   alert("Goal submitted!");
-}
+  setTimeout(() => location.reload(), 2000); // wait 2 seconds before reload
+  }
 
 window.onload = () => {
   setInitialTheme();
