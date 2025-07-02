@@ -272,12 +272,20 @@ window.onload = () => {
   fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
     .then(res => res.json())
     .then(data => {
-      window.fetchedData = data;
-      const container = document.getElementById("summaryContainer");
+    window.fetchedData = data;
+    console.log("Fetched data:", data);  // Add this
 
-      Object.entries(idMap).forEach(([name, id]) => {
-        const person = data[name];
-        if (!person) return;
+    const container = document.getElementById("summaryContainer");
+
+    Object.entries(idMap).forEach(([name, id]) => {
+    const person = data[name] || data[name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()];
+    if (!person) {
+      console.warn(`No data found for ${name}`);
+      return;
+    }
+
+    console.log(`Goal for ${name}:`, person.goal);
+    console.log(`Amount for ${name}:`, person.goalAmount);
 
         container.innerHTML += `
           <h3>${name}</h3>
