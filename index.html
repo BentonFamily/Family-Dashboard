@@ -268,55 +268,49 @@ window.onload = () => {
     });
   }
 
-  const idMap = { Robin: "robin", Méabh: "meabh" };
   fetch("https://script.google.com/macros/s/AKfycbyOpsvl1tPEF6Hr-FkabNQfzQXtJUVhSc-vYYhI_CBbxI4wHTnAY9yRzu-KR_iYS7HGbg/exec")
-    .then(res => res.json())
-    .then(data => {
+  .then(res => res.json())
+  .then(data => {
     window.fetchedData = data;
-    console.log("Fetched data:", data);  // Add this
-
     const container = document.getElementById("summaryContainer");
 
-    Object.entries(idMap).forEach(([name, id]) => {
-    const person = Object.entries(data).find(
-      ([key]) => key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() ===
-              name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-    )?.[1];
+    Object.entries(data).forEach(([name, person]) => {
+      const id = name === "Robin" ? "robin" : "meabh";
 
-    if (!person) {
-      console.warn(`No data found for ${name}`);
-      return;
-    }
+      if (!person) {
+        console.warn(`No data found for ${name}`);
+        return;
+      }
 
-    console.log(`Goal for ${name}:`, person.goal);
-    console.log(`Amount for ${name}:`, person.goalAmount);
+      console.log(`Goal for ${name}:`, person.goal);
+      console.log(`Amount for ${name}:`, person.goalAmount);
 
-        container.innerHTML += `
-          <h3>${name}</h3>
-          <p>Chores completed this week: <span id="${id}Count">${person.count ?? 0}</span></p>
-          <p>Weekly earnings: £<span id="${id}Earnings" class="earnings-badge">${(person.weekly ?? 0).toFixed(2)}</span></p>
-          <p>🎯 Goal: <span>${person.goal || "—"}</span> (£<span>${person.goalAmount || "—"}</span>)</p>
-          <div class="progress-bar"><div id="${id}Goal" class="progress-fill"></div></div>
-          <p>Total so far: £<span id="${id}Total">${(person.total ?? 0).toFixed(2)}</span></p>
-          <button onclick="openGoalModal('${name}')">Set Goal</button>
-        `;
+      container.innerHTML += `
+        <h3>${name}</h3>
+        <p>Chores completed this week: <span id="${id}Count">${person.count ?? 0}</span></p>
+        <p>Weekly earnings: £<span id="${id}Earnings" class="earnings-badge">${(person.weekly ?? 0).toFixed(2)}</span></p>
+        <p>🎯 Goal: <span>${person.goal || "—"}</span> (£<span>${person.goalAmount || "—"}</span>)</p>
+        <div class="progress-bar"><div id="${id}Goal" class="progress-fill"></div></div>
+        <p>Total so far: £<span id="${id}Total">${(person.total ?? 0).toFixed(2)}</span></p>
+        <button onclick="openGoalModal('${name}')">Set Goal</button>
+      `;
 
-        const fill = document.getElementById(`${id}Goal`);
-        const goal = parseFloat(person.goalAmount) || 0;
-        const total = parseFloat(person.total) || 0;
-        const progress = goal > 0 ? Math.min((total / goal) * 100, 100) : 0;
-        fill.style.width = `${progress}%`;
+      const fill = document.getElementById(`${id}Goal`);
+      const goal = parseFloat(person.goalAmount) || 0;
+      const total = parseFloat(person.total) || 0;
+      const progress = goal > 0 ? Math.min((total / goal) * 100, 100) : 0;
+      fill.style.width = `${progress}%`;
 
-        const badge = document.getElementById(`${id}Earnings`);
-        badge.classList.remove("badge-green", "badge-yellow", "badge-orange", "badge-grey");
-        if (person.weekly >= 5) badge.classList.add("badge-green");
-        else if (person.weekly === 3) badge.classList.add("badge-yellow");
-        else if (person.weekly === 1) badge.classList.add("badge-orange");
-        else badge.classList.add("badge-grey");
+      const badge = document.getElementById(`${id}Earnings`);
+      badge.classList.remove("badge-green", "badge-yellow", "badge-orange", "badge-grey");
+      if (person.weekly >= 5) badge.classList.add("badge-green");
+      else if (person.weekly === 3) badge.classList.add("badge-yellow");
+      else if (person.weekly === 1) badge.classList.add("badge-orange");
+      else badge.classList.add("badge-grey");
 
-        if (person.weekly >= 5) confetti();
-      });
+      if (person.weekly >= 5) confetti();
     });
+  });
 };
 </script>
 </body>
