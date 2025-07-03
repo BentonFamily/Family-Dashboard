@@ -272,6 +272,9 @@ window.onload = () => {
   .then(res => res.json())
   .then(data => {
     window.fetchedData = data;
+    console.log("✅ Raw fetched data:", data);
+    console.log("✅ Object.keys(data):", Object.keys(data));
+    console.log("✅ Full JSON string:", JSON.stringify(data, null, 2));
     const container = document.getElementById("summaryContainer");
 
     Object.entries(data).forEach(([name, person]) => {
