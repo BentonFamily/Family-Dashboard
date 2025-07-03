@@ -168,6 +168,26 @@
       margin: -20px -20px 20px -20px;
       text-align: center;
     }
+    li button {
+      margin: 4px;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      background: #81c784;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    li button:hover {
+      background: #66bb6a;
+    }
+    body.dark li button {
+      background: #388e3c;
+    }
+    body.dark li button:hover {
+      background: #2e7d32;
+    }
   </style>
 </head>
 <body>
@@ -262,6 +282,39 @@ function submitGoal() {
   setTimeout(() => location.reload(), 2000); // wait 2 seconds before reload
   }
 
+  let activeChoreName = "";
+  let activeChoreTask = "";
+
+function openChoreModal(name, chore) {
+  activeChoreName = name;
+  activeChoreTask = chore;
+  document.getElementById("choreConfirmText").textContent = `Did ${name} complete: "${chore}"?`;
+  document.getElementById("choreConfirmModal").style.display = "flex";
+}
+
+function closeChoreModal() {
+  document.getElementById("choreConfirmModal").style.display = "none";
+  activeChoreName = "";
+  activeChoreTask = "";
+}
+
+function submitChore() {
+  if (!activeChoreName || !activeChoreTask) return;
+
+  const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/formResponse";
+
+  fetch(formURL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `entry.2076450991=${encodeURIComponent(activeChoreName)}&entry.1927254214=${encodeURIComponent(activeChoreTask)}`
+  });
+
+  closeChoreModal();
+  alert("Chore submitted!");
+  setTimeout(() => location.reload(), 1500);
+}
+
 window.onload = () => {
   setInitialTheme();
 
@@ -281,14 +334,14 @@ window.onload = () => {
     "Méabh": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"]
   };
 
-  const choreList = document.getElementById("choreLinks");
-  for (const name in chores) {
-    choreList.innerHTML += `<h3>${name}</h3>`;
-    chores[name].forEach(chore => {
-      const url = `https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/viewform?usp=pp_url&entry.2076450991=${encodeURIComponent(name)}&entry.1927254214=${encodeURIComponent(chore)}`;
-      choreList.innerHTML += `<li><a href="${url}" target="_blank">${chore}</a></li>`;
-    });
-  }
+    const choreList = document.getElementById("choreLinks");
+    for (const name in chores) {
+      choreList.innerHTML += `<h3>${name}</h3><ul style='list-style: none; padding: 0;'>`;
+      chores[name].forEach(chore => {
+        choreList.innerHTML += `<li><button onclick="openChoreModal('${name}', '${chore}')">${chore}</button></li>`;
+      });
+      choreList.innerHTML += `</ul>`;
+    }
 
   fetch("https://script.google.com/macros/s/AKfycbwBIGo4EnzoGMU7y6jG7VITAiH6o0aVnQr9rlO9IQ6GdXlwz9eOyw0x5nfP1bEkEfLNzg/exec")
   .then(res => res.json())
@@ -334,6 +387,16 @@ window.onload = () => {
       else badge.classList.add("badge-grey");
 
       if (person.weekly >= 5) confetti();
+
+     
+    <div id="choreConfirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+      <div class="modal-content">
+        <div class="modal-title">Confirm Chore</div>
+        <p id="choreConfirmText"></p>
+        <button onclick="submitChore()">Yes, Submit</button>
+        <button onclick="closeChoreModal()" style="margin-left:10px;">Cancel</button>
+      </div>
+    </div>
     });
   });
 };
