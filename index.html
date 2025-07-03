@@ -54,17 +54,27 @@
       list-style: none;
       padding-left: 0;
     }
-    li a {
+    li a, li button {
       display: inline-block;
-      margin: 0.25rem 0;
-      text-decoration: none;
-      background: #f0f0f0;
-      padding: 0.5rem;
+      margin: 4px 0;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
       border-radius: 6px;
-      color: #333;
+      background: #81c784;
+      color: white;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.3s;
     }
-    li a:hover {
-      background: #ddd;
+    li a:hover, li button:hover {
+      background: #66bb6a;
+    }
+    body.dark li a, body.dark li button {
+      background: #388e3c;
+    }
+    body.dark li a:hover, body.dark li button:hover {
+      background: #2e7d32;
     }
     .toggle-mode {
       position: fixed;
@@ -148,7 +158,7 @@
       display: block;
       margin-bottom: 5px;
     }
-    #goalModal .modal-content {
+    #goalModal .modal-content, #choreConfirmModal .modal-content {
       background: var(--section-bg);
       color: var(--text);
       padding: 20px;
@@ -158,7 +168,7 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.25);
       position: relative;
     }
-    #goalModal .modal-title {
+    #goalModal .modal-title, #choreConfirmModal .modal-title {
       font-size: 1.2rem;
       font-weight: bold;
       background: linear-gradient(to right, #4caf50, #81c784);
@@ -167,26 +177,6 @@
       border-radius: 8px 8px 0 0;
       margin: -20px -20px 20px -20px;
       text-align: center;
-    }
-    li button {
-      margin: 4px;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      border: none;
-      border-radius: 6px;
-      background: #81c784;
-      color: white;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    li button:hover {
-      background: #66bb6a;
-    }
-    body.dark li button {
-      background: #388e3c;
-    }
-    body.dark li button:hover {
-      background: #2e7d32;
     }
   </style>
 </head>
@@ -204,7 +194,7 @@
   </section>
 
   <section>
-    <details>
+    <details open>
       <summary>🧽🧹🧼👖👗👚 Log a Chore</summary>
       <ul id="choreLinks"></ul>
     </details>
@@ -224,6 +214,7 @@
     </details>
   </section>
 
+  <!-- Goal Modal -->
   <div id="goalModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
     <div class="modal-content">
       <div class="modal-title">Set Goal for <span id="modalChildName"></span></div>
@@ -233,7 +224,16 @@
       <button onclick="closeModal()" style="margin-left:10px;">Cancel</button>
     </div>
   </div>
-  
+
+  <!-- Chore Confirmation Modal -->
+  <div id="choreConfirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal-content">
+      <div class="modal-title">Confirm Chore</div>
+      <p id="choreConfirmText"></p>
+      <button onclick="submitChore()">Yes, Submit</button>
+      <button onclick="closeChoreModal()" style="margin-left:10px;">Cancel</button>
+    </div>
+  </div>
 <script>
 function toggleDarkMode() {
   const isDark = document.body.classList.toggle("dark");
@@ -279,16 +279,16 @@ function submitGoal() {
 
   closeModal();
   alert("Goal submitted!");
-  setTimeout(() => location.reload(), 2000); // wait 2 seconds before reload
-  }
+  setTimeout(() => location.reload(), 2000);
+}
 
-  let activeChoreName = "";
-  let activeChoreTask = "";
+let activeChoreName = "";
+let activeChoreTask = "";
 
 function openChoreModal(name, chore) {
   activeChoreName = name;
   activeChoreTask = chore;
-  document.getElementById("choreConfirmText").textContent = `Did ${name} complete: "${chore}"?`;
+  document.getElementById("choreConfirmText").textContent = `Did ${name} complete: \"${chore}\"?`;
   document.getElementById("choreConfirmModal").style.display = "flex";
 }
 
@@ -300,7 +300,6 @@ function closeChoreModal() {
 
 function submitChore() {
   if (!activeChoreName || !activeChoreTask) return;
-
   const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/formResponse";
 
   fetch(formURL, {
@@ -334,71 +333,51 @@ window.onload = () => {
     "Méabh": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"]
   };
 
-    const choreList = document.getElementById("choreLinks");
-    for (const name in chores) {
-      choreList.innerHTML += `<h3>${name}</h3><ul style='list-style: none; padding: 0;'>`;
-      chores[name].forEach(chore => {
-        choreList.innerHTML += `<li><button onclick="openChoreModal('${name}', '${chore}')">${chore}</button></li>`;
-      });
-      choreList.innerHTML += `</ul>`;
-    }
+  const choreList = document.getElementById("choreLinks");
+  for (const name in chores) {
+    choreList.innerHTML += `<h3>${name}</h3><ul style='list-style: none; padding: 0;'>`;
+    chores[name].forEach(chore => {
+      choreList.innerHTML += `<li><button onclick=\"openChoreModal('${name}', '${chore}')\">${chore}</button></li>`;
+    });
+    choreList.innerHTML += `</ul>`;
+  }
 
   fetch("https://script.google.com/macros/s/AKfycbwBIGo4EnzoGMU7y6jG7VITAiH6o0aVnQr9rlO9IQ6GdXlwz9eOyw0x5nfP1bEkEfLNzg/exec")
-  .then(res => res.json())
-  .then(data => {
-    window.fetchedData = data;
-    console.log("✅ Raw fetched data:", data);
-    console.log("✅ Object.keys(data):", Object.keys(data));
-    console.log("✅ Full JSON string:", JSON.stringify(data, null, 2));
-    const container = document.getElementById("summaryContainer");
+    .then(res => res.json())
+    .then(data => {
+      window.fetchedData = data;
+      const container = document.getElementById("summaryContainer");
 
-    Object.entries(data).forEach(([name, person]) => {
-      const id = name === "Robin" ? "robin" : "meabh";
+      Object.entries(data).forEach(([name, person]) => {
+        const id = name === "Robin" ? "robin" : "meabh";
+        if (!person) return;
 
-      if (!person) {
-        console.warn(`No data found for ${name}`);
-        return;
-      }
+        container.innerHTML += `
+          <h3>${name}</h3>
+          <p>Chores completed this week: <span id="${id}Count">${person.count ?? 0}</span></p>
+          <p>Weekly earnings: £<span id="${id}Earnings" class="earnings-badge">${(person.weekly ?? 0).toFixed(2)}</span></p>
+          <p>🎯 Goal: <span>${person.goal || "—"}</span> (£<span>${person.goalAmount || "—"}</span>)</p>
+          <div class="progress-bar"><div id="${id}Goal" class="progress-fill"></div></div>
+          <p>Total so far: £<span id="${id}Total">${(person.total ?? 0).toFixed(2)}</span></p>
+          <button onclick="openGoalModal('${name}')">Set Goal</button>
+        `;
 
-      console.log(`Goal for ${name}:`, person.goal);
-      console.log(`Amount for ${name}:`, person.goalAmount);
+        const fill = document.getElementById(`${id}Goal`);
+        const goal = parseFloat(person.goalAmount) || 0;
+        const total = parseFloat(person.total) || 0;
+        const progress = goal > 0 ? Math.min((total / goal) * 100, 100) : 0;
+        fill.style.width = `${progress}%`;
 
-      container.innerHTML += `
-        <h3>${name}</h3>
-        <p>Chores completed this week: <span id="${id}Count">${person.count ?? 0}</span></p>
-        <p>Weekly earnings: £<span id="${id}Earnings" class="earnings-badge">${(person.weekly ?? 0).toFixed(2)}</span></p>
-        <p>🎯 Goal: <span>${person.goal || "—"}</span> (£<span>${person.goalAmount || "—"}</span>)</p>
-        <div class="progress-bar"><div id="${id}Goal" class="progress-fill"></div></div>
-        <p>Total so far: £<span id="${id}Total">${(person.total ?? 0).toFixed(2)}</span></p>
-        <button onclick="openGoalModal('${name}')">Set Goal</button>
-      `;
+        const badge = document.getElementById(`${id}Earnings`);
+        badge.classList.remove("badge-green", "badge-yellow", "badge-orange", "badge-grey");
+        if (person.weekly >= 5) badge.classList.add("badge-green");
+        else if (person.weekly === 3) badge.classList.add("badge-yellow");
+        else if (person.weekly === 1) badge.classList.add("badge-orange");
+        else badge.classList.add("badge-grey");
 
-      const fill = document.getElementById(`${id}Goal`);
-      const goal = parseFloat(person.goalAmount) || 0;
-      const total = parseFloat(person.total) || 0;
-      const progress = goal > 0 ? Math.min((total / goal) * 100, 100) : 0;
-      fill.style.width = `${progress}%`;
-
-      const badge = document.getElementById(`${id}Earnings`);
-      badge.classList.remove("badge-green", "badge-yellow", "badge-orange", "badge-grey");
-      if (person.weekly >= 5) badge.classList.add("badge-green");
-      else if (person.weekly === 3) badge.classList.add("badge-yellow");
-      else if (person.weekly === 1) badge.classList.add("badge-orange");
-      else badge.classList.add("badge-grey");
-
-      if (person.weekly >= 5) confetti();
-
-     
-    <div id="choreConfirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
-      <div class="modal-content">
-        <div class="modal-title">Confirm Chore</div>
-        <p id="choreConfirmText"></p>
-        <button onclick="submitChore()">Yes, Submit</button>
-        <button onclick="closeChoreModal()" style="margin-left:10px;">Cancel</button>
-      </div>
-    </div>
+        if (person.weekly >= 5) confetti();
+      });
     });
-  });
 };
 </script>
 </body>
