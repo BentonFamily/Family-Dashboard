@@ -185,7 +185,7 @@
   <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
 
   <section>
-    <details>
+    <details id="wifiSection">
       <summary>📶 Show Wi-Fi QR Code</summary>
       <div class="qr-output">
         <canvas id="qrcode"></canvas>
@@ -315,6 +315,10 @@ function submitChore() {
 }
 
 window.onload = () => {
+  if (!localStorage.getItem("seenQR")) {
+    document.getElementById("wifiSection").setAttribute("open", "");
+    localStorage.setItem("seenQR", "true");
+  }
   setInitialTheme();
 
   new QRious({
