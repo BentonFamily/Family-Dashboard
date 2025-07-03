@@ -278,7 +278,11 @@ window.onload = () => {
     const container = document.getElementById("summaryContainer");
 
     Object.entries(idMap).forEach(([name, id]) => {
-    const person = data[name] || data[name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()];
+    const person = Object.entries(data).find(
+      ([key]) => key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() ===
+              name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    )?.[1];
+
     if (!person) {
       console.warn(`No data found for ${name}`);
       return;
