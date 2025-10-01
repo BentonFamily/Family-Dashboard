@@ -290,7 +290,9 @@ window.onload = () => {
     dailyResetHour: 4,
     speakEnabled: true,
     confettiEnabled: true,
+    streaksEnabled: false,
     defaultChild: 'Robin',
+    auto: { enable: true, bedHour: 17 },
     // PE schedule + activities
     school: {
       peDays: {
@@ -327,7 +329,9 @@ window.onload = () => {
   // ----- State -----
   const qs = new URLSearchParams(location.search);
   let currentChild = localStorage.getItem('routine:lastChild') || qs.get('child') || R.defaultChild;
-  let currentRoutine = (qs.get('routine')||'bed').toLowerCase();
+  let manualOverrideUntil = +(localStorage.getItem('routine:overrideUntil')||0);
+  let currentRoutine = (qs.get('routine') || autoRoutineNow()).toLowerCase();
+  if (qs.get('routine')) { setManualOverrideUntilNextBoundary(); }
 
   const el = (id) => document.getElementById(id);
   const listEl = el('routineList');
@@ -336,6 +340,7 @@ window.onload = () => {
   const progressLabel = el('routineProgressLabel');
   const titleEl = el('routineTitle');
   const streakEl = el('routineStreak');
+  if(streakEl && !R.streaksEnabled){ streakEl.style.display='none'; }
   const tabsEl = el('routineTabs');
   const kidTabsEl = el('kidTabs');
   const confettiCanvas = el('routineConfetti');
@@ -346,8 +351,8 @@ window.onload = () => {
   function todayKey(){ const now = new Date(); if(now.getHours() < R.dailyResetHour){ now.setDate(now.getDate()-1); } return now.toISOString().slice(0,10); }
   function loadProgress(){ try{ return JSON.parse(localStorage.getItem(key())||'{}'); }catch{return{}} }
   function saveProgress(p){ localStorage.setItem(key(), JSON.stringify(p)); }
-  function getStreak(){ return +(localStorage.getItem(streakKey())||0); }
-  function setStreak(n){ localStorage.setItem(streakKey(), String(n)); }
+  function getStreak(){ if(!R.streaksEnabled) return 0; return +(localStorage.getItem(streakKey())||0); }
+  function setStreak(n){ if(!R.streaksEnabled) return; localStorage.setItem(streakKey(), String(n)); }
 
   function visibleTasksForChild(list){ return list.filter(t=>{ if(t.onlyFor) return t.onlyFor.includes(currentChild); if(t.excludeFor) return !t.excludeFor.includes(currentChild); return true; }).map(t=>({...t})); }
   function tomorrowLabel(){ const d=new Date(); d.setDate(d.getDate()+1); return d.toLocaleDateString(undefined,{ weekday:'long'}); }
@@ -357,12 +362,36 @@ window.onload = () => {
   function renderTabs(){
     tabsEl.innerHTML = '';
     [['bed','Bedtime'],['morning','Morning']].forEach(([val,label])=>{
-      const b=document.createElement('div'); b.className='pill'+(currentRoutine===val?' active':''); b.textContent=label; b.addEventListener('click',()=>{currentRoutine=val; render();}); tabsEl.appendChild(b);
+      const b=document.createElement('div'); b.className='pill'+(currentRoutine===val?' active':''); b.textContent=label; b.addEventListener('click',()=>{ currentRoutine=val; setManualOverrideUntilNextBoundary(); render(); }); tabsEl.appendChild(b);
     });
     kidTabsEl.innerHTML = '';
     ['Robin','Méabh'].forEach(name=>{ const b=document.createElement('div'); b.className='pill'+(currentChild===name?' active':''); b.textContent=name; b.addEventListener('click',()=>{ setChild(name); }); kidTabsEl.appendChild(b); });
   }
   function setChild(name){ currentChild=name; localStorage.setItem('routine:lastChild', name); saveProgress(loadProgress()); renderTabs(); render(); }
+
+  function autoRoutineNow(){
+    const now = new Date(); const h = now.getHours();
+    const bedH = R.auto?.bedHour ?? 17; const resetH = R.dailyResetHour;
+    // Morning between reset and bed; Bed otherwise
+    return (h >= resetH && h < bedH) ? 'morning' : 'bed';
+  }
+  function nextAutoBoundaryTS(){
+    const now = new Date(); const h = now.getHours();
+    const bedH = R.auto?.bedHour ?? 17; const resetH = R.dailyResetHour;
+    const t = new Date(now);
+    if (h < resetH) { t.setHours(resetH,0,0,0); return +t; }
+    if (h < bedH) { t.setHours(bedH,0,0,0); return +t; }
+    // after bedHour -> next day's reset
+    t.setDate(t.getDate()+1); t.setHours(resetH,0,0,0); return +t;
+  }
+  function setManualOverrideUntilNextBoundary(){
+    manualOverrideUntil = nextAutoBoundaryTS();
+    localStorage.setItem('routine:overrideUntil', String(manualOverrideUntil));
+  }
+  function shouldAutoSwitch(){
+    if (!R.auto?.enable) return false;
+    return Date.now() >= (manualOverrideUntil||0);
+  }
 
   function render(){
     const tasks = visibleTasksForChild(R.routines[currentRoutine]);
@@ -389,8 +418,8 @@ window.onload = () => {
   function updateBar(){ const {doneCount,total}=calcProgress(); const pct=Math.round((doneCount/Math.max(total,1))*100); barEl.style.width=pct+'%'; progressLabel.textContent=`${pct}% done`; }
   function nextTaskName(){ const tasks=visibleTasksForChild(R.routines[currentRoutine]); const p=loadProgress(); const next=tasks.find(t=>!p[t.id]); return next?next.name:'All done'; }
   function updateNudge(){ const name=nextTaskName(); nudgeEl.innerHTML = name==='All done' ? '🎉 <strong>All done — lovely work!</strong>' : `Next up: <strong>${name}</strong>`; }
-  function bumpStreak(){ const s=getStreak(); setStreak(s+1); updateStreakBadge(); }
-  function updateStreakBadge(){ const s=getStreak(); streakEl.textContent = `🔥 ${s}\u2011day streak`; }
+  function bumpStreak(){ if(!R.streaksEnabled) return; const s=getStreak(); setStreak(s+1); updateStreakBadge(); }
+  function updateStreakBadge(){ if(!streakEl) return; if(!R.streaksEnabled){ streakEl.style.display='none'; return; } const s=getStreak(); streakEl.style.display=''; streakEl.textContent = `🔥 ${s}‑day streak`; }\u2011day streak`; }
 
   function onToggle(task){
     const p=loadProgress();
@@ -419,7 +448,13 @@ window.onload = () => {
   function fireAndForget(task,status){ try{ if(!R.sync.enabled||!R.sync.endpoint) return; fetch(R.sync.endpoint,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ child: currentChild, routine: currentRoutine, taskId: task.id, status, date: todayKey() })}); }catch{} }
 
   // Daily roll-over cleanup
-  (function roll(){ const keys=Object.keys(localStorage).filter(k=>k.startsWith('routine:')); const today=todayKey(); keys.forEach(k=>{ const parts=k.split(':'); const storedDate=parts[3]; if(storedDate!==today){ localStorage.removeItem(k); } }); })();
+  (function roll(){
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith('routine:'));
+    const today=todayKey();
+    keys.forEach(k=>{ const parts=k.split(':'); const storedDate=parts[3]; if(storedDate!==today){ localStorage.removeItem(k); } });
+    // Clear manual override at day boundary
+    localStorage.removeItem('routine:overrideUntil'); manualOverrideUntil = 0;
+  })();
 
   function svgTick(){ return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="5" ry="5" stroke="rgba(0,0,0,.15)" stroke-width="2"/><path d="M7 12.5l3.5 3.5L17 9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
 
@@ -433,20 +468,37 @@ window.onload = () => {
   const CIRC = 2*Math.PI*52; // 2πr where r=52
   let timerId=null, remain=120, running=false, pendingTask=null;
 
-  function openBrushTimer(task){ pendingTask=task; remain=120; running=false; updateDial(); timeEl.textContent='2:00'; pauseBtn.disabled=true; modal.style.display='flex'; }
+  function openBrushTimer(task){ if(timerId){ clearInterval(timerId); timerId=null; } pendingTask=task; remain=120; running=false; startBtn.textContent='Start'; pauseBtn.disabled=true; updateDial(); timeEl.textContent='2:00'; modal.style.display='flex'; }
   function closeBrushTimer(){ modal.style.display='none'; }
   function updateDial(){ const frac = 1 - (remain/120); dial.style.strokeDasharray = String(CIRC); dial.style.strokeDashoffset = String(CIRC * (1-frac)); }
   function tick(){ if(!running) return; remain=Math.max(0, remain-1); updateDial(); const m=Math.floor(remain/60), s=String(remain%60).padStart(2,'0'); timeEl.textContent=`${m}:${s}`; if(remain<=0){ finished(); } }
-  function finished(){ clearInterval(timerId); running=false; speak('Two minutes done. Sparkly teeth!'); fireworks(); closeBrushTimer(); // mark task as done
-    const p=loadProgress(); p[pendingTask.id]=true; saveProgress(p); render(); if(R.sync.enabled){ fireAndForget(pendingTask,'done'); } const {allDone}=calcProgress(); if(allDone){ bumpStreak(); }
+  function finished(){ clearInterval(timerId); timerId=null; running=false; speak('Two minutes done. Sparkly teeth!'); fireworks(); closeBrushTimer(); const p=loadProgress(); if(pendingTask){ p[pendingTask.id]=true; saveProgress(p); if(R.sync.enabled){ fireAndForget(pendingTask,'done'); } } pendingTask=null; render(); const {allDone}=calcProgress(); if(allDone){ bumpStreak(); } } const {allDone}=calcProgress(); if(allDone){ bumpStreak(); }
   }
   startBtn.addEventListener('click', ()=>{ if(running) return; running=true; startBtn.textContent='Resume'; pauseBtn.disabled=false; timerId=setInterval(tick, 1000); speak('Brushing timer started.'); });
   pauseBtn.addEventListener('click', ()=>{ running=false; clearInterval(timerId); pauseBtn.disabled=true; speak('Paused.'); });
-  skipBtn.addEventListener('click', ()=>{ closeBrushTimer(); speak('Skipping tonight.'); });
+  skipBtn.addEventListener('click', ()=>{
+    if(timerId){ clearInterval(timerId); timerId=null; }
+    running=false;
+    if(pendingTask){
+      const p=loadProgress(); p[pendingTask.id]=true; saveProgress(p);
+      if(R.sync.enabled){ fireAndForget(pendingTask,'done'); }
+    }
+    pendingTask=null;
+    closeBrushTimer();
+    render();
+    speak('Skipping tonight.');
+  });
   modal.addEventListener('click', (e)=>{ if(e.target===modal) closeBrushTimer(); });
 
   // Boot
   render();
+  if (R.auto?.enable) {
+    setInterval(()=>{
+      if (!shouldAutoSwitch()) return;
+      const desired = autoRoutineNow();
+      if (desired !== currentRoutine) { currentRoutine = desired; render(); }
+    }, 60000);
+  }
 })();
 </script>
 </body>
