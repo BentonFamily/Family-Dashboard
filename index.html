@@ -6,6 +6,10 @@
   <title>Family Life Dashboard</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <script src="config.js"></script>
+  <script>
+    // Safe defaults in case config.js is missing or partial
+    window.config = window.config || {};
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
@@ -152,6 +156,7 @@
     <details>
       <summary>📅 Family Calendar</summary>
       <iframe id="calendarFrame" style="border: 0; width: 100%; height: 400px;" frameborder="0" scrolling="no"></iframe>
+      <div id="calendarHint" style="margin-top:8px;font-size:0.9rem;"></div>
     </details>
   </section>
 
@@ -247,8 +252,27 @@ function submitChore() {
 window.onload = () => {
   if (!localStorage.getItem("seenQR")) { document.getElementById("wifiSection").setAttribute("open", ""); localStorage.setItem("seenQR", "true"); }
   setInitialTheme();
-  new QRious({ element: document.getElementById("qrcode"), size: 200, value: `WIFI:S:${window.config.wifiName};T:WPA;P:${window.config.wifiPassword};;` });
-  document.getElementById("calendarFrame").src = "https://calendar.google.com/calendar/embed?src=" + encodeURIComponent(window.config.calendarEmail) + "&ctz=Europe%2FLondon";
+  try {
+    const wifiName = (window.config.wifiName || 'YourWiFi');
+    const wifiPassword = (window.config.wifiPassword || 'password');
+    new QRious({ element: document.getElementById("qrcode"), size: 200, value: `WIFI:S:${wifiName};T:WPA;P:${wifiPassword};;` });
+  } catch (e) { console.error('QR error', e); }
+  (function setupCalendar(){
+  const frame = document.getElementById("calendarFrame");
+  const hint = document.getElementById("calendarHint");
+  const primary = (window.config.calendarId || window.config.calendarEmail || '').trim();
+  const sources = Array.isArray(window.config.calendarSources) && window.config.calendarSources.length
+    ? window.config.calendarSources
+    : (primary ? [primary] : []);
+  if (!sources.length) {
+    hint.textContent = "Set window.config.calendarId (Calendar Settings → Calendar ID) or calendarEmail in config.js.";
+    return;
+  }
+  const srcParams = sources.map(s => `&src=${encodeURIComponent(s)}`).join("");
+  const url = `https://calendar.google.com/calendar/embed?height=400&wkst=1&bgcolor=%23ffffff&ctz=Europe%2FLondon&showTitle=0&showNav=1&mode=AGENDA${srcParams}`;
+  frame.src = url;
+  hint.innerHTML = `If you can't see events, ensure this calendar is shared to <em>Make available to public</em> or open it <a href="${url}" target="_blank" rel="noopener">directly in Google Calendar</a>.`;
+})();
   const chores = { "Robin": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"], "Méabh": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"] };
   const choreList = document.getElementById("choreLinks");
   for (const name in chores) {
