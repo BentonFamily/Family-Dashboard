@@ -278,32 +278,42 @@ function submitChore(){
   var done = function(){ closeChoreModal(); alert('Chore submitted!'); setTimeout(()=>location.reload(), 1500); };
 
   if (mode === 'script' && window.config.choreSubmitUrl){
-    // Send JSON to your Apps Script
-    fetch(window.config.choreSubmitUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ child: nameForSheet(activeChoreName), chore: activeChoreTask, ts: Date.now() })
-    }).then(done).catch(done);
+    // POST as x-www-form-urlencoded to avoid CORS preflight
+    var p = new URLSearchParams();
+    p.set('child', nameForSheet(activeChoreName));
+    p.set('chore', activeChoreTask);
+    p.set('ts', String(Date.now()));
+    var body = p.toString();
+
+    var sent = false;
+    if (navigator.sendBeacon){
+      try { sent = navigator.sendBeacon(window.config.choreSubmitUrl, new Blob([body], {type:'application/x-www-form-urlencoded'})); } catch (e) {}
+    }
+    if (!sent){
+      fetch(window.config.choreSubmitUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+      }).catch(()=>{});
+    }
+    done();
     return;
   }
 
-  // Fallback: Google Forms (kept here if you ever want it)
+  // Fallback: Google Forms (kept, but Forms has been returning 400)
   var url = 'https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/formResponse';
   var params = new URLSearchParams();
-  params.set('entry.2076450991', nameForSheet(activeChoreName)); // Who did the chore?
-  params.set('entry.1927254214', activeChoreTask);               // Which chore?
-  var body = params.toString();
+  params.set('entry.2076450991', nameForSheet(activeChoreName)); // child
+  params.set('entry.1927254214', activeChoreTask);               // chore
+  var body2 = params.toString();
 
-  var sent = false;
+  var sent2 = false;
   if (navigator.sendBeacon){
-    try { sent = navigator.sendBeacon(url, new Blob([body], {type:'application/x-www-form-urlencoded'})); } catch(e){}
+    try { sent2 = navigator.sendBeacon(url, new Blob([body2], {type:'application/x-www-form-urlencoded'})); } catch(e){}
   }
-  if (!sent){
-    fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body })
-      .catch(()=>{});
-  }
-  if (location.search.includes('debug=1')) {
-    var img = new Image(); img.src = url + '?' + body + '&_ts=' + Date.now(); img.style.display='none'; document.body.appendChild(img);
+  if (!sent2){
+    fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body2 }).catch(()=>{});
   }
   done();
 }
