@@ -267,16 +267,31 @@ var activeChoreName = ''; var activeChoreTask = '';
 function openChoreModal(name, chore){ activeChoreName=name; activeChoreTask=chore; document.getElementById('choreConfirmText').textContent='Did '+name+' complete: "'+chore+'"?'; document.getElementById('choreConfirmModal').style.display='flex'; }
 function closeChoreModal(){ document.getElementById('choreConfirmModal').style.display='none'; activeChoreName=''; activeChoreTask=''; }
 
-// --- Reliable chore submit ---
+// Keep the diacritic helpers
 function stripDiacritics(s){ try { return s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); } catch(e){ return s; } }
-function nameForSheet(name){ if (name==='M\u00E9abh') return 'Meabh'; return stripDiacritics(name); }
+function nameForSheet(name){ if (name === 'M\u00E9abh') return 'Meabh'; return stripDiacritics(name); }
+
 function submitChore(){
   if (!activeChoreName || !activeChoreTask) return;
+
+  var mode = (window.config.choreSubmitMode || 'forms');
+  var done = function(){ closeChoreModal(); alert('Chore submitted!'); setTimeout(()=>location.reload(), 1500); };
+
+  if (mode === 'script' && window.config.choreSubmitUrl){
+    // Send JSON to your Apps Script
+    fetch(window.config.choreSubmitUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ child: nameForSheet(activeChoreName), chore: activeChoreTask, ts: Date.now() })
+    }).then(done).catch(done);
+    return;
+  }
+
+  // Fallback: Google Forms (kept here if you ever want it)
   var url = 'https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/formResponse';
   var params = new URLSearchParams();
   params.set('entry.2076450991', nameForSheet(activeChoreName)); // Who did the chore?
   params.set('entry.1927254214', activeChoreTask);               // Which chore?
-  params.set('submit', 'Submit');
   var body = params.toString();
 
   var sent = false;
@@ -284,16 +299,15 @@ function submitChore(){
     try { sent = navigator.sendBeacon(url, new Blob([body], {type:'application/x-www-form-urlencoded'})); } catch(e){}
   }
   if (!sent){
-    fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body })
-      .catch(function(e){ console.warn('fetch failed', e); });
+    fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body })
+      .catch(()=>{});
   }
-  if (location.search.indexOf('debug=1')>-1) {
+  if (location.search.includes('debug=1')) {
     var img = new Image(); img.src = url + '?' + body + '&_ts=' + Date.now(); img.style.display='none'; document.body.appendChild(img);
   }
-
-  closeChoreModal(); alert('Chore submitted!'); setTimeout(function(){ location.reload(); }, 2500);
+  done();
 }
-
+  
 // --- Onload ---
 window.onload = function(){
   try {
