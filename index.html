@@ -7,13 +7,13 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <script src="config.js"></script>
   <script>
-    // Guard: make sure window.config exists even if config.js is missing or empty
+    // Guard: ensure window.config exists
     window.config = window.config || {};
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
-    :root { --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet); --text: #333; --section-bg: white; }
+    :root { --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet); --text: #333; --section-bg: #fff; }
     body.dark { --bg: #111; --text: #f1f1f1; --section-bg: #222; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); }
     header { background: rgba(255,255,255,0.85); padding: 1rem; text-align: center; font-size: 1.5rem; font-weight: 700; border-bottom: 3px solid #fff; position: relative; z-index: 1; }
@@ -21,11 +21,11 @@
     section { background: var(--section-bg); margin: 1rem; padding: 1rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     h2, h3 { color: var(--text); }
     ul { list-style: none; padding-left: 0; }
-    li a, li button { display: inline-block; margin: 4px 0; padding: 0.5rem 1rem; font-size: 1rem; border: none; border-radius: 6px; background: #81c784; color: white; cursor: pointer; text-decoration: none; transition: background 0.3s; }
+    li a, li button { display: inline-block; margin: 4px 0; padding: 0.5rem 1rem; font-size: 1rem; border: none; border-radius: 6px; background: #81c784; color: #fff; cursor: pointer; text-decoration: none; transition: background 0.3s; }
     li a:hover, li button:hover { background: #66bb6a; }
     body.dark li a, body.dark li button { background: #388e3c; }
     body.dark li a:hover, body.dark li button:hover { background: #2e7d32; }
-    .toggle-mode { position: fixed; bottom: 1rem; right: 1rem; width: 50px; height: 50px; background: #000; color: #fff; border: none; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 999; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: background 0.3s; }
+    .toggle-mode { position: fixed; bottom: 1rem; right: 1rem; width: 50px; height: 50px; background: #000; color: #fff; border: none; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 999; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: background 0.3s; }
     .toggle-mode.sun { background: #ffd700; color: #333; }
     .qr-output { margin-top: 1rem; }
     details summary { font-weight: 700; cursor: pointer; margin-bottom: 1rem; }
@@ -38,10 +38,11 @@
     .badge-grey { background-color: #7f8c8d; }
     .progress-bar { background: #ddd; border-radius: 10px; overflow: hidden; margin-top: 0.5rem; height: 20px; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); width: 0%; transition: width 0.5s ease; }
-    #goalModal input { width: calc(100% - 16px); padding: 8px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: white; color: black; }
+
+    #goalModal input { width: calc(100% - 16px); padding: 8px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fff; color: #000; }
     #goalModal label { font-weight: 700; display: block; margin-bottom: 5px; }
     #goalModal .modal-content, #choreConfirmModal .modal-content { background: var(--section-bg); color: var(--text); padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 2px 10px rgba(0,0,0,0.25); position: relative; }
-    #goalModal .modal-title, #choreConfirmModal .modal-title { font-size: 1.2rem; font-weight: 700; background: linear-gradient(to right, #4caf50, #81c784); color: white; padding: 10px 15px; border-radius: 8px 8px 0 0; margin: -20px -20px 20px -20px; text-align: center; }
+    #goalModal .modal-title, #choreConfirmModal .modal-title { font-size: 1.2rem; font-weight: 700; background: linear-gradient(to right, #4caf50, #81c784); color: #fff; padding: 10px 15px; border-radius: 8px 8px 0 0; margin: -20px -20px 20px -20px; text-align: center; }
 
     /* Routine component (scoped) */
     .routine { --muted:#5b6b7b; --text:#0f172a; --pill1:#ef4444; --pill2:#f59e0b; --pill3:#eab308; --pill4:#22c55e; --pill5:#3b82f6; --pill6:#a855f7; }
@@ -63,7 +64,7 @@
     .routine .grid { display:grid; gap:10px }
     .routine .card { background:linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.01)); border:1px solid rgba(0,0,0,.06); border-radius:16px; padding:12px; display:flex; align-items:center; gap:12px }
     .dark .routine .card { border-color:rgba(255,255,255,.08); background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)) }
-    .routine .idx { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; font-weight:800; background:linear-gradient(120deg, var(--pill2), var(--pill4)); color:white }
+    .routine .idx { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; font-weight:800; background:linear-gradient(120deg, var(--pill2), var(--pill4)); color:#fff }
     .routine .task { flex:1 }
     .routine .name { font-weight:800; font-size:18px; color:var(--text) }
     .routine .desc { color:var(--muted); font-size:13px; margin-top:2px }
@@ -76,7 +77,6 @@
     .routine .btn.primary { background:linear-gradient(90deg, var(--pill4), var(--pill5)); color:#06121c }
     .routine .btn.ghost { background:#f9fafb; border:1px solid #e5e7eb; color:#374151 }
     .dark .routine .btn.ghost { background:#0b1020; border-color:#1f2937; color:#94a3b8 }
-    .routine .streak { margin-left:auto; background:linear-gradient(120deg, #f59e0b, #ef4444); color:#fff; padding:10px 12px; border-radius:12px; font-weight:900 }
 
     #brushTimerModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1000; align-items:center; justify-content:center }
     #brushTimerModal .box { background:var(--section-bg); color:var(--text); width: min(92vw, 420px); border-radius:16px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.35); text-align:center; }
@@ -89,11 +89,15 @@
     #brushTimerModal .start { background:linear-gradient(90deg, #22c55e, #3b82f6); color:#06121c }
     #brushTimerModal .pause { background:#f3f4f6 }
     #brushTimerModal .skip { background:#fee2e2 }
+
+    /* Locked routine note */
+    .locked-note { font-size:14px; color:#555; }
+    .dark .locked-note { color:#cbd5e1; }
   </style>
 </head>
 <body>
   <header>Family Life Dashboard</header>
-  <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">🌙</button>
+  <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">\uD83C\uDF19</button>
 
   <section>
     <details id="wifiSection">
@@ -167,8 +171,10 @@
     <div class="modal-content">
       <div class="modal-title">Confirm Chore</div>
       <p id="choreConfirmText"></p>
-      <button onclick="submitChore()">Yes, Submit</button>
-      <button onclick="closeChoreModal()" style="margin-left:10px;">Cancel</button>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button id="choreYes">Yes, Submit</button>
+        <button onclick="closeChoreModal()">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -194,7 +200,7 @@
   <div id="unlockModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
     <div class="modal-content">
       <div class="modal-title">Parent unlock</div>
-      <p style="font-size:14px;color:#555;" class="locked-note">Enter your code to enable the routine.</p>
+      <p class="locked-note">Enter your code to enable the routine.</p>
       <p><input id="unlockPin" type="password" inputmode="numeric" pattern="[0-9]*" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></p>
       <div id="unlockError" style="color:#b91c1c; min-height:1em; font-size:0.9rem;"></div>
       <button id="unlockSubmit">Unlock</button>
@@ -204,121 +210,155 @@
 
 <script>
 'use strict';
-// Theme and base dashboard behaviour
-function toggleDarkMode() {
-  const isDark = document.body.classList.toggle('dark');
+// --- Theme toggle ---
+function toggleDarkMode(){
+  var isDark = document.body.classList.toggle('dark');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  const btn = document.getElementById('modeToggle');
-  btn.textContent = isDark ? '☀️' : '🌙';
+  var btn = document.getElementById('modeToggle');
+  btn.textContent = isDark ? '\u2600' : '\uD83C\uDF19'; // sun / moon
   btn.classList.toggle('sun', isDark);
 }
-function setInitialTheme() {
-  const stored = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const useDark = stored === 'dark' || (!stored && prefersDark);
-  if (useDark) {
-    document.body.classList.add('dark');
-    const btn = document.getElementById('modeToggle');
-    btn.textContent = '☀️';
-    btn.classList.add('sun');
-  }
-}
-function openGoalModal(name) {
-  document.getElementById('modalChildName').textContent = name;
-  document.getElementById('modalGoalName').value = (window.fetchedData && window.fetchedData[name] && window.fetchedData[name].goal) || '';
-  document.getElementById('modalGoalAmount').value = (window.fetchedData && window.fetchedData[name] && window.fetchedData[name].goalAmount) || '';
-  document.getElementById('goalModal').style.display = 'flex';
-}
-function closeModal() { document.getElementById('goalModal').style.display = 'none'; }
-function submitGoal() {
-  const goalName = document.getElementById('modalGoalName').value;
-  const goalAmount = document.getElementById('modalGoalAmount').value;
-  const activeChildName = document.getElementById('modalChildName').textContent;
-  if (!goalName || !goalAmount) return alert('Please enter both name and amount.');
-  fetch('https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse', {
-    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'entry.1735294996='+encodeURIComponent(activeChildName)+'&entry.1492747930='+encodeURIComponent(goalName)+'&entry.795938275='+encodeURIComponent(goalAmount)
-  });
-  closeModal(); alert('Goal submitted!'); setTimeout(()=>location.reload(), 2000);
-}
-let activeChoreName = ''; let activeChoreTask = '';
-function openChoreModal(name, chore) {
-  activeChoreName = name; activeChoreTask = chore;
-  document.getElementById('choreConfirmText').textContent = 'Did '+name+' complete: "'+chore+'"?';
-  document.getElementById('choreConfirmModal').style.display = 'flex';
-}
-function closeChoreModal() { document.getElementById('choreConfirmModal').style.display = 'none'; activeChoreName = ''; activeChoreTask = ''; }
-function submitChore() {
-  if (!activeChoreName || !activeChoreTask) return;
-  const formURL = 'https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/formResponse';
-  fetch(formURL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'entry.2076450991='+encodeURIComponent(activeChoreName)+'&entry.1927254214='+encodeURIComponent(activeChoreTask) });
-  closeChoreModal(); alert('Chore submitted!'); setTimeout(()=>location.reload(), 1500);
+function setInitialTheme(){
+  var stored = localStorage.getItem('theme');
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var useDark = stored === 'dark' || (!stored && prefersDark);
+  if (useDark){ document.body.classList.add('dark'); var btn=document.getElementById('modeToggle'); btn.textContent='\u2600'; btn.classList.add('sun'); }
 }
 
+// --- Unlock helpers ---
 function isRoutineUnlocked(){
   if (location.search.indexOf('unlock=1')>-1) return true;
   var after = window.config.routineUnlockAfter ? new Date(window.config.routineUnlockAfter) : null;
   if (after && !isNaN(after)) { if (new Date() >= after) return true; }
   return localStorage.getItem('routine:unlocked') === '1';
 }
-function setRoutineUnlocked(v){ if(v){ localStorage.setItem('routine:unlocked','1'); } else { localStorage.removeItem('routine:unlocked'); } }
+function setRoutineUnlocked(v){ if(v){ localStorage.setItem('routine:unlocked','1'); } else { localStorage.removeItem('routine:unlocked'); } window.__ROUTINE_UNLOCKED__ = !!v; }
 function toggleRoutineVisibility(){
-  var unlocked = isRoutineUnlocked();
+  var unlocked = isRoutineUnlocked(); window.__ROUTINE_UNLOCKED__ = unlocked;
   var locked = document.getElementById('routineLocked'); var root = document.getElementById('routineRoot');
   if (locked && root){ locked.style.display = unlocked ? 'none' : ''; root.style.display = unlocked ? '' : 'none'; }
 }
-function openUnlockModal(){ document.getElementById('unlockPin').value=''; var e=document.getElementById('unlockError'); if(e) e.textContent=''; document.getElementById('unlockModal').style.display='flex'; }
+function openUnlockModal(){ document.getElementById('unlockPin').value=''; document.getElementById('unlockError').textContent=''; document.getElementById('unlockModal').style.display='flex'; }
 function closeUnlockModal(){ document.getElementById('unlockModal').style.display='none'; }
 function getRoutinePin(){ return String((window.config && window.config.routineUnlockPin) || '4242'); }
-function tryUnlock(){ var v=document.getElementById('unlockPin').value.trim(); if (v===getRoutinePin()){ setRoutineUnlocked(true); toggleRoutineVisibility(); closeUnlockModal(); try{ confetti(); }catch(e){} } else { var e=document.getElementById('unlockError'); if(e) e.textContent='Wrong code'; } }
+function tryUnlock(){ var v=document.getElementById('unlockPin').value.trim(); if(v===getRoutinePin()){ setRoutineUnlocked(true); toggleRoutineVisibility(); closeUnlockModal(); try{ confetti(); }catch(e){} } else { document.getElementById('unlockError').textContent='Wrong code'; } }
 
-window.onload = () => {
+// --- Goals & chores modal ---
+function openGoalModal(name){
+  document.getElementById('modalChildName').textContent = name;
+  document.getElementById('modalGoalName').value = (window.fetchedData && window.fetchedData[name] && window.fetchedData[name].goal) || '';
+  document.getElementById('modalGoalAmount').value = (window.fetchedData && window.fetchedData[name] && window.fetchedData[name].goalAmount) || '';
+  document.getElementById('goalModal').style.display = 'flex';
+}
+function closeModal(){ document.getElementById('goalModal').style.display='none'; }
+function submitGoal(){
+  var goalName = document.getElementById('modalGoalName').value;
+  var goalAmount = document.getElementById('modalGoalAmount').value;
+  var activeChildName = document.getElementById('modalChildName').textContent;
+  if (!goalName || !goalAmount) return alert('Please enter both name and amount.');
+  fetch('https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse', {
+    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'entry.1735294996='+encodeURIComponent(activeChildName)+'&entry.1492747930='+encodeURIComponent(goalName)+'&entry.795938275='+encodeURIComponent(goalAmount)
+  });
+  closeModal(); alert('Goal submitted!'); setTimeout(function(){ location.reload(); }, 2000);
+}
+
+var activeChoreName = ''; var activeChoreTask = '';
+function openChoreModal(name, chore){ activeChoreName=name; activeChoreTask=chore; document.getElementById('choreConfirmText').textContent='Did '+name+' complete: "'+chore+'"?'; document.getElementById('choreConfirmModal').style.display='flex'; }
+function closeChoreModal(){ document.getElementById('choreConfirmModal').style.display='none'; activeChoreName=''; activeChoreTask=''; }
+
+// --- Reliable chore submit ---
+function stripDiacritics(s){ try { return s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); } catch(e){ return s; } }
+function nameForSheet(name){ if (name==='M\u00E9abh') return 'Meabh'; return stripDiacritics(name); }
+function submitChore(){
+  if (!activeChoreName || !activeChoreTask) return;
+  var url = 'https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/formResponse';
+  var params = new URLSearchParams();
+  params.set('entry.2076450991', nameForSheet(activeChoreName)); // Who did the chore?
+  params.set('entry.1927254214', activeChoreTask);               // Which chore?
+  params.set('submit', 'Submit');
+  var body = params.toString();
+
+  var sent = false;
+  if (navigator.sendBeacon){
+    try { sent = navigator.sendBeacon(url, new Blob([body], {type:'application/x-www-form-urlencoded'})); } catch(e){}
+  }
+  if (!sent){
+    fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body })
+      .catch(function(e){ console.warn('fetch failed', e); });
+  }
+  if (location.search.indexOf('debug=1')>-1) {
+    var img = new Image(); img.src = url + '?' + body + '&_ts=' + Date.now(); img.style.display='none'; document.body.appendChild(img);
+  }
+
+  closeChoreModal(); alert('Chore submitted!'); setTimeout(function(){ location.reload(); }, 2500);
+}
+
+// --- Onload ---
+window.onload = function(){
   try {
-    if (!localStorage.getItem('seenQR')) { document.getElementById('wifiSection').setAttribute('open', ''); localStorage.setItem('seenQR', 'true'); }
+    if (!localStorage.getItem('seenQR')) { document.getElementById('wifiSection').setAttribute('open',''); localStorage.setItem('seenQR','true'); }
     setInitialTheme();
-    // QR Code with safe defaults
-    const wifiName = (window.config.wifiName || 'YourWiFi');
-    const wifiPassword = (window.config.wifiPassword || 'password');
+    var wifiName = (window.config.wifiName || 'YourWiFi');
+    var wifiPassword = (window.config.wifiPassword || 'password');
     new QRious({ element: document.getElementById('qrcode'), size: 200, value: 'WIFI:S:'+wifiName+';T:WPA;P:'+wifiPassword+';;' });
   } catch(e) { console.error('QR init failed', e); }
 
-  // Calendar Embed (agenda mode) with hints
-  (function setupCalendar(){
-    const frame = document.getElementById('calendarFrame');
-    const hint = document.getElementById('calendarHint');
-    const primary = (window.config.calendarId || window.config.calendarEmail || '').trim();
-    const sources = (Array.isArray(window.config.calendarSources) && window.config.calendarSources.length) ? window.config.calendarSources : (primary ? [primary] : []);
-    if (!sources.length) { hint.textContent = 'Set calendarId or calendarEmail in config.js'; return; }
-    const srcParams = sources.map(function(s){ return '&src='+encodeURIComponent(s); }).join('');
-    const url = 'https://calendar.google.com/calendar/embed?height=400&wkst=1&bgcolor=%23ffffff&ctz=Europe%2FLondon&showTitle=0&showNav=1&mode=AGENDA'+srcParams;
-    frame.src = url; hint.innerHTML = 'If you cannot see events, ensure the calendar is public or open it <a href="'+url+'" target="_blank" rel="noopener">in Google Calendar</a>.';
+  // Calendar embed
+  (function(){
+    var frame = document.getElementById('calendarFrame');
+    var hint = document.getElementById('calendarHint');
+    var primary = (window.config.calendarId || window.config.calendarEmail || '').trim();
+    var sources = (Array.isArray(window.config.calendarSources) && window.config.calendarSources.length) ? window.config.calendarSources : (primary ? [primary] : []);
+    if (!sources.length) { hint.textContent='Set calendarId or calendarEmail in config.js'; } else {
+      var srcParams = sources.map(function(s){ return '&src='+encodeURIComponent(s); }).join('');
+      var url = 'https://calendar.google.com/calendar/embed?height=400&wkst=1&bgcolor=%23ffffff&ctz=Europe%2FLondon&showTitle=0&showNav=1&mode=AGENDA'+srcParams;
+      frame.src = url; hint.innerHTML = 'If you cannot see events, ensure the calendar is public or open it <a href="'+url+'" target="_blank" rel="noopener">in Google Calendar</a>.';
+    }
   })();
 
-  // Chore links and summary (unchanged from your version)
-  const chores = { 'Robin': ['Tidy Room','Empty/Refill Dishwasher','Set the Table','Help with the Washing','House Cleaning','Other'], 'M\u00E9abh': ['Tidy Room','Empty/Refill Dishwasher','Set the Table','Help with the Washing','House Cleaning','Other'] };
-  const choreList = document.getElementById('choreLinks');
-  for (var name in chores) {
-    choreList.innerHTML += '<h3>'+name+'</h3><ul style="list-style: none; padding: 0;">';
-    chores[name].forEach(function(chore){ choreList.innerHTML += '<li><button onclick="openChoreModal(\''+name+'\', \' '+chore+'\')">'+chore+'</button></li>'; });
-    choreList.innerHTML += '</ul>';
-  }
+  // Chore links (event delegation, no inline handlers)
+  var chores = { 'Robin': ['Tidy Room','Empty/Refill Dishwasher','Set the Table','Help with the Washing','House Cleaning','Other'], 'M\u00E9abh': ['Tidy Room','Empty/Refill Dishwasher','Set the Table','Help with the Washing','House Cleaning','Other'] };
+  var choreList = document.getElementById('choreLinks');
+  Object.keys(chores).forEach(function(name){
+    var h = document.createElement('h3'); h.textContent = name; choreList.appendChild(h);
+    var ul = document.createElement('ul'); ul.style.listStyle='none'; ul.style.padding='0'; choreList.appendChild(ul);
+    chores[name].forEach(function(chore){
+      var li=document.createElement('li'); var btn=document.createElement('button');
+      btn.textContent = chore; btn.setAttribute('data-child', name); btn.setAttribute('data-chore', chore); li.appendChild(btn); ul.appendChild(li);
+    });
+  });
+  choreList.addEventListener('click', function(e){
+    var t=e.target; if (t && t.tagName==='BUTTON' && t.hasAttribute('data-child')){
+      openChoreModal(t.getAttribute('data-child'), t.getAttribute('data-chore'));
+    }
+  });
+  document.getElementById('choreYes').addEventListener('click', submitChore);
+
+  // Weekly summary fetch (accent-tolerant)
   fetch('https://script.google.com/macros/s/AKfycbwBIGo4EnzoGMU7y6jG7VITAiH6o0aVnQr9rlO9IQ6GdXlwz9eOyw0x5nfP1bEkEfLNzg/exec')
     .then(function(res){ return res.json(); })
     .then(function(data){
       window.fetchedData = data; var container = document.getElementById('summaryContainer');
-      Object.keys(data).forEach(function(name){ var person=data[name]; if(!person) return; var id = name === 'Robin' ? 'robin' : 'meabh';
-        container.innerHTML += '<h3>'+name+'</h3>'+
+      function getPerson(map, name){ var plain = stripDiacritics(name); return map[name] || map[plain] || map[name.toLowerCase()] || map[plain.toLowerCase()] || null; }
+      ['Robin','M\u00E9abh'].forEach(function(name){
+        var person = getPerson(data, name); if(!person){ console.warn('No data for', name, '— keys:', Object.keys(data)); return; }
+        var id = name === 'Robin' ? 'robin' : 'meabh';
+        var weekly = Number(person.weekly || 0); var total = Number(person.total || 0);
+        var wrap = document.createElement('div');
+        wrap.innerHTML = '<h3>'+name+'</h3>'+
           '<p>Chores completed this week: <span id="'+id+'Count">'+(person.count || 0)+'</span></p>'+
-          '<p>Weekly earnings: £<span id="'+id+'Earnings" class="earnings-badge">'+((person.weekly || 0).toFixed ? person.weekly.toFixed(2) : Number(person.weekly||0).toFixed(2))+'</span></p>'+
+          '<p>Weekly earnings: £<span id="'+id+'Earnings" class="earnings-badge">'+weekly.toFixed(2)+'</span></p>'+
           '<p>Goal: <span>'+(person.goal || '-')+'</span> (£<span>'+(person.goalAmount || '-')+'</span>)</p>'+
           '<div class="progress-bar"><div id="'+id+'Goal" class="progress-fill"></div></div>'+
-          '<p>Total so far: £<span id="'+id+'Total">'+((person.total || 0).toFixed ? person.total.toFixed(2) : Number(person.total||0).toFixed(2))+'</span></p>'+
+          '<p>Total so far: £<span id="'+id+'Total">'+total.toFixed(2)+'</span></p>'+
           '<button onclick="openGoalModal(\''+name+'\')">Set Goal</button>';
+        container.appendChild(wrap);
         var fill = document.getElementById(id+'Goal');
-        var goal = parseFloat(person.goalAmount) || 0; var total = parseFloat(person.total) || 0; var progress = goal > 0 ? Math.min((total / goal) * 100, 100) : 0; fill.style.width = progress + '%';
+        var goal = parseFloat(person.goalAmount) || 0; var progress = goal > 0 ? Math.min((total / goal) * 100, 100) : 0; fill.style.width = progress + '%';
         var badge = document.getElementById(id+'Earnings'); badge.classList.remove('badge-green','badge-yellow','badge-orange','badge-grey');
-        if (person.weekly >= 5) badge.classList.add('badge-green'); else if (person.weekly === 3) badge.classList.add('badge-yellow'); else if (person.weekly === 1) badge.classList.add('badge-orange'); else badge.classList.add('badge-grey');
-        if (person.weekly >= 5) confetti();
+        if (weekly >= 5) badge.classList.add('badge-green'); else if (weekly === 3) badge.classList.add('badge-yellow'); else if (weekly === 1) badge.classList.add('badge-orange'); else badge.classList.add('badge-grey');
+        if (weekly >= 5) try{ confetti(); }catch(e){}
       });
     }).catch(function(e){ console.warn('Summary fetch failed', e); });
 
@@ -331,8 +371,9 @@ window.onload = () => {
   var um = document.getElementById('unlockModal'); if (um) um.addEventListener('click', function(e){ if(e.target===um) closeUnlockModal(); });
 };
 
-// Routine component (isolated scope)
+// --- Routine component (runs only if unlocked) ---
 (function(){
+  if (!window.__ROUTINE_UNLOCKED__) { return; }
   var R = {
     dailyResetHour: 4,
     auto: { enable: true, bedHour: 17 },
@@ -341,10 +382,7 @@ window.onload = () => {
     streaksEnabled: false,
     defaultChild: 'Robin',
     school: {
-      peDays: {
-        'Robin': { Tue: 'Outdoor PE', Wed: 'Indoor PE' },
-        'M\u00E9abh': { Thu: 'Outdoor PE', Fri: 'Indoor PE' }
-      },
+      peDays: { 'Robin': { Tue: 'Outdoor PE', Wed: 'Indoor PE' }, 'M\u00E9abh': { Thu: 'Outdoor PE', Fri: 'Indoor PE' } },
       guitar: { 'Robin': ['Tue'] }
     },
     routines: {
@@ -384,17 +422,13 @@ window.onload = () => {
   var barEl = el('routineBar');
   var progressLabel = el('routineProgressLabel');
   var titleEl = el('routineTitle');
-  var streakEl = el('routineStreak'); if (streakEl && !R.streaksEnabled) streakEl.style.display='none';
   var tabsEl = el('routineTabs');
   var kidTabsEl = el('kidTabs');
 
   function key(){ return 'routine:'+currentChild+':'+currentRoutine+':'+todayKey(); }
-  function streakKey(){ return 'routine-streak:'+currentChild+':'+currentRoutine; }
   function todayKey(){ var now=new Date(); if(now.getHours() < R.dailyResetHour){ now.setDate(now.getDate()-1); } return now.toISOString().slice(0,10); }
   function loadProgress(){ try{ return JSON.parse(localStorage.getItem(key())||'{}'); }catch(e){ return {}; } }
   function saveProgress(p){ localStorage.setItem(key(), JSON.stringify(p)); }
-  function getStreak(){ if(!R.streaksEnabled) return 0; return +(localStorage.getItem(streakKey())||0); }
-  function setStreak(n){ if(!R.streaksEnabled) return; localStorage.setItem(streakKey(), String(n)); }
 
   function visibleTasksForChild(list){ return list.filter(function(t){ if(t.onlyFor) return t.onlyFor.indexOf(currentChild) > -1; if(t.excludeFor) return t.excludeFor.indexOf(currentChild) === -1; return true; }).map(function(t){ var o={}; for(var k in t){o[k]=t[k];} return o; }); }
   function tomorrowLabel(){ var d=new Date(); d.setDate(d.getDate()+1); return d.toLocaleDateString(undefined,{ weekday:'long'}); }
@@ -411,8 +445,6 @@ window.onload = () => {
   function updateBar(){ var c=calcProgress(); var pct=Math.round((c.doneCount/Math.max(c.total,1))*100); barEl.style.width=pct+'%'; progressLabel.textContent=pct+'% done'; }
   function nextTaskName(){ var tasks=visibleTasksForChild(R.routines[currentRoutine]); var p=loadProgress(); for(var i=0;i<tasks.length;i++){ if(!p[tasks[i].id]) return tasks[i].name; } return 'All done'; }
   function updateNudge(){ var name=nextTaskName(); nudgeEl.innerHTML = name==='All done' ? 'All done. Nice work!' : ('Next up: <strong>'+name+'</strong>'); }
-  function bumpStreak(){ if(!R.streaksEnabled) return; var s=getStreak(); setStreak(s+1); updateStreakBadge(); }
-  function updateStreakBadge(){ if(!streakEl) return; if(!R.streaksEnabled){ streakEl.style.display='none'; return; } var s=getStreak(); streakEl.style.display=''; streakEl.textContent = (s+' day streak'); }
 
   function render(){
     var tasks = visibleTasksForChild(R.routines[currentRoutine]);
@@ -432,7 +464,7 @@ window.onload = () => {
       tick.addEventListener('click', function(){ onToggle(t); });
       card.appendChild(idx); card.appendChild(task); card.appendChild(tick); listEl.appendChild(card);
     });
-    updateNudge(); updateBar(); updateStreakBadge(); renderTabs();
+    updateNudge(); updateBar(); renderTabs();
   }
 
   function speak(text){ if(!R.speakEnabled) return; try{ var u=new SpeechSynthesisUtterance(text); speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
@@ -442,20 +474,14 @@ window.onload = () => {
     var p=loadProgress(); var isDone=!!p[task.id];
     if(currentRoutine==='bed' && task.id==='teeth' && !isDone){ openBrushTimer(task); return; }
     p[task.id] = !isDone; saveProgress(p); render();
-    if(R.sync.enabled){ fireAndForget(task, p[task.id] ? 'done' : 'undone'); }
     if(currentRoutine==='morning' && task.id==='get-dressed' && p[task.id]){ showTabletUnlockUntil('07:45'); }
-    var c=calcProgress(); if(c.allDone){ fireworks(); bumpStreak(); speak('All done. Brilliant!'); } else if(p[task.id]) { speak('Nice one. Next up: '+nextTaskName()); }
+    var c=calcProgress(); if(c.allDone){ fireworks(); speak('All done. Brilliant!'); } else if(p[task.id]) { speak('Nice one. Next up: '+nextTaskName()); }
   }
 
   document.getElementById('routineSpeakNext').addEventListener('click', function(){ speak('Next up: '+nextTaskName()); });
   document.getElementById('routineReset').addEventListener('click', function(){ if(!confirm('Reset todays progress?')) return; saveProgress({}); render(); speak('Starting fresh.'); });
 
   function showTabletUnlockUntil(timeHHMM){ try{ var now=new Date(); var parts=timeHHMM.split(':'); var hh=+parts[0], mm=+parts[1]; var limit=new Date(); limit.setHours(hh,mm,0,0); if(now>limit) return; var banner=document.createElement('div'); banner.style.position='fixed'; banner.style.left='50%'; banner.style.top='14px'; banner.style.transform='translateX(-50%)'; banner.style.background='linear-gradient(90deg, #22c55e, #3b82f6)'; banner.style.color='#06121c'; banner.style.padding='12px 16px'; banner.style.borderRadius='12px'; banner.style.fontWeight='900'; banner.style.zIndex='9999'; var span=document.createElement('span'); banner.appendChild(document.createTextNode('Tablet unlocked until ')); banner.appendChild(span); document.body.appendChild(banner); function tick(){ var left=Math.max(0, limit - new Date()); var s=Math.floor(left/1000); var m=Math.floor(s/60); var r=s%60; span.textContent = m+':'+String(r).padStart(2,'0'); if(left<=0){ banner.remove(); } else { setTimeout(tick, 1000);} } tick(); }catch(e){} }
-
-  function formatDuration(ms){ var s=Math.floor(ms/1000); var m=Math.floor(s/60); var r=s%60; return m+':'+String(r).padStart(2,'0'); }
-  function fireAndForget(task,status){ try{ if(!R.sync.enabled||!R.sync.endpoint) return; fetch(R.sync.endpoint,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ child: currentChild, routine: currentRoutine, taskId: task.id, status: status, date: todayKey() })}); }catch(e){} }
-
-  (function roll(){ var keys=Object.keys(localStorage).filter(function(k){ return k.indexOf('routine:')===0; }); var today=todayKey(); keys.forEach(function(k){ var parts=k.split(':'); var storedDate=parts[3]; if(storedDate!==today){ localStorage.removeItem(k); } }); localStorage.removeItem('routine:overrideUntil'); manualOverrideUntil = 0; })();
 
   function svgTick(){ return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="5" ry="5" stroke="rgba(0,0,0,.15)" stroke-width="2"/><path d="M7 12.5l3.5 3.5L17 9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
 
@@ -471,22 +497,20 @@ window.onload = () => {
   function closeBrushTimer(){ modal.style.display='none'; }
   function updateDial(){ var frac = 1 - (remain/120); dial.style.strokeDasharray = String(CIRC); dial.style.strokeDashoffset = String(CIRC * (1-frac)); }
   function tick(){ if(!running) return; remain=Math.max(0, remain-1); updateDial(); var m=Math.floor(remain/60), s=String(remain%60).padStart(2,'0'); timeEl.textContent=m+':'+s; if(remain<=0){ finished(); } }
-  function finished(){ if(timerId){ clearInterval(timerId); timerId=null; } running=false; try{ speak('Two minutes done. Sparkly teeth!'); fireworks(); }catch(e){} closeBrushTimer(); var p=loadProgress(); if(pendingTask){ p[pendingTask.id]=true; saveProgress(p); if(R.sync.enabled){ fireAndForget(pendingTask,'done'); } } pendingTask=null; render(); var c=calcProgress(); if(c.allDone){ bumpStreak(); } }
-  startBtn.addEventListener('click', function(){ if(running) return; running=true; startBtn.textContent='Resume'; pauseBtn.disabled=false; timerId=setInterval(tick, 1000); speak('Brushing timer started.'); });
-  pauseBtn.addEventListener('click', function(){ running=false; if(timerId){ clearInterval(timerId); timerId=null; } pauseBtn.disabled=true; speak('Paused.'); });
-  skipBtn.addEventListener('click', function(){ if(timerId){ clearInterval(timerId); timerId=null; } running=false; if(pendingTask){ var p=loadProgress(); p[pendingTask.id]=true; saveProgress(p); if(R.sync.enabled){ fireAndForget(pendingTask,'done'); } } pendingTask=null; closeBrushTimer(); render(); speak('Skipping tonight.'); });
+  function finished(){ if(timerId){ clearInterval(timerId); timerId=null; } running=false; try{ confetti({ particleCount: 120, spread: 70, origin: { y: 0.3 } }); }catch(e){} closeBrushTimer(); var p=loadProgress(); if(pendingTask){ p[pendingTask.id]=true; saveProgress(p); } pendingTask=null; render(); }
+  startBtn.addEventListener('click', function(){ if(running) return; running=true; startBtn.textContent='Resume'; pauseBtn.disabled=false; timerId=setInterval(tick, 1000); });
+  pauseBtn.addEventListener('click', function(){ running=false; if(timerId){ clearInterval(timerId); timerId=null; } pauseBtn.disabled=true; });
+  skipBtn.addEventListener('click', function(){ if(timerId){ clearInterval(timerId); timerId=null; } running=false; if(pendingTask){ var p=loadProgress(); p[pendingTask.id]=true; saveProgress(p); } pendingTask=null; closeBrushTimer(); render(); });
   modal.addEventListener('click', function(e){ if(e.target===modal) closeBrushTimer(); });
 
   // Auto routine switching
   function autoRoutineNow(){ var now=new Date(); var h=now.getHours(); var bedH=R.auto.bedHour; var resetH=R.dailyResetHour; return (h>=resetH && h<bedH) ? 'morning' : 'bed'; }
   function nextAutoBoundaryTS(){ var now=new Date(); var h=now.getHours(); var bedH=R.auto.bedHour; var resetH=R.dailyResetHour; var t=new Date(now); if(h<resetH){ t.setHours(resetH,0,0,0); return +t; } if(h<bedH){ t.setHours(bedH,0,0,0); return +t; } t.setDate(t.getDate()+1); t.setHours(resetH,0,0,0); return +t; }
   function setManualOverrideUntilNextBoundary(){ manualOverrideUntil = nextAutoBoundaryTS(); localStorage.setItem('routine:overrideUntil', String(manualOverrideUntil)); }
-  function shouldAutoSwitch(){ if(!R.auto.enable) return false; return Date.now() >= (manualOverrideUntil||0); }
+  function shouldAutoSwitch(){ return Date.now() >= (manualOverrideUntil||0); }
 
   render();
-  if (R.auto.enable) {
-    setInterval(function(){ if(!shouldAutoSwitch()) return; var desired=autoRoutineNow(); if(desired!==currentRoutine){ currentRoutine=desired; render(); } }, 60000);
-  }
+  setInterval(function(){ if(!shouldAutoSwitch()) return; var desired=autoRoutineNow(); if(desired!==currentRoutine){ currentRoutine=desired; render(); } }, 60000);
 })();
 </script>
 </body>
