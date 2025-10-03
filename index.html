@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Life Dashboard</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <script src="config.js"></script>
+  <script src="config.js?v=15"></script>
   <script>
     // Guard: ensure window.config exists
     window.config = window.config || {};
@@ -267,55 +267,48 @@ var activeChoreName = ''; var activeChoreTask = '';
 function openChoreModal(name, chore){ activeChoreName=name; activeChoreTask=chore; document.getElementById('choreConfirmText').textContent='Did '+name+' complete: "'+chore+'"?'; document.getElementById('choreConfirmModal').style.display='flex'; }
 function closeChoreModal(){ document.getElementById('choreConfirmModal').style.display='none'; activeChoreName=''; activeChoreTask=''; }
 
-// Keep the diacritic helpers
+// --- Chore submit (script-only, no Forms) ---
+
 function stripDiacritics(s){ try { return s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); } catch(e){ return s; } }
-function nameForSheet(name){ if (name === 'M\u00E9abh') return 'Meabh'; return stripDiacritics(name); }
+function nameForSheet(name){
+  // Normalise Méabh for storage as "Meabh" (sheet stores no accent)
+  const n = stripDiacritics(String(name||'').trim());
+  return n === 'Meabh' || n === 'Meabh ' ? 'Meabh' : n;
+}
 
 function submitChore(){
   if (!activeChoreName || !activeChoreTask) return;
 
-  var mode = (window.config.choreSubmitMode || 'forms');
-  var done = function(){ closeChoreModal(); alert('Chore submitted!'); setTimeout(()=>location.reload(), 1500); };
-
-  if (mode === 'script' && window.config.choreSubmitUrl){
-    // POST as x-www-form-urlencoded to avoid CORS preflight
-    var p = new URLSearchParams();
-    p.set('child', nameForSheet(activeChoreName));
-    p.set('chore', activeChoreTask);
-    p.set('ts', String(Date.now()));
-    var body = p.toString();
-
-    var sent = false;
-    if (navigator.sendBeacon){
-      try { sent = navigator.sendBeacon(window.config.choreSubmitUrl, new Blob([body], {type:'application/x-www-form-urlencoded'})); } catch (e) {}
-    }
-    if (!sent){
-      fetch(window.config.choreSubmitUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body
-      }).catch(()=>{});
-    }
-    done();
+  const url = window.config && window.config.choreSubmitUrl;
+  if (!url){
+    alert('Config missing choreSubmitUrl'); 
+    console.error('window.config:', window.config);
     return;
   }
 
-  // Fallback: Google Forms (kept, but Forms has been returning 400)
-  var url = 'https://docs.google.com/forms/d/e/1FAIpQLSeYUTDpIZeLTm0wzBeEE1csm_80hKFrbvUsHzxOkz_C2er8yA/formResponse';
-  var params = new URLSearchParams();
-  params.set('entry.2076450991', nameForSheet(activeChoreName)); // child
-  params.set('entry.1927254214', activeChoreTask);               // chore
-  var body2 = params.toString();
+  // URL-encoded body avoids CORS preflight
+  const p = new URLSearchParams();
+  p.set('child', nameForSheet(activeChoreName));
+  p.set('chore', activeChoreTask);
+  p.set('ts', String(Date.now()));
+  const body = p.toString();
 
-  var sent2 = false;
+  let sent = false;
   if (navigator.sendBeacon){
-    try { sent2 = navigator.sendBeacon(url, new Blob([body2], {type:'application/x-www-form-urlencoded'})); } catch(e){}
+    try { sent = navigator.sendBeacon(url, new Blob([body], {type:'application/x-www-form-urlencoded'})); } catch(e){}
   }
-  if (!sent2){
-    fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body2 }).catch(()=>{});
+  if (!sent){
+    fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    }).catch(()=>{});
   }
-  done();
+
+  closeChoreModal();
+  alert('Chore submitted!');
+  setTimeout(()=>location.reload(), 1200);
 }
   
 // --- Onload ---
