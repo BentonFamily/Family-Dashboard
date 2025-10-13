@@ -2,533 +2,467 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Family Life Dashboard</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <script src="config.js?v=15"></script>
+  <!-- Cache-busted config. If you edit config.js again later, bump v=16,17,... -->
+  <script>document.write('<script src="config.js?v='+(localStorage.getItem('configVersion')||'15')+'"><\/script>')</script>
   <script>
-    // Guard: ensure window.config exists
-    window.config = window.config || {};
+    // helper so you can force reload config after changing it (run in console: forceReloadConfig())
+    window.forceReloadConfig = function(){ localStorage.setItem('configVersion', Date.now().toString()); location.reload(); };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
-    :root { --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet); --text: #333; --section-bg: #fff; }
-    body.dark { --bg: #111; --text: #f1f1f1; --section-bg: #222; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); }
-    header { background: rgba(255,255,255,0.85); padding: 1rem; text-align: center; font-size: 1.5rem; font-weight: 700; border-bottom: 3px solid #fff; position: relative; z-index: 1; }
-    .dark header { background: rgba(0,0,0,0.8); border-bottom: 3px solid #444; }
-    section { background: var(--section-bg); margin: 1rem; padding: 1rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    h2, h3 { color: var(--text); }
-    ul { list-style: none; padding-left: 0; }
-    li a, li button { display: inline-block; margin: 4px 0; padding: 0.5rem 1rem; font-size: 1rem; border: none; border-radius: 6px; background: #81c784; color: #fff; cursor: pointer; text-decoration: none; transition: background 0.3s; }
-    li a:hover, li button:hover { background: #66bb6a; }
-    body.dark li a, body.dark li button { background: #388e3c; }
-    body.dark li a:hover, body.dark li button:hover { background: #2e7d32; }
-    .toggle-mode { position: fixed; bottom: 1rem; right: 1rem; width: 50px; height: 50px; background: #000; color: #fff; border: none; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 999; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: background 0.3s; }
-    .toggle-mode.sun { background: #ffd700; color: #333; }
-    .qr-output { margin-top: 1rem; }
-    details summary { font-weight: 700; cursor: pointer; margin-bottom: 1rem; }
-    .chore-summary h3 { margin-top: 1rem; color: #555; }
-    body.dark .chore-summary h3 { color: #f1f1f1; }
-    .earnings-badge { display: inline-block; min-width: 3em; text-align: right; font-weight: 700; color: #fff; border-radius: 5px; padding: 2px 8px; }
-    .badge-green { background-color: #2ecc71; }
-    .badge-yellow { background-color: #f1c40f; }
-    .badge-orange { background-color: #e67e22; }
-    .badge-grey { background-color: #7f8c8d; }
-    .progress-bar { background: #ddd; border-radius: 10px; overflow: hidden; margin-top: 0.5rem; height: 20px; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); width: 0%; transition: width 0.5s ease; }
-
-    #goalModal input { width: calc(100% - 16px); padding: 8px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fff; color: #000; }
-    #goalModal label { font-weight: 700; display: block; margin-bottom: 5px; }
-    #goalModal .modal-content, #choreConfirmModal .modal-content { background: var(--section-bg); color: var(--text); padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 2px 10px rgba(0,0,0,0.25); position: relative; }
-    #goalModal .modal-title, #choreConfirmModal .modal-title { font-size: 1.2rem; font-weight: 700; background: linear-gradient(to right, #4caf50, #81c784); color: #fff; padding: 10px 15px; border-radius: 8px 8px 0 0; margin: -20px -20px 20px -20px; text-align: center; }
-
-    /* Routine component (scoped) */
-    .routine { --muted:#5b6b7b; --text:#0f172a; --pill1:#ef4444; --pill2:#f59e0b; --pill3:#eab308; --pill4:#22c55e; --pill5:#3b82f6; --pill6:#a855f7; }
-    .dark .routine { --text:#e2e8f0; --muted:#94a3b8; }
-    .routine .header { display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    .routine .title { font-size: clamp(22px, 4vw, 28px); font-weight: 800; color: var(--text); }
-    .routine .tabs, .routine .kid-tabs { display:flex; gap:8px; flex-wrap:wrap; }
-    .routine .pill { border:1px solid #d1d5db; background:#f9fafb; padding:8px 12px; border-radius:999px; color:#374151; cursor:pointer; user-select:none; font-weight:600; }
-    .dark .routine .pill { border-color:#374151; background:#0b1020; color:#cbd5e1; }
-    .routine .pill.active { color:#0b1020; background:linear-gradient(90deg, var(--pill1), var(--pill3)); border-color:transparent; }
-    .dark .routine .pill.active { color:#0b1020; }
-    .routine .progress { margin:10px 0 14px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:999px; padding:6px; position:relative }
-    .dark .routine .progress { background:#0b1020; border-color:#1f2937; }
-    .routine .bar { height:14px; border-radius:999px; width:0%; background:linear-gradient(90deg, var(--pill1), var(--pill2), var(--pill3), var(--pill4), var(--pill5), var(--pill6)); transition:width .25s ease }
-    .routine .progress-label { position:absolute; top:-22px; right:0; font-size:12px; color:var(--muted) }
-    .routine .nudge { background:#f9fafb; border:1px dashed #cbd5e1; color:#374151; padding:10px 12px; border-radius:12px; font-size:14px }
-    .dark .routine .nudge { background:#0b1020; border-color:#263044; color:#94a3b8 }
-    .routine .nudge strong{ color:var(--text) }
-    .routine .grid { display:grid; gap:10px }
-    .routine .card { background:linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.01)); border:1px solid rgba(0,0,0,.06); border-radius:16px; padding:12px; display:flex; align-items:center; gap:12px }
-    .dark .routine .card { border-color:rgba(255,255,255,.08); background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)) }
-    .routine .idx { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; font-weight:800; background:linear-gradient(120deg, var(--pill2), var(--pill4)); color:#fff }
-    .routine .task { flex:1 }
-    .routine .name { font-weight:800; font-size:18px; color:var(--text) }
-    .routine .desc { color:var(--muted); font-size:13px; margin-top:2px }
-    .routine .tick { width:44px; height:44px; border-radius:12px; border:2px solid #e5e7eb; background:#fff; display:grid; place-items:center; cursor:pointer }
-    .dark .routine .tick { border-color:#1f2937; background:#0b1020 }
-    .routine .tick.done { background:linear-gradient(120deg, #16a34a, #22c55e); border-color:#16a34a }
-    .routine .tick svg { width:22px; height:22px; opacity:.9; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
-    .routine .footer { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap }
-    .routine .btn { appearance:none; border:none; padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer }
-    .routine .btn.primary { background:linear-gradient(90deg, var(--pill4), var(--pill5)); color:#06121c }
-    .routine .btn.ghost { background:#f9fafb; border:1px solid #e5e7eb; color:#374151 }
-    .dark .routine .btn.ghost { background:#0b1020; border-color:#1f2937; color:#94a3b8 }
-
-    #brushTimerModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1000; align-items:center; justify-content:center }
-    #brushTimerModal .box { background:var(--section-bg); color:var(--text); width: min(92vw, 420px); border-radius:16px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.35); text-align:center; }
-    #brushTimerModal h3 { margin-top:0; }
-    #brushTimerModal .dial { width:220px; height:220px; margin:10px auto; display:block }
-    #brushTimerModal .big { font-size: 44px; font-weight: 900; letter-spacing:1px; }
-    #brushTimerModal .sub { color:#6b7280; margin-top:4px }
-    #brushTimerModal .actions { display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap }
-    #brushTimerModal button { border:none; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer }
-    #brushTimerModal .start { background:linear-gradient(90deg, #22c55e, #3b82f6); color:#06121c }
-    #brushTimerModal .pause { background:#f3f4f6 }
-    #brushTimerModal .skip { background:#fee2e2 }
-
-    /* Locked routine note */
-    .locked-note { font-size:14px; color:#555; }
-    .dark .locked-note { color:#cbd5e1; }
+    :root { --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet); --text:#333; --section-bg:#fff; }
+    body.dark { --bg:#111; --text:#f1f1f1; --section-bg:#222; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; background:var(--bg); color:var(--text); }
+    header { background:rgba(255,255,255,.85); padding:1rem; text-align:center; font-weight:800; font-size:1.4rem; border-bottom:3px solid #fff; position:sticky; top:0; z-index:5 }
+    .dark header { background:rgba(0,0,0,.8); border-bottom-color:#444; }
+    section { background:var(--section-bg); margin:1rem; padding:1rem; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,.08); }
+    details summary { cursor:pointer; font-weight:800; }
+    h2,h3 { margin:.2rem 0 .6rem; }
+    ul{ list-style:none; padding:0; margin:0; }
+    li button, li a, .btn { display:inline-block; margin:4px 0; padding:.55rem 1rem; border:0; border-radius:10px; background:#2563eb; color:#fff; font-weight:700; cursor:pointer }
+    li button:hover, .btn:hover { filter:brightness(.95); }
+    .btn.secondary { background:#16a34a; }
+    .btn.ghost { background:#334155; }
+    .pill { display:inline-block; padding:.25rem .6rem; border-radius:999px; background:#e2e8f0; color:#0f172a; font-weight:800; font-size:.8rem }
+    .toggle-mode { position:fixed; bottom:1rem; right:1rem; width:50px; height:50px; border-radius:50%; font-size:22px; border:0; box-shadow:0 2px 5px rgba(0,0,0,.3); cursor:pointer; z-index:20 }
+    .toggle-mode.sun { background:#ffd700; color:#333 }
+    .row { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .progress { background:#e5e7eb; border-radius:999px; height:10px; overflow:hidden }
+    .progress > div { background:linear-gradient(90deg,#22c55e,#16a34a); height:100%; width:0%; transition:width .4s }
+    .earnings-badge { display:inline-block; min-width:3em; text-align:right; font-weight:800; color:#fff; border-radius:8px; padding:2px 8px }
+    .badge-green{background:#22c55e}.badge-yellow{background:#f59e0b}.badge-orange{background:#f97316}.badge-grey{background:#64748b}
+    .muted { color:#6b7280; }
+    .card { border:1px solid #e5e7eb; border-radius:12px; padding:12px }
+    /* Routine lock overlay */
+    .lock { background:#0f172a; color:#fff; border-radius:12px; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:12px }
+    .lock small { opacity:.8 }
+    /* Modal styles shared */
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; align-items:center; justify-content:center; padding:1rem }
+    .modal .content { background:var(--section-bg); color:var(--text); width:min(420px,92vw); border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.35) }
+    .modal .title { font-weight:900; padding:12px 16px; border-radius:14px 14px 0 0; background:linear-gradient(90deg,#4caf50,#81c784); color:#fff }
+    .modal .body { padding:16px }
+    .modal .actions { display:flex; gap:10px; justify-content:flex-end; padding:0 16px 16px }
+    .modal input { width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:16px }
+    .task { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; margin:.35rem 0; cursor:pointer; }
+    .task.done { background:#ecfdf5; border-color:#bbf7d0; text-decoration:line-through; opacity:.9 }
+    .task .tick { font-weight:900; width:24px; text-align:center }
+    .kicker{font-weight:800;color:#334155}
+    .sep { height:1px; background:#e5e7eb; margin:10px 0 }
   </style>
 </head>
 <body>
-  <header>Family Life Dashboard</header>
-  <button class="toggle-mode" onclick="toggleDarkMode()" id="modeToggle">\uD83C\uDF19</button>
+  <header>🏡 Family Life Dashboard</header>
+  <button class="toggle-mode" id="modeToggle" onclick="toggleDarkMode()">🌙</button>
 
   <section>
     <details id="wifiSection">
-      <summary>Show Wi-Fi QR Code</summary>
-      <div class="qr-output"><canvas id="qrcode"></canvas></div>
+      <summary>📶 Show Wi-Fi QR Code</summary>
+      <div><canvas id="qrcode"></canvas></div>
     </details>
   </section>
 
-  <!-- Routine Section -->
-  <section>
+  <section id="routineSection">
     <details open>
-      <summary>Bedtime and Morning Routine</summary>
-      <div id="routineLocked" class="routine" style="display:none">
-        <div class="header"><div class="title">Routine</div></div>
-        <div class="nudge">Locked: complete your challenge to unlock.</div>
-        <div class="footer"><button class="btn ghost" id="unlockBtn">Parent unlock</button></div>
-      </div>
-      <div class="routine" id="routineRoot">
-        <div class="header">
-          <div class="title" id="routineTitle">Bedtime</div>
-          <div class="kid-tabs" id="kidTabs"></div>
-          <div class="tabs" id="routineTabs"></div>
+      <summary>🛌 Bedtime and 🕗 Morning Routine</summary>
+
+      <div id="lockBar" class="lock" style="display:none">
+        <div>
+          <div><strong>Locked</strong> — complete your challenge to unlock.</div>
+          <small>Parents can unlock below.</small>
         </div>
-        <div class="progress"><div class="progress-label" id="routineProgressLabel">0% done</div><div class="bar" id="routineBar"></div></div>
-        <div class="nudge" id="routineNudge">Next up: <strong>Tap a task to begin</strong></div>
-        <div class="grid" id="routineList"></div>
-        <div class="footer">
-          <button class="btn primary" id="routineSpeakNext">Tell me the next task</button>
-          <button class="btn ghost" id="routineReset">Reset today</button>
+        <button class="btn" onclick="openUnlock()">Parent unlock</button>
+      </div>
+
+      <div id="routineWrap" style="display:none">
+        <div class="row" style="justify-content:space-between">
+          <div class="row">
+            <span class="pill" id="whichMode">Bedtime</span>
+            <span class="pill" id="progressLabel">0% done</span>
+          </div>
+          <div class="row">
+            <button class="btn ghost" onclick="tellNext()">Tell me the next task</button>
+            <button class="btn secondary" onclick="resetToday()">Reset today</button>
+          </div>
+        </div>
+
+        <div id="routineList"></div>
+
+        <div class="sep"></div>
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+              <div class="kicker">Tooth brushing timer</div>
+              <div id="tbDisplay" style="font:900 28px/1 system-ui">2:00</div>
+              <div class="muted" id="tbPrompt">Top, bottom, inside, outside. Gentle circles.</div>
+            </div>
+            <div class="row">
+              <button class="btn" id="tbStart" onclick="tbStart()">Start</button>
+              <button class="btn ghost" id="tbPause" onclick="tbPause()" disabled>Pause</button>
+              <button class="btn" style="background:#ef4444" onclick="tbSkip()">Skip tonight</button>
+            </div>
+          </div>
         </div>
       </div>
-      <canvas id="routineConfetti" style="position:fixed;inset:0;pointer-events:none"></canvas>
+
     </details>
   </section>
 
   <section>
     <details>
-      <summary>Log a Chore</summary>
-      <ul id="choreLinks"></ul>
+      <summary>🧽 Log a Chore</summary>
+      <div id="choreLinks"></div>
     </details>
   </section>
 
   <section>
     <details open>
-      <summary>Weekly Chore Summary</summary>
-      <div class="chore-summary" id="summaryContainer"></div>
+      <summary>📈 Weekly Chore Summary</summary>
+      <div id="summaryContainer"></div>
     </details>
   </section>
 
   <section>
     <details>
-      <summary>Family Calendar</summary>
-      <iframe id="calendarFrame" style="border:0;width:100%;height:400px;" frameborder="0" scrolling="no"></iframe>
-      <div id="calendarHint" style="margin-top:8px;font-size:0.9rem;"></div>
+      <summary>📅 Family Calendar</summary>
+      <iframe id="calendarFrame" style="border:0;width:100%;height:400px" frameborder="0" scrolling="no"></iframe>
     </details>
   </section>
 
   <!-- Goal Modal -->
-  <div id="goalModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
-    <div class="modal-content">
-      <div class="modal-title">Set Goal for <span id="modalChildName"></span></div>
-      <p><label>Goal Name: <input type="text" id="modalGoalName" /></label></p>
-      <p><label>Goal Amount: <input type="number" id="modalGoalAmount" inputmode="decimal" /></label></p>
-      <button onclick="submitGoal()">Submit</button>
-      <button onclick="closeModal()" style="margin-left:10px;">Cancel</button>
+  <div id="goalModal" class="modal">
+    <div class="content">
+      <div class="title">Set Goal for <span id="modalChildName"></span></div>
+      <div class="body">
+        <label>Goal Name<input type="text" id="modalGoalName"/></label><br/><br/>
+        <label>Goal Amount<input type="number" id="modalGoalAmount" inputmode="decimal"/></label>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="submitGoal()">Submit</button>
+        <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      </div>
     </div>
   </div>
 
   <!-- Chore Confirmation Modal -->
-  <div id="choreConfirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
-    <div class="modal-content">
-      <div class="modal-title">Confirm Chore</div>
-      <p id="choreConfirmText"></p>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button id="choreYes">Yes, Submit</button>
-        <button onclick="closeChoreModal()">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Brush Timer Modal -->
-  <div id="brushTimerModal">
-    <div class="box">
-      <h3>Tooth brushing timer</h3>
-      <svg viewBox="0 0 120 120" class="dial" aria-hidden="true">
-        <circle cx="60" cy="60" r="52" fill="none" stroke="#e5e7eb" stroke-width="12"></circle>
-        <circle id="brushDialFill" cx="60" cy="60" r="52" fill="none" stroke="#22c55e" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.725635" stroke-dashoffset="326.725635" transform="rotate(-90 60 60)"></circle>
-      </svg>
-      <div class="big" id="brushTime">2:00</div>
-      <div class="sub">Top, bottom, inside, outside. Gentle circles.</div>
+  <div id="choreConfirmModal" class="modal">
+    <div class="content">
+      <div class="title">Confirm Chore</div>
+      <div class="body"><p id="choreConfirmText"></p></div>
       <div class="actions">
-        <button class="start" id="brushStart">Start</button>
-        <button class="pause" id="brushPause" disabled>Pause</button>
-        <button class="skip" id="brushSkip">Skip tonight</button>
+        <button class="btn" onclick="submitChore()">Yes, Submit</button>
+        <button class="btn ghost" onclick="closeChoreModal()">Cancel</button>
       </div>
     </div>
   </div>
 
-  <!-- Parent Unlock Modal -->
-  <div id="unlockModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
-    <div class="modal-content">
-      <div class="modal-title">Parent unlock</div>
-      <p class="locked-note">Enter your code to enable the routine.</p>
-      <p><input id="unlockPin" type="password" inputmode="numeric" pattern="[0-9]*" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></p>
-      <div id="unlockError" style="color:#b91c1c; min-height:1em; font-size:0.9rem;"></div>
-      <button id="unlockSubmit">Unlock</button>
-      <button id="unlockCancel" style="margin-left:10px;">Cancel</button>
+  <!-- Unlock Modal -->
+  <div id="unlockModal" class="modal">
+    <div class="content">
+      <div class="title">Parent unlock</div>
+      <div class="body">
+        <p class="muted">Enter your code to enable the routine.</p>
+        <input id="unlockCode" type="password" placeholder="PIN"/>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="doUnlock()">Unlock</button>
+        <button class="btn ghost" onclick="closeUnlock()">Cancel</button>
+      </div>
     </div>
   </div>
 
 <script>
-'use strict';
-// --- Theme toggle ---
+/* ====== THEME ====== */
 function toggleDarkMode(){
-  var isDark = document.body.classList.toggle('dark');
+  const isDark = document.body.classList.toggle('dark');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  var btn = document.getElementById('modeToggle');
-  btn.textContent = isDark ? '\u2600' : '\uD83C\uDF19'; // sun / moon
-  btn.classList.toggle('sun', isDark);
+  document.getElementById('modeToggle').textContent = isDark ? '☀️' : '🌙';
+  document.getElementById('modeToggle').classList.toggle('sun', isDark);
 }
 function setInitialTheme(){
-  var stored = localStorage.getItem('theme');
-  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  var useDark = stored === 'dark' || (!stored && prefersDark);
-  if (useDark){ document.body.classList.add('dark'); var btn=document.getElementById('modeToggle'); btn.textContent='\u2600'; btn.classList.add('sun'); }
+  const stored = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (stored === 'dark' || (!stored && prefersDark)) {
+    document.body.classList.add('dark');
+    document.getElementById('modeToggle').textContent = '☀️';
+    document.getElementById('modeToggle').classList.add('sun');
+  }
 }
 
-// --- Unlock helpers ---
-function isRoutineUnlocked(){
-  if (location.search.indexOf('unlock=1')>-1) return true;
-  var after = window.config.routineUnlockAfter ? new Date(window.config.routineUnlockAfter) : null;
-  if (after && !isNaN(after)) { if (new Date() >= after) return true; }
-  return localStorage.getItem('routine:unlocked') === '1';
+/* ====== QR + CAL ====== */
+function setupWifi(){
+  try {
+    new QRious({
+      element: document.getElementById('qrcode'),
+      size: 200,
+      value: `WIFI:S:${window.config.wifiName};T:WPA;P:${window.config.wifiPassword};;`
+    });
+  } catch(e) { console.warn('QR init failed', e); }
 }
-function setRoutineUnlocked(v){ if(v){ localStorage.setItem('routine:unlocked','1'); } else { localStorage.removeItem('routine:unlocked'); } window.__ROUTINE_UNLOCKED__ = !!v; }
-function toggleRoutineVisibility(){
-  var unlocked = isRoutineUnlocked(); window.__ROUTINE_UNLOCKED__ = unlocked;
-  var locked = document.getElementById('routineLocked'); var root = document.getElementById('routineRoot');
-  if (locked && root){ locked.style.display = unlocked ? 'none' : ''; root.style.display = unlocked ? '' : 'none'; }
+function setupCalendar(){
+  const id = encodeURIComponent(window.config.calendarEmail);
+  document.getElementById('calendarFrame').src =
+    `https://calendar.google.com/calendar/embed?showTitle=0&mode=AGENDA&wkst=1&height=400&bgcolor=%23ffffff&ctz=Europe%2FLondon&src=${id}`;
 }
-function openUnlockModal(){ document.getElementById('unlockPin').value=''; document.getElementById('unlockError').textContent=''; document.getElementById('unlockModal').style.display='flex'; }
-function closeUnlockModal(){ document.getElementById('unlockModal').style.display='none'; }
-function getRoutinePin(){ return String((window.config && window.config.routineUnlockPin) || '4242'); }
-function tryUnlock(){ var v=document.getElementById('unlockPin').value.trim(); if(v===getRoutinePin()){ setRoutineUnlocked(true); toggleRoutineVisibility(); closeUnlockModal(); try{ confetti(); }catch(e){} } else { document.getElementById('unlockError').textContent='Wrong code'; } }
 
-// --- Goals & chores modal ---
+/* ====== GOALS ====== */
 function openGoalModal(name){
   document.getElementById('modalChildName').textContent = name;
-  document.getElementById('modalGoalName').value = (window.fetchedData && window.fetchedData[name] && window.fetchedData[name].goal) || '';
-  document.getElementById('modalGoalAmount').value = (window.fetchedData && window.fetchedData[name] && window.fetchedData[name].goalAmount) || '';
+  document.getElementById('modalGoalName').value = window.fetchedData?.[name]?.goal || '';
+  document.getElementById('modalGoalAmount').value = window.fetchedData?.[name]?.goalAmount || '';
   document.getElementById('goalModal').style.display = 'flex';
 }
-function closeModal(){ document.getElementById('goalModal').style.display='none'; }
+function closeModal(){ document.getElementById('goalModal').style.display = 'none'; }
 function submitGoal(){
-  var goalName = document.getElementById('modalGoalName').value;
-  var goalAmount = document.getElementById('modalGoalAmount').value;
-  var activeChildName = document.getElementById('modalChildName').textContent;
+  const goalName = document.getElementById('modalGoalName').value;
+  const goalAmount = document.getElementById('modalGoalAmount').value;
+  const activeChildName = document.getElementById('modalChildName').textContent;
   if (!goalName || !goalAmount) return alert('Please enter both name and amount.');
-  fetch('https://docs.google.com/forms/d/e/1FAIpQLScVdXH2oenWvUsINA6IcmxvomWoiGKFG0uHO85NUWEmiFHDTg/formResponse', {
-    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'entry.1735294996='+encodeURIComponent(activeChildName)+'&entry.1492747930='+encodeURIComponent(goalName)+'&entry.795938275='+encodeURIComponent(goalAmount)
+  fetch(window.config.goalFormUrl, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:`entry.1735294996=${encodeURIComponent(activeChildName)}&entry.1492747930=${encodeURIComponent(goalName)}&entry.795938275=${encodeURIComponent(goalAmount)}`
   });
-  closeModal(); alert('Goal submitted!'); setTimeout(function(){ location.reload(); }, 2000);
+  closeModal(); alert('Goal submitted!'); setTimeout(()=>location.reload(), 1200);
 }
 
-var activeChoreName = ''; var activeChoreTask = '';
-function openChoreModal(name, chore){ activeChoreName=name; activeChoreTask=chore; document.getElementById('choreConfirmText').textContent='Did '+name+' complete: "'+chore+'"?'; document.getElementById('choreConfirmModal').style.display='flex'; }
-function closeChoreModal(){ document.getElementById('choreConfirmModal').style.display='none'; activeChoreName=''; activeChoreTask=''; }
-
-// --- Chore submit (script-only, no Forms) ---
-
+/* ====== CHORES ====== */
 function stripDiacritics(s){ try { return s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); } catch(e){ return s; } }
-function nameForSheet(name){
-  // Normalise Méabh for storage as "Meabh" (sheet stores no accent)
-  const n = stripDiacritics(String(name||'').trim());
-  return n === 'Meabh' || n === 'Meabh ' ? 'Meabh' : n;
+function nameForSheet(n){
+  const s = stripDiacritics(String(n||'').trim());
+  return (s.toLowerCase()==='méabh'||s.toLowerCase()==='meabh') ? 'Meabh' : s;
 }
+let activeChoreName='', activeChoreTask='';
+function openChoreModal(name, chore){
+  activeChoreName=name; activeChoreTask=chore;
+  document.getElementById('choreConfirmText').textContent = `Did ${name} complete: "${chore}"?`;
+  document.getElementById('choreConfirmModal').style.display='flex';
+}
+function closeChoreModal(){ document.getElementById('choreConfirmModal').style.display='none'; activeChoreName=''; activeChoreTask=''; }
 
 function submitChore(){
   if (!activeChoreName || !activeChoreTask) return;
+  const url = (window.config && window.config.choreSubmitUrl) || '';
+  if (!url) { alert('Missing choreSubmitUrl in config'); return; }
 
-  const url = window.config && window.config.choreSubmitUrl;
-  if (!url){
-    alert('Config missing choreSubmitUrl'); 
-    console.error('window.config:', window.config);
-    return;
-  }
-
-  // URL-encoded body avoids CORS preflight
   const p = new URLSearchParams();
   p.set('child', nameForSheet(activeChoreName));
   p.set('chore', activeChoreTask);
   p.set('ts', String(Date.now()));
   const body = p.toString();
 
-  let sent = false;
+  let sent=false;
   if (navigator.sendBeacon){
     try { sent = navigator.sendBeacon(url, new Blob([body], {type:'application/x-www-form-urlencoded'})); } catch(e){}
   }
   if (!sent){
-    fetch(url, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
-    }).catch(()=>{});
+    fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body }).catch(()=>{});
   }
-
-  closeChoreModal();
-  alert('Chore submitted!');
-  setTimeout(()=>location.reload(), 1200);
+  closeChoreModal(); alert('Chore submitted!'); setTimeout(()=>location.reload(), 1000);
 }
-  
-// --- Onload ---
-window.onload = function(){
-  try {
-    if (!localStorage.getItem('seenQR')) { document.getElementById('wifiSection').setAttribute('open',''); localStorage.setItem('seenQR','true'); }
-    setInitialTheme();
-    var wifiName = (window.config.wifiName || 'YourWiFi');
-    var wifiPassword = (window.config.wifiPassword || 'password');
-    new QRious({ element: document.getElementById('qrcode'), size: 200, value: 'WIFI:S:'+wifiName+';T:WPA;P:'+wifiPassword+';;' });
-  } catch(e) { console.error('QR init failed', e); }
 
-  // Calendar embed
-  (function(){
-    var frame = document.getElementById('calendarFrame');
-    var hint = document.getElementById('calendarHint');
-    var primary = (window.config.calendarId || window.config.calendarEmail || '').trim();
-    var sources = (Array.isArray(window.config.calendarSources) && window.config.calendarSources.length) ? window.config.calendarSources : (primary ? [primary] : []);
-    if (!sources.length) { hint.textContent='Set calendarId or calendarEmail in config.js'; } else {
-      var srcParams = sources.map(function(s){ return '&src='+encodeURIComponent(s); }).join('');
-      var url = 'https://calendar.google.com/calendar/embed?height=400&wkst=1&bgcolor=%23ffffff&ctz=Europe%2FLondon&showTitle=0&showNav=1&mode=AGENDA'+srcParams;
-      frame.src = url; hint.innerHTML = 'If you cannot see events, ensure the calendar is public or open it <a href="'+url+'" target="_blank" rel="noopener">in Google Calendar</a>.';
-    }
-  })();
+/* ====== SUMMARY ====== */
+function badgeClass(weekly){
+  if (weekly >= 5) return 'badge-green';
+  if (weekly === 3) return 'badge-yellow';
+  if (weekly === 1) return 'badge-orange';
+  return 'badge-grey';
+}
+function renderSummary(data){
+  window.fetchedData = data;
+  const container = document.getElementById('summaryContainer');
+  container.innerHTML = '';
+  Object.entries(data).forEach(([name, person])=>{
+    if (!person) return;
+    const id = name === 'Robin' ? 'robin' : 'meabh';
+    const weekly = Number(person.weekly||0);
+    const total  = Number(person.total||0);
+    const goal   = String(person.goal||'');
+    const goalAmt= Number(person.goalAmount||0);
+    const progress = goalAmt>0 ? Math.min((total/goalAmt)*100,100) : 0;
 
-  // Chore links (event delegation, no inline handlers)
-  var chores = { 'Robin': ['Tidy Room','Empty/Refill Dishwasher','Set the Table','Help with the Washing','House Cleaning','Other'], 'M\u00E9abh': ['Tidy Room','Empty/Refill Dishwasher','Set the Table','Help with the Washing','House Cleaning','Other'] };
-  var choreList = document.getElementById('choreLinks');
-  Object.keys(chores).forEach(function(name){
-    var h = document.createElement('h3'); h.textContent = name; choreList.appendChild(h);
-    var ul = document.createElement('ul'); ul.style.listStyle='none'; ul.style.padding='0'; choreList.appendChild(ul);
-    chores[name].forEach(function(chore){
-      var li=document.createElement('li'); var btn=document.createElement('button');
-      btn.textContent = chore; btn.setAttribute('data-child', name); btn.setAttribute('data-chore', chore); li.appendChild(btn); ul.appendChild(li);
-    });
+    const card = document.createElement('div');
+    card.className='card'; card.style.margin='10px 0';
+    card.innerHTML = `
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin:.2rem 0">${name}</h3>
+        <span class="earnings-badge ${badgeClass(weekly)}">£${weekly.toFixed(2)}</span>
+      </div>
+      <div class="row muted">Chores completed this week: <strong id="${id}Count">${person.count??0}</strong></div>
+      <div class="row muted">🎯 Goal: <strong>${goal||'—'}</strong> (£${goalAmt||'—'})</div>
+      <div class="progress"><div id="${id}Goal" style="width:${progress}%"></div></div>
+      <div class="row" style="justify-content:space-between;margin-top:6px">
+        <div>Total so far: <strong>£<span id="${id}Total">${total.toFixed(2)}</span></strong></div>
+        <button class="btn" onclick="openGoalModal('${name}')">Set Goal</button>
+      </div>`;
+    container.appendChild(card);
+
+    if (weekly >= 5) try { confetti(); } catch(_){}
   });
-  choreList.addEventListener('click', function(e){
-    var t=e.target; if (t && t.tagName==='BUTTON' && t.hasAttribute('data-child')){
-      openChoreModal(t.getAttribute('data-child'), t.getAttribute('data-chore'));
-    }
+}
+
+/* ====== ROUTINE (auto-switch + lock + timer) ====== */
+const BEDTIME_TASKS = [
+  'Get undressed',
+  'Get washed',
+  'Clean teeth',
+  'Get pyjamas on',
+  'Robin: cream & inhaler',
+  'Get clothes out for tomorrow',
+  'Choose a book',
+  'Last wee',
+  'Set clocks',
+  'Settled in bed'
+];
+const MORNING_TASKS = [
+  'Get dressed',
+  'Down to breakfast (07:45)',
+  'Clean teeth (08:10)',
+  'Sort bags (bottle/lunch/books – Tue: Robin guitar)',
+  'Shoes & coats (08:20)',
+  'In the car (08:25)'
+];
+
+let routineState = { mode:'bed', done: {} };
+function currentModeFromTime(){
+  const now = new Date();
+  const h = now.getHours();
+  // morning 05:00–10:00, bedtime from 17:00 onwards, else default to bedtime
+  if (h>=5 && h<10) return 'morning';
+  if (h>=17 || h<5) return 'bed';
+  return 'bed';
+}
+function loadRoutine(){
+  const unlocked = localStorage.getItem('routineUnlocked') === '1' || (window.config && window.config.defaultUnlocked===true);
+  document.getElementById('lockBar').style.display = unlocked ? 'none':'flex';
+  document.getElementById('routineWrap').style.display = unlocked ? 'block':'none';
+
+  routineState.mode = currentModeFromTime();
+  routineState.done = JSON.parse(localStorage.getItem('routineDone')||'{}');
+  renderRoutine();
+}
+function renderRoutine(){
+  const mode = routineState.mode;
+  const tasks = (mode==='bed') ? BEDTIME_TASKS.slice() : MORNING_TASKS.slice();
+  // Hide mode-specific tasks
+  const filtered = tasks.filter(t=>{
+    if (mode==='bed' && t.startsWith('Robin:') && !window.config?.showRobinMedical) return false;
+    if (mode==='bed' && t==='Set clocks' && window.config?.hideSetClocks) return false;
+    return true;
   });
-  document.getElementById('choreYes').addEventListener('click', submitChore);
 
-  // Weekly summary fetch (accent-tolerant)
-  fetch('https://script.google.com/macros/s/AKfycbwBIGo4EnzoGMU7y6jG7VITAiH6o0aVnQr9rlO9IQ6GdXlwz9eOyw0x5nfP1bEkEfLNzg/exec')
-    .then(function(res){ return res.json(); })
-    .then(function(data){
-      window.fetchedData = data; var container = document.getElementById('summaryContainer');
-      function getPerson(map, name){ var plain = stripDiacritics(name); return map[name] || map[plain] || map[name.toLowerCase()] || map[plain.toLowerCase()] || null; }
-      ['Robin','M\u00E9abh'].forEach(function(name){
-        var person = getPerson(data, name); if(!person){ console.warn('No data for', name, '— keys:', Object.keys(data)); return; }
-        var id = name === 'Robin' ? 'robin' : 'meabh';
-        var weekly = Number(person.weekly || 0); var total = Number(person.total || 0);
-        var wrap = document.createElement('div');
-        wrap.innerHTML = '<h3>'+name+'</h3>'+
-          '<p>Chores completed this week: <span id="'+id+'Count">'+(person.count || 0)+'</span></p>'+
-          '<p>Weekly earnings: £<span id="'+id+'Earnings" class="earnings-badge">'+weekly.toFixed(2)+'</span></p>'+
-          '<p>Goal: <span>'+(person.goal || '-')+'</span> (£<span>'+(person.goalAmount || '-')+'</span>)</p>'+
-          '<div class="progress-bar"><div id="'+id+'Goal" class="progress-fill"></div></div>'+
-          '<p>Total so far: £<span id="'+id+'Total">'+total.toFixed(2)+'</span></p>'+
-          '<button onclick="openGoalModal(\''+name+'\')">Set Goal</button>';
-        container.appendChild(wrap);
-        var fill = document.getElementById(id+'Goal');
-        var goal = parseFloat(person.goalAmount) || 0; var progress = goal > 0 ? Math.min((total / goal) * 100, 100) : 0; fill.style.width = progress + '%';
-        var badge = document.getElementById(id+'Earnings'); badge.classList.remove('badge-green','badge-yellow','badge-orange','badge-grey');
-        if (weekly >= 5) badge.classList.add('badge-green'); else if (weekly === 3) badge.classList.add('badge-yellow'); else if (weekly === 1) badge.classList.add('badge-orange'); else badge.classList.add('badge-grey');
-        if (weekly >= 5) try{ confetti(); }catch(e){}
-      });
-    }).catch(function(e){ console.warn('Summary fetch failed', e); });
+  const el = document.getElementById('routineList'); el.innerHTML='';
+  const keyPrefix = (mode==='bed' ? 'b:' : 'm:');
+  let doneCount = 0;
 
-  // Unlock wiring
-  toggleRoutineVisibility();
-  var ub = document.getElementById('unlockBtn'); if (ub) ub.addEventListener('click', openUnlockModal);
-  var head = document.querySelector('header'); if (head){ var taps=0, tmr=null; head.addEventListener('click', function(){ taps++; if(taps>=5){ openUnlockModal(); taps=0; } if(tmr) clearTimeout(tmr); tmr=setTimeout(function(){taps=0;}, 1500); }); }
-  var us = document.getElementById('unlockSubmit'); if (us) us.addEventListener('click', tryUnlock);
-  var uc = document.getElementById('unlockCancel'); if (uc) uc.addEventListener('click', closeUnlockModal);
-  var um = document.getElementById('unlockModal'); if (um) um.addEventListener('click', function(e){ if(e.target===um) closeUnlockModal(); });
-};
+  filtered.forEach(task=>{
+    const key = keyPrefix + task;
+    const isDone = !!routineState.done[key];
+    if (isDone) doneCount++;
+    const row = document.createElement('div');
+    row.className = 'task' + (isDone ? ' done' : '');
+    row.onclick = ()=>{ routineState.done[key] = !routineState.done[key]; saveRoutine(); renderRoutine(); };
+    row.innerHTML = `<div class="tick">${isDone ? '✓' : ''}</div><div>${task}</div>`;
+    el.appendChild(row);
+  });
 
-// --- Routine component (runs only if unlocked) ---
-(function(){
-  if (!window.__ROUTINE_UNLOCKED__) { return; }
-  var R = {
-    dailyResetHour: 4,
-    auto: { enable: true, bedHour: 17 },
-    speakEnabled: true,
-    confettiEnabled: true,
-    streaksEnabled: false,
-    defaultChild: 'Robin',
-    school: {
-      peDays: { 'Robin': { Tue: 'Outdoor PE', Wed: 'Indoor PE' }, 'M\u00E9abh': { Thu: 'Outdoor PE', Fri: 'Indoor PE' } },
-      guitar: { 'Robin': ['Tue'] }
-    },
-    routines: {
-      bed: [
-        { id:'undress', name:'Get undressed' },
-        { id:'wash', name:'Get washed', desc:'Face, pits and bits, or shower or bath' },
-        { id:'teeth', name:'Clean teeth', desc:'Two minutes' },
-        { id:'pjs', name:'Get pyjamas on' },
-        { id:'cream-inhaler', name:'Cream and inhaler', onlyFor:['Robin'] },
-        { id:'clothes-out', name:'Get clothes out for tomorrow' },
-        { id:'book', name:'Choose a book' },
-        { id:'last-wee', name:'Last wee' },
-        { id:'set-clocks', name:'Set clocks', onlyFor:['Robin'] },
-        { id:'settle', name:'Settled in bed' }
-      ],
-      morning: [
-        { id:'get-dressed', name:'Get dressed', desc:'Tablet unlocks after this' },
-        { id:'breakfast', name:'Down to breakfast', desc:'Target 07:45' },
-        { id:'teeth-am', name:'Clean teeth', desc:'08:10' },
-        { id:'bags', name:'Sort bags', desc:'Bottle, lunch, books' },
-        { id:'shoes-coats', name:'Shoes and coats', desc:'08:20' },
-        { id:'leave', name:'In the car to leave', desc:'08:25' }
-      ]
-    },
-    sync: { enabled: false, endpoint: '' }
+  const pct = filtered.length ? Math.round((doneCount/filtered.length)*100) : 0;
+  document.getElementById('whichMode').textContent = (mode==='bed' ? 'Bedtime' : 'Morning');
+  document.getElementById('progressLabel').textContent = `${pct}% done`;
+}
+function saveRoutine(){ localStorage.setItem('routineDone', JSON.stringify(routineState.done)); }
+function tellNext(){
+  const mode = routineState.mode;
+  const tasks = (mode==='bed') ? BEDTIME_TASKS : MORNING_TASKS;
+  const keyPrefix = (mode==='bed' ? 'b:' : 'm:');
+  const next = tasks.find(t => !routineState.done[keyPrefix+t]);
+  alert(next ? `Next up: ${next}` : 'All done – nice work!');
+}
+function resetToday(){ routineState.done={}; saveRoutine(); renderRoutine(); }
+
+/* ---- Lock / Unlock ---- */
+function openUnlock(){ document.getElementById('unlockModal').style.display='flex'; }
+function closeUnlock(){ document.getElementById('unlockModal').style.display='none'; }
+function doUnlock(){
+  const code = (document.getElementById('unlockCode').value || '').trim();
+  if (String(code) === String(window.config.parentPin||'')) {
+    localStorage.setItem('routineUnlocked','1');
+    closeUnlock(); loadRoutine();
+  } else {
+    alert('Wrong code');
+  }
+}
+
+/* ---- Tooth brushing timer (no streaks, no weird loops) ---- */
+let tbTimer=null, tbRemain=120, tbRunning=false;
+function tbRender(){
+  const m = Math.floor(tbRemain/60), s = tbRemain%60;
+  document.getElementById('tbDisplay').textContent = `${m}:${String(s).padStart(2,'0')}`;
+  document.getElementById('tbPause').disabled = !tbRunning;
+}
+function tbStart(){
+  if (tbRunning) return;
+  tbRunning=true; tbRender();
+  tbTimer = setInterval(()=>{
+    if (tbRemain<=0){ tbStop(true); return; }
+    tbRemain--; tbRender();
+  }, 1000);
+}
+function tbPause(){
+  if (!tbRunning) return;
+  clearInterval(tbTimer); tbTimer=null; tbRunning=false; tbRender();
+}
+function tbSkip(){
+  tbPause(); tbRemain=120; tbRender(); alert('Skipping tooth brushing timer tonight.');
+}
+function tbStop(done){
+  tbPause();
+  if (done){ try { confetti(); } catch(_){} alert('Nice brushing!'); }
+  tbRemain=120; tbRender();
+}
+
+/* ====== INIT ====== */
+window.onload = ()=>{
+  // open Wi-Fi QR the first ever time
+  if (!localStorage.getItem('seenQR')) {
+    document.getElementById('wifiSection').setAttribute('open','');
+    localStorage.setItem('seenQR','1');
+  }
+  setInitialTheme(); setupWifi(); setupCalendar();
+
+  // chores list
+  const chores = {
+    'Robin': ['Tidy Room','Empty/Refill Dishwasher','Set the Table','Help with the Washing','House Cleaning','Other'],
+    'Méabh': ['Tidy Room','Empty/Refill Dishwasher','Set the Table','Help with the Washing','House Cleaning','Other']
   };
-
-  var qs = new URLSearchParams(location.search);
-  var currentChild = localStorage.getItem('routine:lastChild') || qs.get('child') || R.defaultChild;
-  var manualOverrideUntil = +(localStorage.getItem('routine:overrideUntil')||0);
-  var currentRoutine = (qs.get('routine') || autoRoutineNow()).toLowerCase();
-  if (qs.get('routine')) { setManualOverrideUntilNextBoundary(); }
-
-  function el(id){ return document.getElementById(id); }
-  var listEl = el('routineList');
-  var nudgeEl = el('routineNudge');
-  var barEl = el('routineBar');
-  var progressLabel = el('routineProgressLabel');
-  var titleEl = el('routineTitle');
-  var tabsEl = el('routineTabs');
-  var kidTabsEl = el('kidTabs');
-
-  function key(){ return 'routine:'+currentChild+':'+currentRoutine+':'+todayKey(); }
-  function todayKey(){ var now=new Date(); if(now.getHours() < R.dailyResetHour){ now.setDate(now.getDate()-1); } return now.toISOString().slice(0,10); }
-  function loadProgress(){ try{ return JSON.parse(localStorage.getItem(key())||'{}'); }catch(e){ return {}; } }
-  function saveProgress(p){ localStorage.setItem(key(), JSON.stringify(p)); }
-
-  function visibleTasksForChild(list){ return list.filter(function(t){ if(t.onlyFor) return t.onlyFor.indexOf(currentChild) > -1; if(t.excludeFor) return t.excludeFor.indexOf(currentChild) === -1; return true; }).map(function(t){ var o={}; for(var k in t){o[k]=t[k];} return o; }); }
-  function tomorrowLabel(){ var d=new Date(); d.setDate(d.getDate()+1); return d.toLocaleDateString(undefined,{ weekday:'long'}); }
-  function clothesOutDesc(){ var tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1); var dayShort=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][tomorrow.getDay()]; var pe=(R.school.peDays[currentChild]||{})[dayShort]; return pe ? (tomorrowLabel()+' is '+pe+' - add PE kit') : ('Ready for '+tomorrowLabel()); }
-  function bagsDesc(){ var today=new Date(); var dayShort=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()]; var guitar=(R.school.guitar[currentChild]||[]).indexOf(dayShort)>-1 ? ' + Guitar' : ''; return 'Bottle, lunch, books'+guitar; }
-
-  function renderTabs(){
-    tabsEl.innerHTML=''; [['bed','Bedtime'],['morning','Morning']].forEach(function(pair){ var val=pair[0], label=pair[1]; var b=document.createElement('div'); b.className='pill'+(currentRoutine===val?' active':''); b.textContent=label; b.addEventListener('click', function(){ currentRoutine=val; setManualOverrideUntilNextBoundary(); render(); }); tabsEl.appendChild(b); });
-    kidTabsEl.innerHTML=''; ['Robin','M\u00E9abh'].forEach(function(name){ var b=document.createElement('div'); b.className='pill'+(currentChild===name?' active':''); b.textContent=name; b.addEventListener('click', function(){ setChild(name); }); kidTabsEl.appendChild(b); });
-  }
-  function setChild(name){ currentChild=name; localStorage.setItem('routine:lastChild', name); saveProgress(loadProgress()); renderTabs(); render(); }
-
-  function calcProgress(){ var tasks = visibleTasksForChild(R.routines[currentRoutine]); var p=loadProgress(); var doneCount=0; tasks.forEach(function(t){ if(p[t.id]) doneCount++; }); return { doneCount: doneCount, total: tasks.length, allDone: doneCount===tasks.length }; }
-  function updateBar(){ var c=calcProgress(); var pct=Math.round((c.doneCount/Math.max(c.total,1))*100); barEl.style.width=pct+'%'; progressLabel.textContent=pct+'% done'; }
-  function nextTaskName(){ var tasks=visibleTasksForChild(R.routines[currentRoutine]); var p=loadProgress(); for(var i=0;i<tasks.length;i++){ if(!p[tasks[i].id]) return tasks[i].name; } return 'All done'; }
-  function updateNudge(){ var name=nextTaskName(); nudgeEl.innerHTML = name==='All done' ? 'All done. Nice work!' : ('Next up: <strong>'+name+'</strong>'); }
-
-  function render(){
-    var tasks = visibleTasksForChild(R.routines[currentRoutine]);
-    titleEl.textContent = currentRoutine === 'bed' ? 'Bedtime' : 'Morning';
-    tasks.forEach(function(t){ if(t.id==='clothes-out'){ t.desc = clothesOutDesc(); } if(t.id==='bags'){ t.desc = bagsDesc(); } });
-    listEl.innerHTML='';
-    var progress=loadProgress();
-    tasks.forEach(function(t,i){
-      var card=document.createElement('div'); card.className='card'; card.dataset.id=t.id;
-      var idx=document.createElement('div'); idx.className='idx'; idx.textContent=(i+1);
-      var task=document.createElement('div'); task.className='task';
-      var name=document.createElement('div'); name.className='name'; name.textContent=t.name;
-      var desc=document.createElement('div'); desc.className='desc'; desc.textContent=t.desc||'';
-      task.appendChild(name); if(t.desc) task.appendChild(desc);
-      var tick=document.createElement('button'); tick.className='tick'; tick.setAttribute('aria-label','Toggle '+t.name); tick.innerHTML = svgTick();
-      if(progress[t.id]) tick.classList.add('done');
-      tick.addEventListener('click', function(){ onToggle(t); });
-      card.appendChild(idx); card.appendChild(task); card.appendChild(tick); listEl.appendChild(card);
+  const wrap = document.getElementById('choreLinks');
+  wrap.innerHTML='';
+  Object.keys(chores).forEach(name=>{
+    const h = document.createElement('div'); h.innerHTML = `<h3>${name}</h3>`;
+    const ul = document.createElement('ul');
+    chores[name].forEach(ch=>{
+      const li=document.createElement('li');
+      li.innerHTML=`<button onclick="openChoreModal('${name}','${ch}')">${ch}</button>`;
+      ul.appendChild(li);
     });
-    updateNudge(); updateBar(); renderTabs();
-  }
+    h.appendChild(ul); wrap.appendChild(h);
+  });
 
-  function speak(text){ if(!R.speakEnabled) return; try{ var u=new SpeechSynthesisUtterance(text); speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
-  function fireworks(){ if(!R.confettiEnabled) return; try{ confetti({ particleCount: 120, spread: 70, origin: { y: 0.3 } }); }catch(e){} }
+  // summary fetch (Apps Script GET)
+  const url = window.config.summaryUrl; // e.g. your JSON endpoint
+  fetch(url).then(r=>r.json()).then(renderSummary).catch(err=>{
+    console.error('Summary load failed', err);
+    document.getElementById('summaryContainer').innerHTML =
+      '<div class="muted">Could not load weekly summary.</div>';
+  });
 
-  function onToggle(task){
-    var p=loadProgress(); var isDone=!!p[task.id];
-    if(currentRoutine==='bed' && task.id==='teeth' && !isDone){ openBrushTimer(task); return; }
-    p[task.id] = !isDone; saveProgress(p); render();
-    if(currentRoutine==='morning' && task.id==='get-dressed' && p[task.id]){ showTabletUnlockUntil('07:45'); }
-    var c=calcProgress(); if(c.allDone){ fireworks(); speak('All done. Brilliant!'); } else if(p[task.id]) { speak('Nice one. Next up: '+nextTaskName()); }
-  }
-
-  document.getElementById('routineSpeakNext').addEventListener('click', function(){ speak('Next up: '+nextTaskName()); });
-  document.getElementById('routineReset').addEventListener('click', function(){ if(!confirm('Reset todays progress?')) return; saveProgress({}); render(); speak('Starting fresh.'); });
-
-  function showTabletUnlockUntil(timeHHMM){ try{ var now=new Date(); var parts=timeHHMM.split(':'); var hh=+parts[0], mm=+parts[1]; var limit=new Date(); limit.setHours(hh,mm,0,0); if(now>limit) return; var banner=document.createElement('div'); banner.style.position='fixed'; banner.style.left='50%'; banner.style.top='14px'; banner.style.transform='translateX(-50%)'; banner.style.background='linear-gradient(90deg, #22c55e, #3b82f6)'; banner.style.color='#06121c'; banner.style.padding='12px 16px'; banner.style.borderRadius='12px'; banner.style.fontWeight='900'; banner.style.zIndex='9999'; var span=document.createElement('span'); banner.appendChild(document.createTextNode('Tablet unlocked until ')); banner.appendChild(span); document.body.appendChild(banner); function tick(){ var left=Math.max(0, limit - new Date()); var s=Math.floor(left/1000); var m=Math.floor(s/60); var r=s%60; span.textContent = m+':'+String(r).padStart(2,'0'); if(left<=0){ banner.remove(); } else { setTimeout(tick, 1000);} } tick(); }catch(e){} }
-
-  function svgTick(){ return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="5" ry="5" stroke="rgba(0,0,0,.15)" stroke-width="2"/><path d="M7 12.5l3.5 3.5L17 9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
-
-  // Brush timer
-  var modal = document.getElementById('brushTimerModal');
-  var dial = document.getElementById('brushDialFill');
-  var timeEl = document.getElementById('brushTime');
-  var startBtn = document.getElementById('brushStart');
-  var pauseBtn = document.getElementById('brushPause');
-  var skipBtn = document.getElementById('brushSkip');
-  var CIRC = 2*Math.PI*52; var timerId=null, remain=120, running=false, pendingTask=null;
-  function openBrushTimer(task){ if(timerId){ clearInterval(timerId); timerId=null; } pendingTask=task; remain=120; running=false; startBtn.textContent='Start'; pauseBtn.disabled=true; updateDial(); timeEl.textContent='2:00'; modal.style.display='flex'; }
-  function closeBrushTimer(){ modal.style.display='none'; }
-  function updateDial(){ var frac = 1 - (remain/120); dial.style.strokeDasharray = String(CIRC); dial.style.strokeDashoffset = String(CIRC * (1-frac)); }
-  function tick(){ if(!running) return; remain=Math.max(0, remain-1); updateDial(); var m=Math.floor(remain/60), s=String(remain%60).padStart(2,'0'); timeEl.textContent=m+':'+s; if(remain<=0){ finished(); } }
-  function finished(){ if(timerId){ clearInterval(timerId); timerId=null; } running=false; try{ confetti({ particleCount: 120, spread: 70, origin: { y: 0.3 } }); }catch(e){} closeBrushTimer(); var p=loadProgress(); if(pendingTask){ p[pendingTask.id]=true; saveProgress(p); } pendingTask=null; render(); }
-  startBtn.addEventListener('click', function(){ if(running) return; running=true; startBtn.textContent='Resume'; pauseBtn.disabled=false; timerId=setInterval(tick, 1000); });
-  pauseBtn.addEventListener('click', function(){ running=false; if(timerId){ clearInterval(timerId); timerId=null; } pauseBtn.disabled=true; });
-  skipBtn.addEventListener('click', function(){ if(timerId){ clearInterval(timerId); timerId=null; } running=false; if(pendingTask){ var p=loadProgress(); p[pendingTask.id]=true; saveProgress(p); } pendingTask=null; closeBrushTimer(); render(); });
-  modal.addEventListener('click', function(e){ if(e.target===modal) closeBrushTimer(); });
-
-  // Auto routine switching
-  function autoRoutineNow(){ var now=new Date(); var h=now.getHours(); var bedH=R.auto.bedHour; var resetH=R.dailyResetHour; return (h>=resetH && h<bedH) ? 'morning' : 'bed'; }
-  function nextAutoBoundaryTS(){ var now=new Date(); var h=now.getHours(); var bedH=R.auto.bedHour; var resetH=R.dailyResetHour; var t=new Date(now); if(h<resetH){ t.setHours(resetH,0,0,0); return +t; } if(h<bedH){ t.setHours(bedH,0,0,0); return +t; } t.setDate(t.getDate()+1); t.setHours(resetH,0,0,0); return +t; }
-  function setManualOverrideUntilNextBoundary(){ manualOverrideUntil = nextAutoBoundaryTS(); localStorage.setItem('routine:overrideUntil', String(manualOverrideUntil)); }
-  function shouldAutoSwitch(){ return Date.now() >= (manualOverrideUntil||0); }
-
-  render();
-  setInterval(function(){ if(!shouldAutoSwitch()) return; var desired=autoRoutineNow(); if(desired!==currentRoutine){ currentRoutine=desired; render(); } }, 60000);
-})();
+  // routine (lock + mode)
+  loadRoutine();
+};
 </script>
 </body>
 </html>
