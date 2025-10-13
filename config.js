@@ -5,7 +5,7 @@ window.config = {
   calendarEmail: "benton.family19@gmail.com",
 
   // Parent PIN to unlock the routine section
-  parentPin: "1234",          // change this
+  parentPin: "0207",          // change this
 
   // Show/hide bedtime extras
   showRobinMedical: true,     // show “Robin: cream & inhaler”
