@@ -52,7 +52,7 @@
   </section>
 
   <section>
-    <details>
+    <details data-role="chore-logger">
       <summary>🧽 Log a Chore</summary>
       <div id="choreLinks"></div>
     </details>
@@ -160,7 +160,8 @@ function openConfirm(name, chore){
 
 function submitChore(){
   if (!pending.child || !pending.chore) return;
-  // Post as x-www-form-urlencoded → avoids preflight/CORS noise
+
+  // Post as x-www-form-urlencoded → avoids preflight/CORS
   const body = new URLSearchParams();
   body.set('child', pending.child);
   body.set('chore', pending.chore);
@@ -171,13 +172,18 @@ function submitChore(){
     mode: 'no-cors',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString()
-  }).catch(()=>{}); // best-effort; we re-pull summary below
+  }).catch(()=>{}); // best-effort; the summary reload will show result
 
+  // Collapse the “Log a Chore” panel after submitting
+  const logger = document.querySelector('details[data-role="chore-logger"]');
+  if (logger) logger.removeAttribute('open');
+
+  // Close the modal (if you use one)
   modal.style.display = 'none';
-  // Small optimistic nudge then hard refresh of summary after a tick
+
+  // Refresh the summary section after a brief delay
   setTimeout(loadSummary, 700);
 }
-
 /* ========== Summary fetch ========== */
 function loadSummary(){
   const el = document.getElementById('summaryContainer');
