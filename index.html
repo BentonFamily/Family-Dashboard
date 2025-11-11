@@ -52,7 +52,7 @@
   </section>
 
   <section>
-    <details open>
+    <details>
       <summary>🧽 Log a Chore</summary>
       <div id="choreLinks"></div>
     </details>
@@ -182,7 +182,9 @@ function submitChore(){
 function loadSummary(){
   const el = document.getElementById('summaryContainer');
   el.textContent = 'Loading…';
-  fetch(window.config.summaryUrl.replace('?ping=0',''))
+  const base = window.config.summaryUrl.replace('?ping=0','');
+  const url  = base + (base.includes('?') ? '&' : '?') + 't=' + Date.now(); // <- cache-buster
+  fetch(url)
     .then(r => r.json())
     .then(data => {
       // Expected shape: { Robin:{count,weekly,total,goal,goalAmount}, Méabh:{...} }
