@@ -20,7 +20,7 @@
     ul { list-style:none; padding:0; margin:0; }
     li button { margin:4px 0; padding:.55rem 1rem; font:600 1rem system-ui; border:0; border-radius:7px; background:#81c784; color:#fff; cursor:pointer; }
     li button:hover{ background:#66bb6a; }
-    .toggle-mode { position:fixed; bottom:1rem; right:1rem; width:50px; height:50px; background:#000; color:#fff; border:0; border-radius:50%; font-size:24px; cursor:pointer; z-index:999; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.3);}
+    .toggle-mode { position:fixed; bottom:1rem; right:1rem; width:50px; height:50px; background:#000; color:#fff; border:0; border-radius:50%; font-size:24px; cursor:pointer; z-index:999; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.3);} 
     .toggle-mode.sun{ background:#ffd700; color:#333; }
     .qr-output{ margin-top:.5rem; }
     .chore-summary h3 { margin-top:.75rem; color:#555; }
@@ -148,8 +148,11 @@ function renderChoreButtons(){
 /* ========== Confirm + Submit ========== */
 let pending = { child: '', chore: '' };
 const modal = document.getElementById('choreConfirm');
-document.getElementById('cancelBtn').onclick = () => { modal.style.display='none'; pending={child:'', chore:''}; };
-document.getElementById('submitBtn').onclick = submitChore;
+const cancelBtn = document.getElementById('cancelBtn');
+const submitBtn = document.getElementById('submitBtn');
+
+cancelBtn.onclick = () => { modal.style.display='none'; pending={child:'', chore:''}; };
+submitBtn.onclick = submitChore;
 
 function openConfirm(name, chore){
   pending.child = name;
@@ -178,21 +181,42 @@ function submitChore(){
   const logger = document.querySelector('details[data-role="chore-logger"]');
   if (logger) logger.removeAttribute('open');
 
-  // Close the modal (if you use one)
+  // Close the modal
   modal.style.display = 'none';
 
   // Refresh the summary section after a brief delay
   setTimeout(loadSummary, 700);
 }
-/* ========== Summary fetch ========== */
+
+/* ========== Summary fetch (cache-busted + key normaliser) ========== */
+function normalizeKeys(data){
+  // Safety net: unify Meabh -> Méabh; normalise case if someone edits later
+  const out = { ...data };
+  if (!out['Méabh'] && out['Meabh']) out['Méabh'] = out['Meabh'];
+  if (!out['Robin'] && out['robin']) out['Robin'] = out['robin'];
+  return out;
+}
+
+function getSummaryUrl(){
+  // Strip any existing query/hash then add a timestamp cache-buster
+  const base = (window.config && window.config.summaryUrl) ? String(window.config.summaryUrl) : '';
+  const clean = base.split('#')[0].split('?')[0];
+  return `${clean}?t=${Date.now()}`;
+}
+
 function loadSummary(){
   const el = document.getElementById('summaryContainer');
   el.textContent = 'Loading…';
-  const base = window.config.summaryUrl.replace('?ping=0','');
-  const url  = base + (base.includes('?') ? '&' : '?') + 't=' + Date.now(); // <- cache-buster
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
+
+  const url = getSummaryUrl();
+  console.log('[Summary] Fetch:', url);
+
+  fetch(url, { cache: 'no-store' })
+    .then(r => { console.log('[Summary] HTTP', r.status); return r.json(); })
+    .then(raw => {
+      console.log('[Summary] Raw JSON:', raw);
+      const data = normalizeKeys(raw);
+
       // Expected shape: { Robin:{count,weekly,total,goal,goalAmount}, Méabh:{...} }
       el.innerHTML = '';
       Object.entries(data).forEach(([name, person]) => {
@@ -229,8 +253,16 @@ function loadSummary(){
 
         if (weekly >= 5) confetti();
       });
+
+      // Minimal inline debug to keep while we sort this
+      const rob = data['Robin']?.count ?? 0;
+      const mea = data['Méabh']?.count ?? 0;
+      console.log(`[Summary] Rendered counts → Robin: ${rob}, Méabh: ${mea}`);
     })
-    .catch(()=> { el.textContent = 'Could not load summary.'; });
+    .catch(err => { 
+      console.error('[Summary] Error:', err);
+      el.textContent = 'Could not load summary.'; 
+    });
 }
 
 /* ========== Boot ========== */
