@@ -223,7 +223,7 @@ function loadSummary(){
   const url = getSummaryUrl();
   console.log('[Summary] Fetch:', url);
 
-  fetch(url, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
+  fetch(url, { cache: 'no-store' })
     .then(r => { console.log('[Summary] HTTP', r.status); return r.json(); })
     .then(raw => {
       console.log('[Summary] Raw JSON:', raw);
