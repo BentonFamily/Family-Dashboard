@@ -189,11 +189,23 @@ function submitChore(){
 }
 
 /* ========== Summary fetch (cache-busted + key normaliser) ========== */
-function normalizeKeys(data){
-  // Safety net: unify Meabh -> Méabh; normalise case if someone edits later
-  const out = { ...data };
-  if (!out['Méabh'] && out['Meabh']) out['Méabh'] = out['Meabh'];
-  if (!out['Robin'] && out['robin']) out['Robin'] = out['robin'];
+function normalizeData(raw){
+  // Rebuild a clean object with NFC-normalised keys and numeric coercion
+  const out = {};
+  for (const [k, v] of Object.entries(raw || {})) {
+    const keyN = String(k).normalize('NFC');
+    let mapped = keyN;
+    if (keyN === 'Meabh') mapped = 'Méabh';
+    if (keyN.toLowerCase() === 'robin') mapped = 'Robin';
+    out[mapped] = {
+      ...(v || {}),
+      count: Number((v && v.count) != null ? v.count : 0),
+      weekly: Number((v && v.weekly) != null ? v.weekly : 0),
+      total: Number((v && v.total) != null ? v.total : 0),
+      goalAmount: Number((v && v.goalAmount) != null ? v.goalAmount : 0),
+      goal: (v && v.goal) ? v.goal : ''
+    };
+  }
   return out;
 }
 
@@ -211,11 +223,11 @@ function loadSummary(){
   const url = getSummaryUrl();
   console.log('[Summary] Fetch:', url);
 
-  fetch(url, { cache: 'no-store' })
+  fetch(url, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
     .then(r => { console.log('[Summary] HTTP', r.status); return r.json(); })
     .then(raw => {
       console.log('[Summary] Raw JSON:', raw);
-      const data = normalizeKeys(raw);
+      const data = normalizeData(raw); console.log('[Summary] Normalised Méabh:', data['Méabh']);
 
       // Expected shape: { Robin:{count,weekly,total,goal,goalAmount}, Méabh:{...} }
       el.innerHTML = '';
