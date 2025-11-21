@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spellings Practice</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script src="config.js"></script>
+  <style>
+    :root { --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet); --text:#333; --section-bg:#fff; }
+    body.dark { --bg:#111; --text:#f1f1f1; --section-bg:#222; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; background:var(--bg); color:var(--text); }
+    header { background:rgba(255,255,255,.85); padding:1rem; text-align:center; font-size:1.5rem; font-weight:800; border-bottom:3px solid #fff; position:relative; z-index:1; }
+    .dark header{ background:rgba(0,0,0,.8); border-bottom:3px solid #444; }
+    section { background:var(--section-bg); margin:1rem; padding:1rem; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,.08); }
+    h2, h3 { margin:.25rem 0 .5rem; }
+    .toggle-mode { position:fixed; bottom:1rem; right:1rem; width:50px; height:50px; background:#000; color:#fff; border:0; border-radius:50%; font-size:24px; cursor:pointer; z-index:999; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.3);} 
+    .toggle-mode.sun{ background:#ffd700; color:#333; }
+
+    /* Spellings-specific styles */
+    .top-bar {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:.5rem;
+      margin-bottom:.5rem;
+    }
+    .back-link {
+      font-size:.9rem;
+      text-decoration:none;
+      padding:.35rem .7rem;
+      border-radius:999px;
+      border:1px solid #ddd;
+      background:#fafafa;
+      color:inherit;
+    }
+    .dark .back-link{ background:#111; border-color:#555; }
+    .identity-grid {
+      display:flex;
+      flex-wrap:wrap;
+      gap:1rem;
+    }
+    .identity-card, .practice-card {
+      flex:1 1 260px;
+      background:#f9f9f9;
+      border-radius:10px;
+      padding:.75rem .9rem;
+      border:1px solid #eee;
+    }
+    .dark .identity-card, .dark .practice-card{
+      background:#111; border-color:#333;
+    }
+    label {
+      font-size:.85rem;
+      font-weight:600;
+      display:block;
+      margin-bottom:.2rem;
+    }
+    input[type="text"], select {
+      width:100%;
+      padding:.45rem .6rem;
+      border-radius:6px;
+      border:1px solid #ccc;
+      font:inherit;
+    }
+    .dark input[type="text"], .dark select{
+      background:#111; border-color:#555; color:inherit;
+    }
+    .quick-buttons {
+      margin-top:.5rem;
+      display:flex;
+      flex-wrap:wrap;
+      gap:.4rem;
+    }
+    .quick-buttons button {
+      border:0; border-radius:999px;
+      padding:.3rem .6rem;
+      font-size:.8rem;
+      cursor:pointer;
+      background:#e3f2fd;
+    }
+    .quick-buttons button.meabh { background:#fce4ec; }
+    .mode-options { margin-top:.5rem; }
+    .mode-options label {
+      font-weight:500;
+      display:flex;
+      align-items:center;
+      gap:.35rem;
+      margin-bottom:.3rem;
+      cursor:pointer;
+    }
+    .mode-options small{ color:#666; font-weight:400;}
+    .start-btn {
+      margin-top:.7rem;
+      padding:.55rem 1rem;
+      border-radius:7px;
+      border:0;
+      background:#2563eb;
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .start-btn:disabled{ opacity:.6; cursor:default; }
+    .note { font-size:.8rem; color:#666; margin-top:.35rem; }
+
+    .stats-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:.5rem;
+      margin-bottom:.5rem;
+    }
+    .stat-box {
+      flex:1 1 80px;
+      padding:.4rem .5rem;
+      border-radius:7px;
+      background:#f1f5f9;
+      font-size:.8rem;
+    }
+    .dark .stat-box{ background:#020617; }
+    .stat-label{ color:#666; font-size:.75rem; }
+    .stat-main{ font-weight:700; }
+    .mode-tabs {
+      display:flex;
+      gap:.4rem;
+      margin-bottom:.5rem;
+      flex-wrap:wrap;
+    }
+    .mode-tab{
+      border-radius:999px;
+      border:1px solid #ddd;
+      padding:.25rem .7rem;
+      font-size:.8rem;
+      background:#f9fafb;
+      cursor:pointer;
+    }
+    .mode-tab.active{ background:#fef3c7; border-color:#fbbf24; }
+    .mode-tab.disabled{ opacity:.4; cursor:default; }
+    .practice-word {
+      font-size:1.6rem;
+      font-weight:800;
+      text-align:center;
+      letter-spacing:.15em;
+      margin:.5rem 0 .6rem;
+    }
+    .answer-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.4rem;
+      justify-content:center;
+      margin-bottom:.25rem;
+    }
+    .answer-row input[type="text"]{
+      max-width:220px;
+    }
+    .primary-btn{
+      padding:.45rem .9rem;
+      border-radius:7px;
+      border:0;
+      background:#f97316;
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .feedback{
+      text-align:center;
+      min-height:1.1rem;
+      font-size:.9rem;
+    }
+    .feedback.ok{ color:#16a34a; }
+    .feedback.bad{ color:#dc2626; }
+    .small-link{
+      margin-top:.35rem;
+      font-size:.8rem;
+      text-align:right;
+      text-decoration:underline;
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>✏️ Spellings Practice</header>
+  <button class="toggle-mode" id="modeToggle">🌙</button>
+
+  <section id="mainSection">
+    <div class="top-bar">
+      <div id="modeLabel"><strong>School mode</strong> – works on any device.</div>
+      <a href="index.html?home=benton" class="back-link" id="backLink" style="display:none;">🏡 Back to dashboard</a>
+    </div>
+    <p id="subtitle">Choose who is practising, then pick a list.</p>
+
+    <div class="identity-grid" id="identityStep">
+      <div class="identity-card">
+        <h3>Who’s practising?</h3>
+        <label for="learnerNameInput">Name</label>
+        <input id="learnerNameInput" type="text" placeholder="e.g. Robin" autocomplete="off" />
+        <label for="phaseSelect">Year / Phase</label>
+        <select id="phaseSelect">
+          <option value="">Select…</option>
+          <option value="eyfs">EYFS</option>
+          <option value="y1">Year 1</option>
+          <option value="y2">Year 2</option>
+          <option value="y3">Year 3</option>
+          <option value="y4">Year 4</option>
+          <option value="y5">Year 5</option>
+          <option value="y6">Year 6</option>
+        </select>
+
+        <div class="quick-buttons" id="familyQuickButtons" style="display:none;">
+          <button data-quick="robin">⭐ Robin</button>
+          <button class="meabh" data-quick="meabh">🌈 Méabh</button>
+        </div>
+
+        <p class="note">
+          Progress is saved on this device per name. In family mode we can later send Robin / Méabh attempts into your sheet.
+        </p>
+      </div>
+
+      <div class="identity-card">
+        <h3>What are you practising?</h3>
+        <div class="mode-options">
+          <label>
+            <input type="radio" name="contentMode" value="robin" checked>
+            Weekly spellings (Robin-style list)
+          </label>
+          <label>
+            <input type="radio" name="contentMode" value="eyfs">
+            EYFS sound blending
+          </label>
+        </div>
+
+        <div id="eyfsSetRow" style="margin-top:.5rem; display:none;">
+          <label for="eyfsSetSelect">EYFS set</label>
+          <select id="eyfsSetSelect"></select>
+          <small>Use these as generic Phase 2/3 sets.</small>
+        </div>
+
+        <button class="start-btn" id="startPracticeBtn">Start practising ▶️</button>
+      </div>
+    </div>
+
+    <div id="practiceStep" style="display:none;">
+      <div class="practice-card">
+        <h3 id="activeLearnerTitle">Practising</h3>
+        <p style="font-size:.85rem; color:#666;" id="listLabel">Using this week’s spellings.</p>
+
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Level</div>
+            <div class="stat-main" id="statLevel">1</div>
+            <div class="stat-label" id="statXP">0 XP</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Streak</div>
+            <div class="stat-main" id="statStreak">0</div>
+            <div class="stat-label">Best <span id="statBestStreak">0</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Total</div>
+            <div class="stat-main"><span id="statCorrect">0</span> / <span id="statTotal">0</span></div>
+          </div>
+        </div>
+
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-level="1">Level 1 – straight spell it</button>
+          <button class="mode-tab disabled" data-level="2" title="Coming soon">Level 2 – missing letters</button>
+          <button class="mode-tab disabled" data-level="3" title="Coming soon">Level 3 – clue only</button>
+        </div>
+
+        <div class="practice-word" id="currentWord">start</div>
+
+        <div class="answer-row">
+          <input id="answerInput" type="text" placeholder="Type the word here…" autocomplete="off" />
+          <button class="primary-btn" id="checkButton"><span id="checkButtonLabel">Check</span></button>
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+        <div class="small-link" id="changeLearnerLink">Change learner / list</div>
+      </div>
+    </div>
+  </section>
+
+<script>
+/* ========== Theme ========== */
+const modeBtn = document.getElementById('modeToggle');
+function setInitialTheme(){
+  const stored = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark = stored ? stored === 'dark' : prefersDark;
+  document.body.classList.toggle('dark', dark);
+  modeBtn.textContent = dark ? '☀️' : '🌙';
+  modeBtn.classList.toggle('sun', dark);
+}
+modeBtn.onclick = () => {
+  const dark = !document.body.classList.contains('dark');
+  document.body.classList.toggle('dark', dark);
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  modeBtn.textContent = dark ? '☀️' : '🌙';
+  modeBtn.classList.toggle('sun', dark);
+};
+
+/* ========== Content ========== */
+
+/**
+ * IMPORTANT: this is the ONLY list you need to update on Mondays.
+ * Replace these with this week’s spellings when you get them.
+ */
+const CURRENT_WEEK_SPELLINGS = [
+  "cat", "dog", "went", "play", "home"  // ← swap for the real ones each week
+];
+
+const EYFS_SETS = {
+  set1: { label: "Phase 2 – Set 1 (s a t p)", words: ["sat","tap","pat","sap","at","as"] },
+  set2: { label: "Phase 2 – Set 2 (i n m d)", words: ["din","dim","pin","nip","mad","sad"] },
+  set3: { label: "Phase 2 – Set 3 (g o c k)", words: ["dog","cog","cop","cot","kit","kick"] },
+  set4: { label: "Phase 2 – Set 4 (ck e u r)", words: ["duck","back","tuck","ruck","red","bed"] }
+};
+
+/* ========== State ========== */
+const params = new URLSearchParams(window.location.search);
+const isFamilyMode = params.get("home") === "benton";
+
+const learnerNameInput = document.getElementById("learnerNameInput");
+const phaseSelect = document.getElementById("phaseSelect");
+const familyQuickButtons = document.getElementById("familyQuickButtons");
+const backLink = document.getElementById("backLink");
+const modeLabel = document.getElementById("modeLabel");
+const subtitle = document.getElementById("subtitle");
+const identityStep = document.getElementById("identityStep");
+const practiceStep = document.getElementById("practiceStep");
+
+const startPracticeBtn = document.getElementById("startPracticeBtn");
+const eyfsSetRow = document.getElementById("eyfsSetRow");
+const eyfsSetSelect = document.getElementById("eyfsSetSelect");
+
+const activeLearnerTitle = document.getElementById("activeLearnerTitle");
+const listLabel = document.getElementById("listLabel");
+const statLevel = document.getElementById("statLevel");
+const statXP = document.getElementById("statXP");
+const statStreak = document.getElementById("statStreak");
+const statBestStreak = document.getElementById("statBestStreak");
+const statCorrect = document.getElementById("statCorrect");
+const statTotal = document.getElementById("statTotal");
+
+const modeTabs = document.querySelectorAll(".mode-tab");
+const currentWordEl = document.getElementById("currentWord");
+const answerInput = document.getElementById("answerInput");
+const checkButton = document.getElementById("checkButton");
+const checkButtonLabel = document.getElementById("checkButtonLabel");
+const feedbackEl = document.getElementById("feedback");
+const changeLearnerLink = document.getElementById("changeLearnerLink");
+
+let currentLearner = null;
+let currentPhase = "";
+let currentContentMode = "robin";
+let currentLevel = 1;
+let awaitingNextWord = false;
+let currentList = [];
+
+/* XP thresholds: can tweak later */
+const LEVEL_THRESHOLDS = [0, 200, 500, 1000, 1800];
+
+function getRadioValue(name){
+  const els = document.querySelectorAll(`input[name="${name}"]`);
+  for (const el of els) if (el.checked) return el.value;
+  return null;
+}
+
+function loadStats(name){
+  const key = `spellingsStats_${name.toLowerCase().trim()}`;
+  const raw = localStorage.getItem(key);
+  if (!raw) {
+    return {
+      xp:0,
+      totalAnswered:0,
+      totalCorrect:0,
+      currentStreak:0,
+      bestStreak:0
+    };
+  }
+  try { return JSON.parse(raw); }
+  catch { return { xp:0,totalAnswered:0,totalCorrect:0,currentStreak:0,bestStreak:0 }; }
+}
+
+function saveStats(name, stats){
+  const key = `spellingsStats_${name.toLowerCase().trim()}`;
+  localStorage.setItem(key, JSON.stringify(stats));
+}
+
+function computeLevel(xp){
+  let level = 1;
+  for (let i=0;i<LEVEL_THRESHOLDS.length;i++){
+    if (xp >= LEVEL_THRESHOLDS[i]) level = i+1;
+  }
+  return level;
+}
+
+function refreshStatsUI(){
+  if (!currentLearner) return;
+  const stats = loadStats(currentLearner);
+  const lvl = computeLevel(stats.xp);
+  currentLevel = lvl;
+  statLevel.textContent = lvl;
+  statXP.textContent = `${stats.xp} XP`;
+  statStreak.textContent = stats.currentStreak;
+  statBestStreak.textContent = stats.bestStreak;
+  statCorrect.textContent = stats.totalCorrect;
+  statTotal.textContent = stats.totalAnswered;
+}
+
+function getWordList(){
+  if (currentContentMode === "robin") {
+    return CURRENT_WEEK_SPELLINGS.slice();
+  } else {
+    const key = eyfsSetSelect.value;
+    const set = EYFS_SETS[key];
+    return set ? set.words.slice() : [];
+  }
+}
+
+function pickNextWord(){
+  currentList = getWordList();
+  if (!currentList.length){
+    currentWordEl.textContent = "No words set yet.";
+    return;
+  }
+  const idx = Math.floor(Math.random()*currentList.length);
+  currentWordEl.textContent = currentList[idx];
+  answerInput.value = "";
+  answerInput.focus();
+  feedbackEl.textContent = "";
+  feedbackEl.className = "feedback";
+  awaitingNextWord = false;
+  checkButtonLabel.textContent = "Check";
+}
+
+function handleAnswer(){
+  if (!currentLearner) return;
+
+  if (awaitingNextWord){
+    pickNextWord();
+    return;
+  }
+
+  const target = currentWordEl.textContent.trim().toLowerCase();
+  const guess = answerInput.value.trim().toLowerCase();
+
+  if (!target || !guess){
+    feedbackEl.textContent = "Type the word first.";
+    feedbackEl.className = "feedback bad";
+    return;
+  }
+
+  const stats = loadStats(currentLearner);
+  stats.totalAnswered += 1;
+
+  if (guess === target){
+    stats.totalCorrect += 1;
+    stats.currentStreak += 1;
+    stats.bestStreak = Math.max(stats.bestStreak, stats.currentStreak);
+    stats.xp += 10;
+    feedbackEl.textContent = "Nice, that’s correct! 🎉";
+    feedbackEl.className = "feedback ok";
+  } else {
+    feedbackEl.textContent = `Close – the correct spelling is “${target}”.`;
+    feedbackEl.className = "feedback bad";
+    stats.currentStreak = 0;
+  }
+
+  saveStats(currentLearner, stats);
+  refreshStatsUI();
+
+  awaitingNextWord = true;
+  checkButtonLabel.textContent = "Next word";
+}
+
+/* ========== UI Wiring ========== */
+function initEYFSSelect(){
+  eyfsSetSelect.innerHTML = "";
+  Object.entries(EYFS_SETS).forEach(([key, val]) => {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = val.label;
+    eyfsSetSelect.appendChild(opt);
+  });
+}
+
+document.querySelectorAll('input[name="contentMode"]').forEach(radio => {
+  radio.addEventListener("change", () => {
+    currentContentMode = getRadioValue("contentMode") || "robin";
+    if (currentContentMode === "eyfs") {
+      eyfsSetRow.style.display = "block";
+    } else {
+      eyfsSetRow.style.display = "none";
+    }
+  });
+});
+
+if (isFamilyMode){
+  modeLabel.innerHTML = "<strong>Family mode</strong> – quick-start for Robin & Méabh.";
+  backLink.style.display = "inline-block";
+  familyQuickButtons.style.display = "flex";
+  subtitle.textContent = "Tap Robin or Méabh, or type a name to start.";
+  familyQuickButtons.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-quick]");
+    if (!btn) return;
+    if (btn.dataset.quick === "robin"){
+      learnerNameInput.value = "Robin";
+      phaseSelect.value = "y3"; // tweak if needed
+      document.querySelector('input[name="contentMode"][value="robin"]').checked = true;
+      currentContentMode = "robin";
+      eyfsSetRow.style.display = "none";
+    } else if (btn.dataset.quick === "meabh"){
+      learnerNameInput.value = "Méabh";
+      phaseSelect.value = "eyfs";
+      document.querySelector('input[name="contentMode"][value="eyfs"]').checked = true;
+      currentContentMode = "eyfs";
+      eyfsSetRow.style.display = "block";
+    }
+  });
+}
+
+startPracticeBtn.addEventListener("click", () => {
+  const name = learnerNameInput.value.trim();
+  const phase = phaseSelect.value;
+  if (!name){
+    alert("Please enter a name.");
+    learnerNameInput.focus();
+    return;
+  }
+  if (!phase){
+    alert("Please choose a year or phase.");
+    phaseSelect.focus();
+    return;
+  }
+  currentLearner = name;
+  currentPhase = phase;
+  currentContentMode = getRadioValue("contentMode") || "robin";
+
+  identityStep.style.display = "none";
+  practiceStep.style.display = "block";
+  activeLearnerTitle.textContent = `Practising: ${name}`;
+
+  if (currentContentMode === "robin"){
+    listLabel.textContent = "Using this week’s spellings list.";
+  } else {
+    const set = EYFS_SETS[eyfsSetSelect.value];
+    listLabel.textContent = set ? set.label : "EYFS blending set.";
+  }
+
+  refreshStatsUI();
+  pickNextWord();
+});
+
+eyfsSetSelect.addEventListener("change", () => {
+  if (practiceStep.style.display === "block" && currentContentMode === "eyfs"){
+    const set = EYFS_SETS[eyfsSetSelect.value];
+    listLabel.textContent = set ? set.label : "EYFS blending set.";
+    pickNextWord();
+  }
+});
+
+checkButton.addEventListener("click", handleAnswer);
+answerInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleAnswer();
+  }
+});
+
+changeLearnerLink.addEventListener("click", () => {
+  practiceStep.style.display = "none";
+  identityStep.style.display = "flex";
+  subtitle.textContent = isFamilyMode
+    ? "Tap Robin or Méabh, or type a name to start."
+    : "Choose who is practising, then pick a list.";
+});
+
+/* ========== Boot ========== */
+window.addEventListener('load', () => {
+  setInitialTheme();
+  initEYFSSelect();
+});
+</script>
+</body>
+</html>
