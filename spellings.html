@@ -18,150 +18,49 @@
     .toggle-mode.sun{ background:#ffd700; color:#333; }
 
     /* Spellings-specific styles */
-    .top-bar {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:.5rem;
-      margin-bottom:.5rem;
-    }
+    .top-bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.5rem; }
     .back-link {
-      font-size:.9rem;
-      text-decoration:none;
-      padding:.35rem .7rem;
-      border-radius:999px;
-      border:1px solid #ddd;
-      background:#fafafa;
-      color:inherit;
+      font-size:.9rem; text-decoration:none; padding:.35rem .7rem;
+      border-radius:999px; border:1px solid #ddd; background:#fafafa; color:inherit;
     }
     .dark .back-link{ background:#111; border-color:#555; }
-    .identity-grid {
-      display:flex;
-      flex-wrap:wrap;
-      gap:1rem;
-    }
+    .identity-grid { display:flex; flex-wrap:wrap; gap:1rem; }
     .identity-card, .practice-card {
-      flex:1 1 260px;
-      background:#f9f9f9;
-      border-radius:10px;
-      padding:.75rem .9rem;
-      border:1px solid #eee;
+      flex:1 1 260px; background:#f9f9f9; border-radius:10px;
+      padding:.75rem .9rem; border:1px solid #eee;
     }
-    .dark .identity-card, .dark .practice-card{
-      background:#111; border-color:#333;
-    }
-    label {
-      font-size:.85rem;
-      font-weight:600;
-      display:block;
-      margin-bottom:.2rem;
-    }
+    .dark .identity-card, .dark .practice-card{ background:#111; border-color:#333; }
+    label { font-size:.85rem; font-weight:600; display:block; margin-bottom:.2rem; }
     input[type="text"], select {
-      width:100%;
-      padding:.45rem .6rem;
-      border-radius:6px;
-      border:1px solid:#ccc;
-      font:inherit;
+      width:100%; padding:.45rem .6rem; border-radius:6px; border:1px solid:#ccc; font:inherit;
     }
-    .dark input[type="text"], .dark select{
-      background:#111; border-color:#555; color:inherit;
-    }
+    .dark input[type="text"], .dark select{ background:#111; border-color:#555; color:inherit; }
     .mode-options { margin-top:.5rem; }
-    .mode-options label {
-      font-weight:500;
-      display:flex;
-      align-items:center;
-      gap:.35rem;
-      margin-bottom:.3rem;
-      cursor:pointer;
-    }
-    .mode-options small{ color:#666; font-weight:400;}
-    .start-btn {
-      margin-top:.7rem;
-      padding:.55rem 1rem;
-      border-radius:7px;
-      border:0;
-      background:#2563eb;
-      color:#fff;
-      font-weight:700;
-      cursor:pointer;
-    }
-    .start-btn:disabled{ opacity:.6; cursor:default; }
+    .mode-options label { font-weight:500; display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem; cursor:pointer; }
     .note { font-size:.8rem; color:#666; margin-top:.35rem; }
 
-    .stats-row {
-      display:flex;
-      flex-wrap:wrap;
-      gap:.5rem;
-      margin-bottom:.5rem;
-    }
-    .stat-box {
-      flex:1 1 80px;
-      padding:.4rem .5rem;
-      border-radius:7px;
-      background:#f1f5f9;
-      font-size:.8rem;
-    }
+    .stats-row { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:.5rem; }
+    .stat-box { flex:1 1 80px; padding:.4rem .5rem; border-radius:7px; background:#f1f5f9; font-size:.8rem; }
     .dark .stat-box{ background:#020617; }
     .stat-label{ color:#666; font-size:.75rem; }
     .stat-main{ font-weight:700; }
-    .mode-tabs {
-      display:flex;
-      gap:.4rem;
-      margin-bottom:.5rem;
-      flex-wrap:wrap;
-    }
-    .mode-tab{
-      border-radius:999px;
-      border:1px solid #ddd;
-      padding:.25rem .7rem;
-      font-size:.8rem;
-      background:#f9fafb;
-      cursor:pointer;
-    }
+
+    .mode-tabs { display:flex; gap:.4rem; margin-bottom:.5rem; flex-wrap:wrap; }
+    .mode-tab{ border-radius:999px; border:1px solid #ddd; padding:.25rem .7rem; font-size:.8rem; background:#f9fafb; cursor:pointer; }
     .mode-tab.active{ background:#fef3c7; border-color:#fbbf24; }
     .mode-tab.disabled{ opacity:.4; cursor:default; }
-    .practice-word {
-      font-size:1.6rem;
-      font-weight:800;
-      text-align:center;
-      letter-spacing:.15em;
-      margin:.5rem 0 .6rem;
-    }
-    .answer-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:.4rem;
-      justify-content:center;
-      margin-bottom:.25rem;
-    }
-    .answer-row input[type="text"]{
-      max-width:220px;
-    }
-    .primary-btn{
-      padding:.45rem .9rem;
-      border-radius:7px;
-      border:0;
-      background:#f97316;
-      color:#fff;
-      font-weight:700;
-      cursor:pointer;
-    }
-    .feedback{
-      text-align:center;
-      min-height:1.1rem;
-      font-size:.9rem;
-    }
+
+    .practice-word { font-size:1.6rem; font-weight:800; text-align:center; letter-spacing:.15em; margin:.5rem 0 .6rem; }
+
+    .answer-row{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; margin-bottom:.25rem; }
+    .answer-row input[type="text"]{ max-width:220px; }
+
+    .primary-btn{ padding:.45rem .9rem; border-radius:7px; border:0; background:#f97316; color:#fff; font-weight:700; cursor:pointer; }
+    .feedback{ text-align:center; min-height:1.1rem; font-size:.9rem; }
     .feedback.ok{ color:#16a34a; }
     .feedback.bad{ color:#dc2626; }
-    .small-link{
-      margin-top:.35rem;
-      font-size:.8rem;
-      text-align:right;
-      text-decoration:underline;
-      cursor:pointer;
-    }
+
+    .small-link{ margin-top:.35rem; font-size:.8rem; text-align:right; text-decoration:underline; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -171,7 +70,6 @@
   <section id="mainSection">
     <div class="top-bar">
       <div id="modeLabel"><strong>Spellings practice</strong> – choose your name and year.</div>
-      <!-- Back link optional – hidden for generic use -->
       <a href="index.html?home=benton" class="back-link" id="backLink">⬅ Back to Dashboard</a>
     </div>
     <p id="subtitle">Type your name and choose your year or phase to start.</p>
@@ -186,31 +84,21 @@
           <option value="">Select…</option>
           <option value="eyfs">EYFS</option>
           <option value="y3">Year 3</option>
-          <!-- Other years can be added later if needed -->
         </select>
 
-        <p class="note">
-          Your score and streak are for this session only. They reset when you close this page.
-        </p>
+        <p class="note">Your score and streak are for this session only.</p>
       </div>
 
       <div class="identity-card">
         <h3>What are you practising?</h3>
         <div class="mode-options">
-          <label>
-            <input type="radio" name="contentMode" value="robin" checked>
-            Weekly spellings (Year 3 list)
-          </label>
-          <label>
-            <input type="radio" name="contentMode" value="eyfs">
-            EYFS sound blending
-          </label>
+          <label><input type="radio" name="contentMode" value="robin" checked> Weekly spellings (Year 3)</label>
+          <label><input type="radio" name="contentMode" value="eyfs"> EYFS sound blending</label>
         </div>
 
         <div id="eyfsSetRow" style="margin-top:.5rem; display:none;">
           <label for="eyfsSetSelect">EYFS set</label>
           <select id="eyfsSetSelect"></select>
-          <small>Use these as generic Phase 2/3 sets.</small>
         </div>
 
         <button class="start-btn" id="startPracticeBtn">Start practising ▶️</button>
@@ -220,7 +108,7 @@
     <div id="practiceStep" style="display:none;">
       <div class="practice-card">
         <h3 id="activeLearnerTitle">Practising</h3>
-        <p style="font-size:.85rem; color:#666;" id="listLabel">Using this week’s spellings.</p>
+        <p style="font-size:.85rem; color:#666;" id="listLabel"></p>
 
         <div class="stats-row">
           <div class="stat-box">
@@ -241,7 +129,7 @@
 
         <div class="mode-tabs">
           <button class="mode-tab active" data-level="1">Level 1 – straight spell it</button>
-          <button class="mode-tab disabled" data-level="2" title="Coming soon">Level 2 – missing letters</button>
+          <button class="mode-tab" data-level="2">Level 2 – missing letters</button>
           <button class="mode-tab disabled" data-level="3" title="Coming soon">Level 3 – clue only</button>
         </div>
 
@@ -277,14 +165,9 @@ modeBtn.onclick = () => {
   modeBtn.classList.toggle('sun', dark);
 };
 
-/* ========== Content ========== */
-
-/**
- * Fallback list only. Real list comes from Google Sheet via spellingsUrl.
- */
-const CURRENT_WEEK_SPELLINGS = [
-  "fabulously", "jealously", "enormously", "famously", "hemisphere"
-];
+/* ========== Content sources ========== */
+/* Fallback list only. Real data comes from Sheet. */
+const CURRENT_WEEK_SPELLINGS = ["placeholder"];
 
 const EYFS_SETS = {
   set1: { label: "Phase 2 – Set 1 (s a t p)", words: ["sat","tap","pat","sap","at","as"] },
@@ -296,26 +179,15 @@ const EYFS_SETS = {
 let robinWordsRemote = [];
 
 async function loadRobinWordsFromSheet() {
-  if (!window.config || !window.config.spellingsUrl) {
-    console.warn('[Spellings] No spellingsUrl in config.js, using fallback list');
-    return;
-  }
-
   try {
-    const url = window.config.spellingsUrl + '?t=' + Date.now(); // cache-bust
-    const resp = await fetch(url, { cache: 'no-store' });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-
+    if (!window.config || !window.config.spellingsUrl) return;
+    const url = window.config.spellingsUrl + '?t=' + Date.now();
+    const resp = await fetch(url, { cache:'no-store' });
     const data = await resp.json();
     if (Array.isArray(data.robinCurrent)) {
       robinWordsRemote = data.robinCurrent;
-      console.log('[Spellings] Loaded', robinWordsRemote.length, 'words from sheet');
-    } else {
-      console.warn('[Spellings] Response has no robinCurrent array, falling back');
     }
-  } catch (err) {
-    console.error('[Spellings] Failed to load words from sheet:', err);
-  }
+  } catch {}
 }
 
 /* ========== State ========== */
@@ -329,12 +201,9 @@ const practiceStep = document.getElementById("practiceStep");
 /* ========== Back Button Visibility ========== */
 const params = new URLSearchParams(window.location.search);
 const isHomeMode = params.get('home') === 'benton';
-
 const backLink = document.getElementById("backLink");
-if (!isHomeMode && backLink) {
-  backLink.style.display = "none";
-}
-  
+if (!isHomeMode && backLink) backLink.style.display = "none";
+
 const startPracticeBtn = document.getElementById("startPracticeBtn");
 const eyfsSetRow = document.getElementById("eyfsSetRow");
 const eyfsSetSelect = document.getElementById("eyfsSetSelect");
@@ -359,10 +228,13 @@ const changeLearnerLink = document.getElementById("changeLearnerLink");
 let currentLearner = null;
 let currentPhase = "";
 let currentContentMode = "robin";
+
 let currentLevel = 1;
+let currentMode = 1;        // GAME MODE: 1 = normal, 2 = missing letters
 let awaitingNextWord = false;
 
 let wordQueue = [];
+let currentTargetWord = "";
 
 // Session-only stats
 let sessionTotal = 0;
@@ -371,6 +243,7 @@ let sessionStreak = 0;
 let bestSessionStreak = 0;
 let sessionXP = 0;
 
+/* ========== Helpers ========== */
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -381,11 +254,28 @@ function shuffleArray(arr) {
 
 function rebuildWordQueue() {
   const list = getWordList();
-  if (!list.length) {
-    wordQueue = [];
-    return;
-  }
+  if (!list.length) { wordQueue = []; return; }
   wordQueue = shuffleArray(list.slice());
+}
+
+function maskWordForLevel2(word) {
+  const chars = word.split('');
+  if (chars.length <= 2) {
+    if (chars.length === 2) chars[1] = '_';
+    return chars.join('');
+  }
+  const interior = [];
+  for (let i = 1; i < chars.length - 1; i++) interior.push(i);
+  let toHide = 1;
+  if (chars.length >= 4 && chars.length <= 6) toHide = 2;
+  if (chars.length >= 7) toHide = 3;
+  if (toHide > interior.length) toHide = interior.length;
+  for (let i = interior.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [interior[i], interior[j]] = [interior[j], interior[i]];
+  }
+  for (let k = 0; k < toHide; k++) chars[interior[k]] = '_';
+  return chars.join('');
 }
 
 function getRadioValue(name){
@@ -395,7 +285,6 @@ function getRadioValue(name){
 }
 
 function refreshStatsUI() {
-  // Level derived from session XP only, capped at 5
   const level = Math.min(5, 1 + Math.floor(sessionXP / 50));
   currentLevel = level;
   statLevel.textContent = level;
@@ -408,10 +297,9 @@ function refreshStatsUI() {
 
 function getWordList() {
   if (currentContentMode === "robin") {
-    // Prefer sheet-driven words, fall back to hardcoded list
-    const fromSheet = robinWordsRemote && robinWordsRemote.length ? robinWordsRemote : null;
+    const fromSheet = robinWordsRemote.length ? robinWordsRemote : null;
     const source = fromSheet || CURRENT_WEEK_SPELLINGS;
-    return source.slice(); // copy
+    return source.slice();
   } else {
     const key = eyfsSetSelect.value;
     const set = EYFS_SETS[key];
@@ -420,21 +308,19 @@ function getWordList() {
 }
 
 function pickNextWord() {
-  if (!wordQueue.length) {
-    rebuildWordQueue();
-  }
+  if (!wordQueue.length) rebuildWordQueue();
+  if (!wordQueue.length) { currentWordEl.textContent = "No words."; return; }
 
-  if (!wordQueue.length) {
-    currentWordEl.textContent = "No words set yet.";
-    return;
-  }
+  const next = wordQueue.shift();
+  currentTargetWord = next;
 
-  const next = wordQueue.shift(); // take from front
-  currentWordEl.textContent = next;
+  let toShow = next;
+  if (currentMode === 2) toShow = maskWordForLevel2(next);
+
+  currentWordEl.textContent = toShow;
   answerInput.value = "";
   answerInput.focus();
   feedbackEl.textContent = "";
-  feedbackEl.className = "feedback";
   awaitingNextWord = false;
   checkButtonLabel.textContent = "Check";
 }
@@ -442,12 +328,9 @@ function pickNextWord() {
 function handleAnswer() {
   if (!currentLearner) return;
 
-  if (awaitingNextWord){
-    pickNextWord();
-    return;
-  }
+  if (awaitingNextWord){ pickNextWord(); return; }
 
-  const target = currentWordEl.textContent.trim().toLowerCase();
+  const target = currentTargetWord.trim().toLowerCase();
   const guess = answerInput.value.trim().toLowerCase();
 
   if (!target || !guess){
@@ -456,12 +339,12 @@ function handleAnswer() {
     return;
   }
 
-  sessionTotal += 1;
+  sessionTotal++;
 
   if (guess === target){
-    sessionCorrect += 1;
-    sessionStreak += 1;
-    if (sessionStreak > bestSessionStreak) bestSessionStreak = sessionStreak;
+    sessionCorrect++;
+    sessionStreak++;
+    bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
     sessionXP += 10;
 
     feedbackEl.textContent = "Nice, that’s correct! 🎉";
@@ -473,15 +356,14 @@ function handleAnswer() {
   }
 
   refreshStatsUI();
-
   awaitingNextWord = true;
   checkButtonLabel.textContent = "Next word";
 }
 
-/* ========== UI Wiring ========== */
+/* ========== UI ========== */
 function initEYFSSelect(){
   eyfsSetSelect.innerHTML = "";
-  Object.entries(EYFS_SETS).forEach(([key, val]) => {
+  Object.entries(EYFS_SETS).forEach(([key,val])=>{
     const opt = document.createElement("option");
     opt.value = key;
     opt.textContent = val.label;
@@ -489,40 +371,45 @@ function initEYFSSelect(){
   });
 }
 
-document.querySelectorAll('input[name="contentMode"]').forEach(radio => {
-  radio.addEventListener("change", () => {
+document.querySelectorAll('input[name="contentMode"]').forEach(radio=>{
+  radio.addEventListener("change",()=>{
     currentContentMode = getRadioValue("contentMode") || "robin";
-    if (currentContentMode === "eyfs") {
-      eyfsSetRow.style.display = "block";
+    eyfsSetRow.style.display = currentContentMode === "eyfs" ? "block" : "none";
+  });
+});
+
+modeTabs.forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    if (tab.classList.contains("disabled")) return;
+    const mode = Number(tab.dataset.level);
+    currentMode = mode;
+
+    modeTabs.forEach(t=> t.classList.toggle("active", t===tab));
+
+    if (currentTargetWord){
+      let disp = currentTargetWord;
+      if (currentMode === 2) disp = maskWordForLevel2(currentTargetWord);
+      currentWordEl.textContent = disp;
+      feedbackEl.textContent = "";
+      awaitingNextWord = false;
+      checkButtonLabel.textContent = "Check";
     } else {
-      eyfsSetRow.style.display = "none";
+      if (practiceStep.style.display === "block") pickNextWord();
     }
   });
 });
 
-startPracticeBtn.addEventListener("click", () => {
+startPracticeBtn.addEventListener("click",()=>{
   const name = learnerNameInput.value.trim();
   const phase = phaseSelect.value;
-  if (!name){
-    alert("Please enter a name.");
-    learnerNameInput.focus();
-    return;
-  }
-  if (!phase){
-    alert("Please choose a year or phase.");
-    phaseSelect.focus();
-    return;
-  }
+  if (!name){ alert("Enter a name."); return; }
+  if (!phase){ alert("Choose a year/phase."); return; }
+
   currentLearner = name;
   currentPhase = phase;
   currentContentMode = getRadioValue("contentMode") || "robin";
 
-  // Reset session stats for a clean start
-  sessionTotal = 0;
-  sessionCorrect = 0;
-  sessionStreak = 0;
-  bestSessionStreak = 0;
-  sessionXP = 0;
+  sessionTotal = sessionCorrect = sessionStreak = bestSessionStreak = sessionXP = 0;
   refreshStatsUI();
 
   identityStep.style.display = "none";
@@ -540,34 +427,34 @@ startPracticeBtn.addEventListener("click", () => {
   pickNextWord();
 });
 
-eyfsSetSelect.addEventListener("change", () => {
-  if (practiceStep.style.display === "block" && currentContentMode === "eyfs") {
+eyfsSetSelect.addEventListener("change",()=>{
+  if (practiceStep.style.display === "block" && currentContentMode==="eyfs"){
     const set = EYFS_SETS[eyfsSetSelect.value];
-    listLabel.textContent = set ? set.label : "EYFS blending set.";
+    listLabel.textContent = set ? set.label : "EYFS set.";
     rebuildWordQueue();
     pickNextWord();
   }
 });
 
 checkButton.addEventListener("click", handleAnswer);
-answerInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
+answerInput.addEventListener("keydown", e=>{
+  if (e.key==="Enter"){
     e.preventDefault();
     handleAnswer();
   }
 });
 
-changeLearnerLink.addEventListener("click", () => {
-  practiceStep.style.display = "none";
-  identityStep.style.display = "flex";
+changeLearnerLink.addEventListener("click",()=>{
+  practiceStep.style.display="none";
+  identityStep.style.display="flex";
   subtitle.textContent = "Type your name and choose your year or phase to start.";
 });
 
 /* ========== Boot ========== */
-window.addEventListener('load', () => {
+window.addEventListener('load',()=>{
   setInitialTheme();
   initEYFSSelect();
-  loadRobinWordsFromSheet(); // fetch words from the new URL
+  loadRobinWordsFromSheet();
 });
 </script>
 </body>
