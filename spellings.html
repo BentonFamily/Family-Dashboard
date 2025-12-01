@@ -316,6 +316,31 @@ const EYFS_SETS = {
   set4: { label: "Phase 2 – Set 4 (ck e u r)", words: ["duck","back","tuck","ruck","red","bed"] }
 };
 
+  let robinWordsRemote = [];
+
+async function loadRobinWordsFromSheet() {
+  if (!window.config || !window.config.spellingsUrl) {
+    console.warn('[Spellings] No spellingsUrl in config.js, using fallback list');
+    return;
+  }
+
+  try {
+    const url = window.config.spellingsUrl + '?t=' + Date.now(); // cache-bust
+    const resp = await fetch(url, { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    const data = await resp.json();
+    if (Array.isArray(data.robinCurrent)) {
+      robinWordsRemote = data.robinCurrent;
+      console.log('[Spellings] Loaded', robinWordsRemote.length, 'words from sheet');
+    } else {
+      console.warn('[Spellings] Response has no robinCurrent array, falling back');
+    }
+  } catch (err) {
+    console.error('[Spellings] Failed to load words from sheet:', err);
+  }
+}
+
 /* ========== State ========== */
 const params = new URLSearchParams(window.location.search);
 const isFamilyMode = params.get("home") === "benton";
@@ -356,6 +381,25 @@ let currentContentMode = "robin";
 let currentLevel = 1;
 let awaitingNextWord = false;
 let currentList = [];
+
+let wordQueue = [];
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function rebuildWordQueue() {
+  const list = getWordList();
+  if (!list.length) {
+    wordQueue = [];
+    return;
+  }
+  wordQueue = shuffleArray(list.slice());
+}
 
 /* XP thresholds: can tweak later */
 const LEVEL_THRESHOLDS = [0, 200, 500, 1000, 1800];
@@ -408,9 +452,12 @@ function refreshStatsUI(){
   statTotal.textContent = stats.totalAnswered;
 }
 
-function getWordList(){
+function getWordList() {
   if (currentContentMode === "robin") {
-    return CURRENT_WEEK_SPELLINGS.slice();
+    // Prefer sheet-driven words, fall back to hardcoded list
+    const fromSheet = robinWordsRemote && robinWordsRemote.length ? robinWordsRemote : null;
+    const source = fromSheet || CURRENT_WEEK_SPELLINGS;
+    return source.slice(); // copy
   } else {
     const key = eyfsSetSelect.value;
     const set = EYFS_SETS[key];
@@ -418,14 +465,18 @@ function getWordList(){
   }
 }
 
-function pickNextWord(){
-  currentList = getWordList();
-  if (!currentList.length){
+function pickNextWord() {
+  if (!wordQueue.length) {
+    rebuildWordQueue();
+  }
+
+  if (!wordQueue.length) {
     currentWordEl.textContent = "No words set yet.";
     return;
   }
-  const idx = Math.floor(Math.random()*currentList.length);
-  currentWordEl.textContent = currentList[idx];
+
+  const next = wordQueue.shift(); // take from front
+  currentWordEl.textContent = next;
   answerInput.value = "";
   answerInput.focus();
   feedbackEl.textContent = "";
@@ -548,14 +599,16 @@ startPracticeBtn.addEventListener("click", () => {
     listLabel.textContent = set ? set.label : "EYFS blending set.";
   }
 
-  refreshStatsUI();
-  pickNextWord();
+    refreshStatsUI();
+    rebuildWordQueue();  // new
+    pickNextWord();      // already there or add it
 });
 
 eyfsSetSelect.addEventListener("change", () => {
-  if (practiceStep.style.display === "block" && currentContentMode === "eyfs"){
+  if (practiceStep.style.display === "block" && currentContentMode === "eyfs") {
     const set = EYFS_SETS[eyfsSetSelect.value];
     listLabel.textContent = set ? set.label : "EYFS blending set.";
+    rebuildWordQueue();
     pickNextWord();
   }
 });
@@ -580,6 +633,7 @@ changeLearnerLink.addEventListener("click", () => {
 window.addEventListener('load', () => {
   setInitialTheme();
   initEYFSSelect();
+  loadRobinWordsFromSheet(); // fetch words from the new URL
 });
 </script>
 </body>
