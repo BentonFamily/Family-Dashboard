@@ -172,14 +172,16 @@
           <button class="mode-tab" data-level="3">Level 3 – clue & audio</button>
         </div>
 
-        <div class="practice-word" id="currentWord">start</div>
-
+         <div class="practice-word" id="currentWord">start</div>
+        
         <button class="secondary-btn" id="speakButton" style="display:none;">🔊 Hear the word</button>
-
+        <button class="secondary-btn" id="extraClueButton" style="display:none;">💡 Show letter pattern</button>
+        
         <div class="answer-row">
           <input id="answerInput" type="text" placeholder="Type the word here…" autocomplete="off" />
           <button class="primary-btn" id="checkButton"><span id="checkButtonLabel">Check</span></button>
         </div>
+        
 
         <div class="feedback" id="feedback"></div>
         <div class="small-link" id="changeLearnerLink">Change learner / list</div>
@@ -261,6 +263,7 @@ const statTotal = document.getElementById("statTotal");
 const modeTabs = document.querySelectorAll(".mode-tab");
 const currentWordEl = document.getElementById("currentWord");
 const speakButton = document.getElementById("speakButton");
+const extraClueButton = document.getElementById("extraClueButton");
 const answerInput = document.getElementById("answerInput");
 const checkButton = document.getElementById("checkButton");
 const checkButtonLabel = document.getElementById("checkButtonLabel");
@@ -329,13 +332,36 @@ function buildClueForLevel3(word) {
   return `Starts with "${first}" • ${len} letters`;
 }
 
+  function buildPatternForLevel3(word) {
+  if (!word) return "";
+  const clean = String(word).trim();
+  if (!clean.length) return "";
+  if (clean.length <= 2) return clean; // too short to bother
+
+  const first = clean[0];
+  const last = clean[clean.length - 1];
+  const middleCount = clean.length - 2;
+  const middle = Array(middleCount).fill('_').join(' ');
+  return `${first} ${middle} ${last}`;
+}
+
 function toggleSpeakButton() {
-  if (!speakButton) return;
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
-  if (currentMode === 3 && currentTargetWord && canSpeak) {
-    speakButton.style.display = "block";
-  } else {
-    speakButton.style.display = "none";
+
+  if (speakButton) {
+    if (currentMode === 3 && currentTargetWord && canSpeak) {
+      speakButton.style.display = "block";
+    } else {
+      speakButton.style.display = "none";
+    }
+  }
+
+  if (extraClueButton) {
+    if (currentMode === 3 && currentTargetWord) {
+      extraClueButton.style.display = "block";
+    } else {
+      extraClueButton.style.display = "none";
+    }
   }
 }
 
@@ -537,6 +563,13 @@ changeLearnerLink.addEventListener("click",()=>{
 
 if (speakButton) {
   speakButton.addEventListener("click", speakCurrentWord);
+}
+
+if (extraClueButton) {
+  extraClueButton.addEventListener("click", () => {
+    if (!currentTargetWord) return;
+    currentWordEl.textContent = buildPatternForLevel3(currentTargetWord);
+  });
 }
 
 /* ========== Boot ========== */
