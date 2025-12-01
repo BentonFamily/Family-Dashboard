@@ -326,6 +326,15 @@ const subtitle = document.getElementById("subtitle");
 const identityStep = document.getElementById("identityStep");
 const practiceStep = document.getElementById("practiceStep");
 
+/* ========== Back Button Visibility ========== */
+const params = new URLSearchParams(window.location.search);
+const isHomeMode = params.get('home') === 'benton';
+
+const backLink = document.getElementById("backLink");
+if (!isHomeMode && backLink) {
+  backLink.style.display = "none";
+}
+  
 const startPracticeBtn = document.getElementById("startPracticeBtn");
 const eyfsSetRow = document.getElementById("eyfsSetRow");
 const eyfsSetSelect = document.getElementById("eyfsSetSelect");
