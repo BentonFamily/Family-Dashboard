@@ -100,6 +100,24 @@
     .feedback.bad{ color:#dc2626; }
 
     .small-link{ margin-top:.35rem; font-size:.8rem; text-align:right; text-decoration:underline; cursor:pointer; }
+
+    /* Word search styles */
+    #wordsearchStep { margin-top:1rem; }
+    .wordsearch-grid { margin-top:.5rem; display:inline-block; border:1px solid #ddd; }
+    .wordsearch-grid table { border-collapse:collapse; }
+    .wordsearch-grid td {
+      width:24px;
+      height:24px;
+      text-align:center;
+      font-weight:600;
+      border:1px solid #ddd;
+      font-size:.9rem;
+    }
+    .dark .wordsearch-grid td { border-color:#555; }
+    .wordsearch-words {
+      margin-top:.5rem;
+      font-size:.85rem;
+    }
   </style>
 </head>
 <body>
@@ -172,19 +190,28 @@
           <button class="mode-tab" data-level="3">Level 3 – clue & audio</button>
         </div>
 
-         <div class="practice-word" id="currentWord">start</div>
-        
+        <div class="practice-word" id="currentWord">start</div>
+
         <button class="secondary-btn" id="speakButton" style="display:none;">🔊 Hear the word</button>
         <button class="secondary-btn" id="extraClueButton" style="display:none;">💡 Show letter pattern</button>
-        
+
         <div class="answer-row">
           <input id="answerInput" type="text" placeholder="Type the word here…" autocomplete="off" />
           <button class="primary-btn" id="checkButton"><span id="checkButtonLabel">Check</span></button>
         </div>
-        
 
         <div class="feedback" id="feedback"></div>
         <div class="small-link" id="changeLearnerLink">Change learner / list</div>
+      </div>
+    </div>
+
+    <div id="wordsearchStep" style="display:none;">
+      <div class="practice-card">
+        <h3>Word Search</h3>
+        <p style="font-size:.85rem; color:#666;">Using the same words as your current list.</p>
+        <button class="primary-btn" id="generateWordsearchBtn">Generate word search</button>
+        <div id="wordsearchGrid" class="wordsearch-grid"></div>
+        <p id="wordsearchWords" class="wordsearch-words"></p>
       </div>
     </div>
   </section>
@@ -240,6 +267,7 @@ const modeLabel = document.getElementById("modeLabel");
 const subtitle = document.getElementById("subtitle");
 const identityStep = document.getElementById("identityStep");
 const practiceStep = document.getElementById("practiceStep");
+const wordsearchStep = document.getElementById("wordsearchStep");
 
 /* ========== Back Button Visibility ========== */
 const params = new URLSearchParams(window.location.search);
@@ -269,6 +297,10 @@ const checkButton = document.getElementById("checkButton");
 const checkButtonLabel = document.getElementById("checkButtonLabel");
 const feedbackEl = document.getElementById("feedback");
 const changeLearnerLink = document.getElementById("changeLearnerLink");
+
+const generateWordsearchBtn = document.getElementById("generateWordsearchBtn");
+const wordsearchGridEl = document.getElementById("wordsearchGrid");
+const wordsearchWordsEl = document.getElementById("wordsearchWords");
 
 let currentLearner = null;
 let currentPhase = "";
@@ -332,16 +364,14 @@ function buildClueForLevel3(word) {
   return `Starts with "${first}" • ${len} letters`;
 }
 
-  function buildPatternForLevel3(word) {
+function buildPatternForLevel3(word) {
   if (!word) return "";
   const clean = String(word).trim();
   if (!clean.length) return "";
-  if (clean.length <= 2) return clean; // too short to bother
-
+  if (clean.length <= 2) return clean;
   const first = clean[0];
   const last = clean[clean.length - 1];
-  const middleCount = clean.length - 2;
-  const middle = Array(middleCount).fill('_').join(' ');
+  const middle = Array(clean.length - 2).fill('_').join(' ');
   return `${first} ${middle} ${last}`;
 }
 
@@ -466,6 +496,92 @@ function handleAnswer() {
   checkButtonLabel.textContent = "Next word";
 }
 
+/* ========== Word Search Logic ========== */
+function generateWordsearch() {
+  const wordsRaw = getWordList()
+    .map(w => String(w || "").trim().toLowerCase())
+    .filter(w => w.length > 0);
+
+  if (!wordsRaw.length) {
+    wordsearchGridEl.innerHTML = "<p>No words available for word search.</p>";
+    wordsearchWordsEl.textContent = "";
+    return;
+  }
+
+  // Limit to first 10 words to keep the grid sane
+  const maxWords = 10;
+  const selected = wordsRaw.slice(0, maxWords);
+
+  const size = 10;
+  const grid = Array.from({ length: size }, () => Array(size).fill(null));
+
+  function canPlaceWordAt(word, row, col, dr, dc) {
+    for (let i = 0; i < word.length; i++) {
+      const r = row + dr * i;
+      const c = col + dc * i;
+      if (r < 0 || r >= size || c < 0 || c >= size) return false;
+      const cell = grid[r][c];
+      if (cell !== null && cell !== word[i]) return false;
+    }
+    return true;
+  }
+
+  function placeWordAt(word, row, col, dr, dc) {
+    for (let i = 0; i < word.length; i++) {
+      const r = row + dr * i;
+      const c = col + dc * i;
+      grid[r][c] = word[i];
+    }
+  }
+
+  function placeWord(word) {
+    const directions = [
+      [0, 1],  // right
+      [1, 0]   // down
+    ];
+    const attempts = 50;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      const [dr, dc] = directions[Math.floor(Math.random() * directions.length)];
+      const row = Math.floor(Math.random() * size);
+      const col = Math.floor(Math.random() * size);
+      if (canPlaceWordAt(word, row, col, dr, dc)) {
+        placeWordAt(word, row, col, dr, dc);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  selected.forEach(word => {
+    if (word.length <= size) {
+      placeWord(word);
+    }
+  });
+
+  const alphabet = "abcdefghijklmnopqrstuvwxyz";
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (!grid[r][c]) {
+        const ch = alphabet[Math.floor(Math.random() * alphabet.length)];
+        grid[r][c] = ch;
+      }
+    }
+  }
+
+  let html = "<table>";
+  for (let r = 0; r < size; r++) {
+    html += "<tr>";
+    for (let c = 0; c < size; c++) {
+      html += "<td>" + grid[r][c].toUpperCase() + "</td>";
+    }
+    html += "</tr>";
+  }
+  html += "</table>";
+
+  wordsearchGridEl.innerHTML = html;
+  wordsearchWordsEl.textContent = "Find: " + selected.join(", ");
+}
+
 /* ========== UI ========== */
 function initEYFSSelect(){
   eyfsSetSelect.innerHTML = "";
@@ -525,6 +641,7 @@ startPracticeBtn.addEventListener("click",()=>{
 
   identityStep.style.display = "none";
   practiceStep.style.display = "block";
+  wordsearchStep.style.display = "block";
   activeLearnerTitle.textContent = `Practising: ${name}`;
 
   if (currentContentMode === "robin"){
@@ -557,6 +674,7 @@ answerInput.addEventListener("keydown", e=>{
 
 changeLearnerLink.addEventListener("click",()=>{
   practiceStep.style.display="none";
+  wordsearchStep.style.display="none";
   identityStep.style.display="flex";
   subtitle.textContent = "Type your name and choose your year or phase to start.";
 });
@@ -570,6 +688,10 @@ if (extraClueButton) {
     if (!currentTargetWord) return;
     currentWordEl.textContent = buildPatternForLevel3(currentTargetWord);
   });
+}
+
+if (generateWordsearchBtn) {
+  generateWordsearchBtn.addEventListener("click", generateWordsearch);
 }
 
 /* ========== Boot ========== */
