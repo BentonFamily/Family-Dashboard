@@ -114,9 +114,33 @@
       font-size:.9rem;
     }
     .dark .wordsearch-grid td { border-color:#555; }
+    .wordsearch-grid td.ws-selected {
+      background:#fde68a;
+    }
+    .dark .wordsearch-grid td.ws-selected {
+      background:#854d0e;
+      color:#fff;
+    }
+
     .wordsearch-words {
       margin-top:.5rem;
       font-size:.85rem;
+    }
+    .wordsearch-words .ws-word {
+      display:inline-block;
+      margin-right:.35rem;
+      margin-bottom:.2rem;
+      padding:.1rem .35rem;
+      border-radius:6px;
+      cursor:pointer;
+    }
+    .wordsearch-words .ws-word.found {
+      background:#bbf7d0;
+      text-decoration:line-through;
+    }
+    .dark .wordsearch-words .ws-word.found {
+      background:#166534;
+      color:#fff;
     }
   </style>
 </head>
@@ -508,7 +532,6 @@ function generateWordsearch() {
     return;
   }
 
-  // Limit to first 10 words to keep the grid sane
   const maxWords = 10;
   const selected = wordsRaw.slice(0, maxWords);
 
@@ -572,14 +595,15 @@ function generateWordsearch() {
   for (let r = 0; r < size; r++) {
     html += "<tr>";
     for (let c = 0; c < size; c++) {
-      html += "<td>" + grid[r][c].toUpperCase() + "</td>";
+      html += `<td class="ws-cell" data-r="${r}" data-c="${c}">${grid[r][c].toUpperCase()}</td>`;
     }
     html += "</tr>";
   }
   html += "</table>";
 
   wordsearchGridEl.innerHTML = html;
-  wordsearchWordsEl.textContent = "Find: " + selected.join(", ");
+  wordsearchWordsEl.innerHTML =
+    "Find: " + selected.map(w => `<span class="ws-word">${w}</span>`).join(", ");
 }
 
 /* ========== UI ========== */
@@ -692,6 +716,22 @@ if (extraClueButton) {
 
 if (generateWordsearchBtn) {
   generateWordsearchBtn.addEventListener("click", generateWordsearch);
+}
+
+if (wordsearchGridEl) {
+  wordsearchGridEl.addEventListener("click", (e) => {
+    const cell = e.target.closest(".ws-cell");
+    if (!cell) return;
+    cell.classList.toggle("ws-selected");
+  });
+}
+
+if (wordsearchWordsEl) {
+  wordsearchWordsEl.addEventListener("click", (e) => {
+    const chip = e.target.closest(".ws-word");
+    if (!chip) return;
+    chip.classList.toggle("found");
+  });
 }
 
 /* ========== Boot ========== */
