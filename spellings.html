@@ -6,6 +6,8 @@
   <title>Spellings Practice</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <script src="config.js"></script>
+  <!-- Confetti for celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     :root { --bg: linear-gradient(to bottom right, red, orange, yellow, green, blue, indigo, violet); --text:#333; --section-bg:#fff; }
     body.dark { --bg:#111; --text:#f1f1f1; --section-bg:#222; }
@@ -112,16 +114,13 @@
       font-weight:600;
       border:1px solid #ddd;
       font-size:.9rem;
+      user-select:none;
     }
     .dark .wordsearch-grid td { border-color:#555; }
     .wordsearch-grid td.ws-selected {
-      background:#fde68a;
+      outline:2px solid #f97316;
+      outline-offset:-2px;
     }
-    .dark .wordsearch-grid td.ws-selected {
-      background:#854d0e;
-      color:#fff;
-    }
-
     .wordsearch-words {
       margin-top:.5rem;
       font-size:.85rem;
@@ -132,7 +131,7 @@
       margin-bottom:.2rem;
       padding:.1rem .35rem;
       border-radius:6px;
-      cursor:pointer;
+      cursor:default;
     }
     .wordsearch-words .ws-word.found {
       background:#bbf7d0;
@@ -344,6 +343,18 @@ let sessionStreak = 0;
 let bestSessionStreak = 0;
 let sessionXP = 0;
 
+/* Wordsearch state */
+let wordsearchCurrentWords = [];
+let wordsearchFound = new Set();
+let wordsearchGridLetters = [];
+const wordsearchColours = [
+  "#fee2e2","#dbeafe","#dcfce7","#fef9c3","#ede9fe",
+  "#cffafe","#ffedd5","#f5d0fe","#bbf7d0","#fecaca"
+];
+let dragActive = false;
+let dragStartCell = null;
+let dragCurrentCells = [];
+
 /* ========== Helpers ========== */
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -521,6 +532,42 @@ function handleAnswer() {
 }
 
 /* ========== Word Search Logic ========== */
+function clearDragSelection() {
+  if (!wordsearchGridEl) return;
+  const selectedCells = wordsearchGridEl.querySelectorAll('.ws-cell.ws-selected');
+  selectedCells.forEach(cell => cell.classList.remove('ws-selected'));
+  dragCurrentCells = [];
+}
+
+function fireWordsearchCelebration() {
+  if (typeof confetti === "function") {
+    confetti({
+      particleCount: 200,
+      spread: 80,
+      origin: { y: 0.6 }
+    });
+  }
+}
+
+function markWordFound(wordIndex, cells) {
+  if (wordsearchFound.has(wordIndex)) return;
+  wordsearchFound.add(wordIndex);
+
+  const colour = wordsearchColours[wordIndex % wordsearchColours.length];
+  cells.forEach(cell => {
+    cell.classList.remove('ws-selected');
+    cell.style.backgroundColor = colour;
+    cell.style.color = '#111';
+  });
+
+  const spans = wordsearchWordsEl.querySelectorAll('.ws-word');
+  if (spans[wordIndex]) spans[wordIndex].classList.add('found');
+
+  if (wordsearchFound.size === wordsearchCurrentWords.length && wordsearchCurrentWords.length > 0) {
+    fireWordsearchCelebration();
+  }
+}
+
 function generateWordsearch() {
   const wordsRaw = getWordList()
     .map(w => String(w || "").trim().toLowerCase())
@@ -534,6 +581,8 @@ function generateWordsearch() {
 
   const maxWords = 10;
   const selected = wordsRaw.slice(0, maxWords);
+  wordsearchCurrentWords = selected;
+  wordsearchFound = new Set();
 
   const size = 10;
   const grid = Array.from({ length: size }, () => Array(size).fill(null));
@@ -591,6 +640,8 @@ function generateWordsearch() {
     }
   }
 
+  wordsearchGridLetters = grid;
+
   let html = "<table>";
   for (let r = 0; r < size; r++) {
     html += "<tr>";
@@ -603,7 +654,7 @@ function generateWordsearch() {
 
   wordsearchGridEl.innerHTML = html;
   wordsearchWordsEl.innerHTML =
-    "Find: " + selected.map(w => `<span class="ws-word">${w}</span>`).join(", ");
+    "Find: " + selected.map((w, idx) => `<span class="ws-word" data-index="${idx}">${w}</span>`).join(", ");
 }
 
 /* ========== UI ========== */
@@ -718,19 +769,92 @@ if (generateWordsearchBtn) {
   generateWordsearchBtn.addEventListener("click", generateWordsearch);
 }
 
+/* Drag to select in wordsearch */
 if (wordsearchGridEl) {
-  wordsearchGridEl.addEventListener("click", (e) => {
+  wordsearchGridEl.addEventListener("pointerdown", (e) => {
     const cell = e.target.closest(".ws-cell");
     if (!cell) return;
-    cell.classList.toggle("ws-selected");
+    e.preventDefault();
+    dragActive = true;
+    dragStartCell = cell;
+    dragCurrentCells = [cell];
+    clearDragSelection();
+    cell.classList.add("ws-selected");
+    wordsearchGridEl.setPointerCapture(e.pointerId);
   });
-}
 
-if (wordsearchWordsEl) {
-  wordsearchWordsEl.addEventListener("click", (e) => {
-    const chip = e.target.closest(".ws-word");
-    if (!chip) return;
-    chip.classList.toggle("found");
+  wordsearchGridEl.addEventListener("pointermove", (e) => {
+    if (!dragActive || !dragStartCell) return;
+    const cell = e.target.closest(".ws-cell");
+    if (!cell) return;
+
+    const startR = parseInt(dragStartCell.dataset.r, 10);
+    const startC = parseInt(dragStartCell.dataset.c, 10);
+    const currR = parseInt(cell.dataset.r, 10);
+    const currC = parseInt(cell.dataset.c, 10);
+
+    if (startR !== currR && startC !== currC) return; // only straight lines
+
+    clearDragSelection();
+    dragCurrentCells = [];
+
+    if (startR === currR) {
+      const minC = Math.min(startC, currC);
+      const maxC = Math.max(startC, currC);
+      for (let c = minC; c <= maxC; c++) {
+        const el = wordsearchGridEl.querySelector(`.ws-cell[data-r="${startR}"][data-c="${c}"]`);
+        if (el) {
+          el.classList.add("ws-selected");
+          dragCurrentCells.push(el);
+        }
+      }
+    } else if (startC === currC) {
+      const minR = Math.min(startR, currR);
+      const maxR = Math.max(startR, currR);
+      for (let r = minR; r <= maxR; r++) {
+        const el = wordsearchGridEl.querySelector(`.ws-cell[data-r="${r}"][data-c="${startC}"]`);
+        if (el) {
+          el.classList.add("ws-selected");
+          dragCurrentCells.push(el);
+        }
+      }
+    }
+  });
+
+  wordsearchGridEl.addEventListener("pointerup", (e) => {
+    if (!dragActive) return;
+    dragActive = false;
+    wordsearchGridEl.releasePointerCapture(e.pointerId);
+
+    if (!dragCurrentCells.length) {
+      clearDragSelection();
+      return;
+    }
+
+    const letters = dragCurrentCells.map(cell => cell.textContent.toLowerCase());
+    const str = letters.join("");
+    const rev = letters.slice().reverse().join("");
+
+    let matchedIndex = -1;
+    for (let i = 0; i < wordsearchCurrentWords.length; i++) {
+      const w = wordsearchCurrentWords[i];
+      if (w === str || w === rev) {
+        matchedIndex = i;
+        break;
+      }
+    }
+
+    if (matchedIndex >= 0) {
+      markWordFound(matchedIndex, dragCurrentCells);
+    } else {
+      clearDragSelection();
+    }
+  });
+
+  wordsearchGridEl.addEventListener("pointerleave", () => {
+    if (!dragActive) return;
+    dragActive = false;
+    clearDragSelection();
   });
 }
 
