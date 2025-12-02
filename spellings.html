@@ -576,61 +576,92 @@ function generateWordsearch() {
   if (!wordsRaw.length) {
     wordsearchGridEl.innerHTML = "<p>No words available for word search.</p>";
     wordsearchWordsEl.textContent = "";
+    wordsearchCurrentWords = [];
     return;
   }
 
-  const maxWords = 10;
+  // We only ever care about the first 6
+  const maxWords = 6;
   const selected = wordsRaw.slice(0, maxWords);
+
+  const size = 10; // 10×10 grid
+  const directions = [
+    [0, 1],  // right
+    [1, 0]   // down
+  ];
+
+  function tryBuildGrid() {
+    const grid = Array.from({ length: size }, () => Array(size).fill(null));
+
+    for (const word of selected) {
+      if (word.length > size) {
+        // Impossible to place this word in our grid
+        return null;
+      }
+
+      let placed = false;
+      for (let attempts = 0; attempts < 100 && !placed; attempts++) {
+        const [dr, dc] = directions[Math.floor(Math.random() * directions.length)];
+
+        // Choose a start that leaves room for the word
+        const maxRow = dr === 0 ? size - 1 : size - word.length;
+        const maxCol = dc === 0 ? size - word.length : size - 1;
+        const row = Math.floor(Math.random() * (maxRow + 1));
+        const col = Math.floor(Math.random() * (maxCol + 1));
+
+        // Check if it fits at this position
+        let ok = true;
+        for (let i = 0; i < word.length; i++) {
+          const r = row + dr * i;
+          const c = col + dc * i;
+          const cell = grid[r][c];
+          if (cell !== null && cell !== word[i]) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) continue;
+
+        // Place it
+        for (let i = 0; i < word.length; i++) {
+          const r = row + dr * i;
+          const c = col + dc * i;
+          grid[r][c] = word[i];
+        }
+        placed = true;
+      }
+
+      if (!placed) {
+        // Couldn’t place this word in this attempt – abort and rebuild
+        return null;
+      }
+    }
+
+    return grid;
+  }
+
+  // Keep trying whole-grid builds until all selected words are placed
+  let grid = null;
+  for (let attempt = 0; attempt < 40 && !grid; attempt++) {
+    grid = tryBuildGrid();
+  }
+
+  if (!grid) {
+    wordsearchGridEl.innerHTML =
+      "<p>Couldn’t fit all words into the grid. Try generating again.</p>";
+    wordsearchWordsEl.textContent = "";
+    wordsearchCurrentWords = [];
+    wordsearchFound = new Set();
+    clearDragSelection();
+    return;
+  }
+
+  // If we get here, all selected words are definitely in the grid
   wordsearchCurrentWords = selected;
   wordsearchFound = new Set();
   clearDragSelection();
 
-  const size = 10;
-  const grid = Array.from({ length: size }, () => Array(size).fill(null));
-
-  function canPlaceWordAt(word, row, col, dr, dc) {
-    for (let i = 0; i < word.length; i++) {
-      const r = row + dr * i;
-      const c = col + dc * i;
-      if (r < 0 || r >= size || c < 0 || c >= size) return false;
-      const cell = grid[r][c];
-      if (cell !== null && cell !== word[i]) return false;
-    }
-    return true;
-  }
-
-  function placeWordAt(word, row, col, dr, dc) {
-    for (let i = 0; i < word.length; i++) {
-      const r = row + dr * i;
-      const c = col + dc * i;
-      grid[r][c] = word[i];
-    }
-  }
-
-  function placeWord(word) {
-    const directions = [
-      [0, 1],  // right
-      [1, 0]   // down
-    ];
-    const attempts = 50;
-    for (let attempt = 0; attempt < attempts; attempt++) {
-      const [dr, dc] = directions[Math.floor(Math.random() * directions.length)];
-      const row = Math.floor(Math.random() * size);
-      const col = Math.floor(Math.random() * size);
-      if (canPlaceWordAt(word, row, col, dr, dc)) {
-        placeWordAt(word, row, col, dr, dc);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  selected.forEach(word => {
-    if (word.length <= size) {
-      placeWord(word);
-    }
-  });
-
+  // Fill remaining cells with random letters
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
@@ -641,6 +672,7 @@ function generateWordsearch() {
     }
   }
 
+  // Render grid
   let html = "<table>";
   for (let r = 0; r < size; r++) {
     html += "<tr>";
@@ -650,10 +682,13 @@ function generateWordsearch() {
     html += "</tr>";
   }
   html += "</table>";
-
   wordsearchGridEl.innerHTML = html;
+
+  // Render “Find:” list – indexes line up with wordsearchCurrentWords
   wordsearchWordsEl.innerHTML =
-    "Find: " + selected.map((w, idx) => `<span class="ws-word" data-index="${idx}">${w}</span>`).join(", ");
+    "Find: " + selected
+      .map((w, idx) => `<span class="ws-word" data-index="${idx}">${w}</span>`)
+      .join(", ");
 }
 
 /* ========== UI ========== */
