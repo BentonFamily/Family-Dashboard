@@ -149,10 +149,10 @@
 
   <section id="mainSection">
     <div class="top-bar">
-      <div id="modeLabel"><strong>Spellings practice</strong> – choose your name and year.</div>
+      <div id="modeLabel"><strong>Spellings practice</strong></div>
       <a href="index.html?home=benton" class="back-link" id="backLink">⬅ Back to Dashboard</a>
     </div>
-    <p id="subtitle">Type your name and choose your year or phase to start.</p>
+    <p id="subtitle">Who’s practising? Enter your name and year to begin.</p>
 
     <div class="identity-grid" id="identityStep">
       <div class="identity-card">
@@ -752,6 +752,9 @@ startPracticeBtn.addEventListener("click",()=>{
   practiceStep.style.display = "block";
   wordsearchStep.style.display = "block";
   activeLearnerTitle.textContent = `Practising: ${name}`;
+    // Tidy the header when practising
+  subtitle.style.display = "none";
+  modeLabel.innerHTML = `<strong>Spellings practice</strong> – practising with ${name}.`;
 
   if (currentContentMode === "robin"){
     listLabel.textContent = "Using this week’s spellings list.";
@@ -782,10 +785,13 @@ answerInput.addEventListener("keydown", e=>{
 });
 
 changeLearnerLink.addEventListener("click",()=>{
-  practiceStep.style.display="none";
-  wordsearchStep.style.display="none";
-  identityStep.style.display="flex";
-  subtitle.textContent = "Type your name and choose your year or phase to start.";
+  practiceStep.style.display = "none";
+  wordsearchStep.style.display = "none";
+  identityStep.style.display = "flex";
+  
+  modeLabel.innerHTML = "<strong>Spellings practice</strong>";
+  subtitle.style.display = "block";
+  subtitle.textContent = "Who’s practising? Enter your name and year to begin.";
 });
 
 if (speakButton) {
