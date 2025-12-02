@@ -43,7 +43,7 @@
     .dark .identity-card, .dark .practice-card{ background:#111; border-color:#333; }
     label { font-size:.85rem; font-weight:600; display:block; margin-bottom:.2rem; }
     input[type="text"], select {
-      width:100%; padding:.45rem .6rem; border-radius:6px; border:1px solid:#ccc; font:inherit;
+      width:100%; padding:.45rem .6rem; border-radius:6px; border:1px solid #ccc; font:inherit;
     }
     .dark input[type="text"], .dark select{ background:#111; border-color:#555; color:inherit; }
     .mode-options { margin-top:.5rem; }
@@ -330,7 +330,7 @@ let currentPhase = "";
 let currentContentMode = "robin";
 
 let currentLevel = 1;
-let currentMode = 1;        // GAME MODE: 1 = full word, 2 = missing letters, 3 = clue & audio
+let currentMode = 1;        // 1 = full word, 2 = missing letters, 3 = clue & audio
 let awaitingNextWord = false;
 
 let wordQueue = [];
@@ -346,14 +346,14 @@ let sessionXP = 0;
 /* Wordsearch state */
 let wordsearchCurrentWords = [];
 let wordsearchFound = new Set();
-let wordsearchGridLetters = [];
 const wordsearchColours = [
   "#fee2e2","#dbeafe","#dcfce7","#fef9c3","#ede9fe",
   "#cffafe","#ffedd5","#f5d0fe","#bbf7d0","#fecaca"
 ];
-let dragActive = false;
-let dragStartCell = null;
-let dragCurrentCells = [];
+let selecting = false;
+let dragStartRow = null;
+let dragStartCol = null;
+let selectionCells = [];
 
 /* ========== Helpers ========== */
 function shuffleArray(arr) {
@@ -536,7 +536,7 @@ function clearDragSelection() {
   if (!wordsearchGridEl) return;
   const selectedCells = wordsearchGridEl.querySelectorAll('.ws-cell.ws-selected');
   selectedCells.forEach(cell => cell.classList.remove('ws-selected'));
-  dragCurrentCells = [];
+  selectionCells = [];
 }
 
 function fireWordsearchCelebration() {
@@ -560,8 +560,8 @@ function markWordFound(wordIndex, cells) {
     cell.style.color = '#111';
   });
 
-  const spans = wordsearchWordsEl.querySelectorAll('.ws-word');
-  if (spans[wordIndex]) spans[wordIndex].classList.add('found');
+  const span = wordsearchWordsEl.querySelector(`.ws-word[data-index="${wordIndex}"]`);
+  if (span) span.classList.add('found');
 
   if (wordsearchFound.size === wordsearchCurrentWords.length && wordsearchCurrentWords.length > 0) {
     fireWordsearchCelebration();
@@ -583,6 +583,7 @@ function generateWordsearch() {
   const selected = wordsRaw.slice(0, maxWords);
   wordsearchCurrentWords = selected;
   wordsearchFound = new Set();
+  clearDragSelection();
 
   const size = 10;
   const grid = Array.from({ length: size }, () => Array(size).fill(null));
@@ -639,8 +640,6 @@ function generateWordsearch() {
       }
     }
   }
-
-  wordsearchGridLetters = grid;
 
   let html = "<table>";
   for (let r = 0; r < size; r++) {
@@ -769,93 +768,118 @@ if (generateWordsearchBtn) {
   generateWordsearchBtn.addEventListener("click", generateWordsearch);
 }
 
-/* Drag to select in wordsearch */
+/* ===== Wordsearch drag logic (mouse + touch) ===== */
+function getCellFromEvent(e) {
+  if (e.touches && e.touches.length) {
+    const t = e.touches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (!el) return null;
+    return el.closest('.ws-cell');
+  } else if (e.changedTouches && e.changedTouches.length) {
+    const t = e.changedTouches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (!el) return null;
+    return el.closest('.ws-cell');
+  } else {
+    return e.target.closest('.ws-cell');
+  }
+}
+
+function updateSelectionToCell(cell) {
+  if (!cell || dragStartRow === null || dragStartCol === null) return;
+
+  const currR = parseInt(cell.dataset.r, 10);
+  const currC = parseInt(cell.dataset.c, 10);
+
+  if (dragStartRow !== currR && dragStartCol !== currC) return; // only straight lines
+
+  clearDragSelection();
+  selectionCells = [];
+
+  if (dragStartRow === currR) {
+    const minC = Math.min(dragStartCol, currC);
+    const maxC = Math.max(dragStartCol, currC);
+    for (let c = minC; c <= maxC; c++) {
+      const el = wordsearchGridEl.querySelector(`.ws-cell[data-r="${dragStartRow}"][data-c="${c}"]`);
+      if (el) {
+        el.classList.add('ws-selected');
+        selectionCells.push(el);
+      }
+    }
+  } else if (dragStartCol === currC) {
+    const minR = Math.min(dragStartRow, currR);
+    const maxR = Math.max(dragStartRow, currR);
+    for (let r = minR; r <= maxR; r++) {
+      const el = wordsearchGridEl.querySelector(`.ws-cell[data-r="${r}"][data-c="${dragStartCol}"]`);
+      if (el) {
+        el.classList.add('ws-selected');
+        selectionCells.push(el);
+      }
+    }
+  }
+}
+
+function handleWordsearchDown(e) {
+  const cell = getCellFromEvent(e);
+  if (!cell) return;
+  if (e.cancelable) e.preventDefault();
+
+  selecting = true;
+  dragStartRow = parseInt(cell.dataset.r, 10);
+  dragStartCol = parseInt(cell.dataset.c, 10);
+  updateSelectionToCell(cell);
+}
+
+function handleWordsearchMove(e) {
+  if (!selecting) return;
+  const cell = getCellFromEvent(e);
+  if (!cell) return;
+  if (e.cancelable) e.preventDefault();
+  updateSelectionToCell(cell);
+}
+
+function handleWordsearchUp(e) {
+  if (!selecting) return;
+  selecting = false;
+
+  if (!selectionCells.length) {
+    clearDragSelection();
+    dragStartRow = dragStartCol = null;
+    return;
+  }
+
+  const letters = selectionCells.map(cell => cell.textContent.toLowerCase());
+  const str = letters.join("");
+  const rev = letters.slice().reverse().join("");
+
+  let matchedIndex = -1;
+  for (let i = 0; i < wordsearchCurrentWords.length; i++) {
+    const w = wordsearchCurrentWords[i];
+    if (w === str || w === rev) {
+      matchedIndex = i;
+      break;
+    }
+  }
+
+  if (matchedIndex >= 0) {
+    markWordFound(matchedIndex, selectionCells);
+  } else {
+    clearDragSelection();
+  }
+
+  dragStartRow = dragStartCol = null;
+}
+
+/* Attach listeners */
 if (wordsearchGridEl) {
-  wordsearchGridEl.addEventListener("pointerdown", (e) => {
-    const cell = e.target.closest(".ws-cell");
-    if (!cell) return;
-    e.preventDefault();
-    dragActive = true;
-    dragStartCell = cell;
-    dragCurrentCells = [cell];
-    clearDragSelection();
-    cell.classList.add("ws-selected");
-    wordsearchGridEl.setPointerCapture(e.pointerId);
-  });
+  wordsearchGridEl.addEventListener('mousedown', handleWordsearchDown);
+  wordsearchGridEl.addEventListener('mousemove', handleWordsearchMove);
+  document.addEventListener('mouseup', handleWordsearchUp);
 
-  wordsearchGridEl.addEventListener("pointermove", (e) => {
-    if (!dragActive || !dragStartCell) return;
-    const cell = e.target.closest(".ws-cell");
-    if (!cell) return;
-
-    const startR = parseInt(dragStartCell.dataset.r, 10);
-    const startC = parseInt(dragStartCell.dataset.c, 10);
-    const currR = parseInt(cell.dataset.r, 10);
-    const currC = parseInt(cell.dataset.c, 10);
-
-    if (startR !== currR && startC !== currC) return; // only straight lines
-
-    clearDragSelection();
-    dragCurrentCells = [];
-
-    if (startR === currR) {
-      const minC = Math.min(startC, currC);
-      const maxC = Math.max(startC, currC);
-      for (let c = minC; c <= maxC; c++) {
-        const el = wordsearchGridEl.querySelector(`.ws-cell[data-r="${startR}"][data-c="${c}"]`);
-        if (el) {
-          el.classList.add("ws-selected");
-          dragCurrentCells.push(el);
-        }
-      }
-    } else if (startC === currC) {
-      const minR = Math.min(startR, currR);
-      const maxR = Math.max(startR, currR);
-      for (let r = minR; r <= maxR; r++) {
-        const el = wordsearchGridEl.querySelector(`.ws-cell[data-r="${r}"][data-c="${startC}"]`);
-        if (el) {
-          el.classList.add("ws-selected");
-          dragCurrentCells.push(el);
-        }
-      }
-    }
-  });
-
-  wordsearchGridEl.addEventListener("pointerup", (e) => {
-    if (!dragActive) return;
-    dragActive = false;
-    wordsearchGridEl.releasePointerCapture(e.pointerId);
-
-    if (!dragCurrentCells.length) {
-      clearDragSelection();
-      return;
-    }
-
-    const letters = dragCurrentCells.map(cell => cell.textContent.toLowerCase());
-    const str = letters.join("");
-    const rev = letters.slice().reverse().join("");
-
-    let matchedIndex = -1;
-    for (let i = 0; i < wordsearchCurrentWords.length; i++) {
-      const w = wordsearchCurrentWords[i];
-      if (w === str || w === rev) {
-        matchedIndex = i;
-        break;
-      }
-    }
-
-    if (matchedIndex >= 0) {
-      markWordFound(matchedIndex, dragCurrentCells);
-    } else {
-      clearDragSelection();
-    }
-  });
-
-  wordsearchGridEl.addEventListener("pointerleave", () => {
-    if (!dragActive) return;
-    dragActive = false;
-    clearDragSelection();
-  });
+  wordsearchGridEl.addEventListener('touchstart', handleWordsearchDown, { passive: false });
+  wordsearchGridEl.addEventListener('touchmove', handleWordsearchMove, { passive: false });
+  document.addEventListener('touchend', handleWordsearchUp);
+  document.addEventListener('touchcancel', handleWordsearchUp);
 }
 
 /* ========== Boot ========== */
