@@ -179,6 +179,9 @@
         <div class="mode-options">
           <label><input type="radio" name="contentMode" value="robin" checked> Weekly spellings (Year 3)</label>
           <label><input type="radio" name="contentMode" value="eyfs"> EYFS sound blending</label>
+          <label id="numbersModeOption" style="display:none;">
+            <input type="radio" name="contentMode" value="numbers"> Numbers practice (Year 3)
+          </label>
         </div>
 
         <div id="eyfsSetRow" style="margin-top:.5rem; display:none;">
@@ -191,10 +194,11 @@
     </div>
 
     <div id="practiceStep" style="display:none;">
-      <div class="practice-card">
+      <!-- Spellings practice card (unchanged) -->
+      <div class="practice-card" id="spellingsCard">
         <h3 id="activeLearnerTitle">Practising</h3>
         <p style="font-size:.85rem; color:#666;" id="listLabel"></p>
-
+    
         <div class="stats-row">
           <div class="stat-box">
             <div class="stat-label">Level</div>
@@ -211,26 +215,43 @@
             <div class="stat-main"><span id="statCorrect">0</span> / <span id="statTotal">0</span></div>
           </div>
         </div>
-
+    
         <div class="mode-tabs">
           <button class="mode-tab active" data-level="1">Level 1 – straight spell it</button>
           <button class="mode-tab disabled" data-level="2">Level 2 – missing letters</button>
           <button class="mode-tab disabled" data-level="3">Level 3 – clue & audio</button>
         </div>
-
-
+    
         <div class="practice-word" id="currentWord">start</div>
-
+    
         <button class="secondary-btn" id="speakButton" style="display:none;">🔊 Hear the word</button>
         <button class="secondary-btn" id="extraClueButton" style="display:none;">💡 Show letter pattern</button>
-
+    
         <div class="answer-row">
           <input id="answerInput" type="text" placeholder="Type the word here…" autocomplete="off" />
           <button class="primary-btn" id="checkButton"><span id="checkButtonLabel">Check</span></button>
         </div>
-
+    
         <div class="feedback" id="feedback"></div>
         <div class="small-link" id="changeLearnerLink">Change learner / list</div>
+      </div>
+    
+      <!-- Numbers practice card (new) -->
+      <div class="practice-card" id="numbersCard" style="display:none;">
+        <h3 id="numbersTitle">Numbers practice</h3>
+        <p style="font-size:.85rem; color:#666;" id="numbersListLabel">
+          Using this week’s numbers.
+        </p>
+    
+        <div class="practice-word" id="currentQuestion">12 × 3</div>
+    
+        <div class="answer-row">
+          <input id="numbersAnswerInput" type="text" placeholder="Type the answer…" autocomplete="off" />
+          <button class="primary-btn" id="numbersCheckButton"><span id="numbersCheckButtonLabel">Check</span></button>
+        </div>
+    
+        <div class="feedback" id="numbersFeedback"></div>
+        <div class="small-link" id="numbersChangeLearnerLink">Change learner / activity</div>
       </div>
     </div>
 
@@ -297,7 +318,21 @@ const subtitle = document.getElementById("subtitle");
 const identityStep = document.getElementById("identityStep");
 const practiceStep = document.getElementById("practiceStep");
 const wordsearchStep = document.getElementById("wordsearchStep");
+const spellingsCard = document.getElementById("spellingsCard");
+const numbersCard = document.getElementById("numbersCard");
 
+const numbersModeOption = document.getElementById("numbersModeOption");
+
+const numbersTitle = document.getElementById("numbersTitle");
+const numbersListLabel = document.getElementById("numbersListLabel");
+const currentQuestionEl = document.getElementById("currentQuestion");
+const numbersAnswerInput = document.getElementById("numbersAnswerInput");
+const numbersCheckButton = document.getElementById("numbersCheckButton");
+const numbersCheckButtonLabel = document.getElementById("numbersCheckButtonLabel");
+const numbersFeedback = document.getElementById("numbersFeedback");
+const numbersChangeLearnerLink = document.getElementById("numbersChangeLearnerLink");
+
+  
 /* ========== Back Button Visibility ========== */
 const params = new URLSearchParams(window.location.search);
 const isHomeMode = params.get('home') === 'benton';
@@ -348,6 +383,11 @@ let sessionCorrect = 0;
 let sessionStreak = 0;
 let bestSessionStreak = 0;
 let sessionXP = 0;
+
+// Numbers practice state
+let numbersQuestions = [];
+let numbersIndex = 0;
+let numbersAwaitingNext = false;
 
 // Level progression: one cycle of up to 6 words per level
 const LEVEL_TARGET_MAX = 6;
@@ -526,6 +566,8 @@ function updateWordsearchLockUI() {
 
 // Called when a word is answered correctly to track per-level completion.
 function registerCorrectAnswerForCurrentLevel(word) {
+  // Only spellings count towards level / wordsearch unlock
+  if (currentContentMode === "numbers") return;
   if (!word) return;
   const lvl = currentMode; // 1, 2, or 3
   if (lvl < 1 || lvl > 3) return;
@@ -646,6 +688,142 @@ function handleAnswer() {
   checkButtonLabel.textContent = "Next word";
 }
 
+  async function loadNumbersFromSheet() {
+  numbersQuestions = [];
+  try {
+    if (!window.config || !window.config.spellingsUrl) return;
+    const url = window.config.spellingsUrl + '?mode=numbers&t=' + Date.now();
+    const resp = await fetch(url, { cache: 'no-store' });
+    const data = await resp.json();
+    if (Array.isArray(data.numbersCurrent)) {
+      numbersQuestions = data.numbersCurrent
+        .map(item => ({
+          question: String(item.question || "").trim(),
+          answer: String(item.answer || "").trim()
+        }))
+        .filter(q => q.question && q.answer);
+    }
+  } catch (err) {
+    console.error('Error loading numbers from sheet', err);
+  }
+}
+  function showCurrentNumberQuestion() {
+  if (!numbersQuestions.length) {
+    if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
+    if (numbersFeedback) {
+      numbersFeedback.textContent = "Ask an adult to add some questions to the Numbers_Current sheet.";
+      numbersFeedback.className = "feedback bad";
+    }
+    if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Check";
+    return;
+  }
+
+  if (numbersIndex >= numbersQuestions.length) {
+    // Finished the list
+    if (currentQuestionEl) currentQuestionEl.textContent = "All done!";
+    if (numbersFeedback) {
+      numbersFeedback.textContent = "Brilliant – you finished all of this week’s questions!";
+      numbersFeedback.className = "feedback ok";
+    }
+    if (typeof confetti === "function") {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.7 }
+      });
+    }
+    if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Again";
+    numbersAwaitingNext = true;
+    return;
+  }
+
+  const q = numbersQuestions[numbersIndex];
+  if (currentQuestionEl) currentQuestionEl.textContent = q.question;
+  if (numbersAnswerInput) {
+    numbersAnswerInput.value = "";
+    numbersAnswerInput.focus();
+  }
+  if (numbersFeedback) {
+    numbersFeedback.textContent = "";
+    numbersFeedback.className = "feedback";
+  }
+  if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Check";
+  numbersAwaitingNext = false;
+}
+
+function handleNumbersAnswer() {
+  if (!currentLearner) return;
+  if (!numbersQuestions.length) return;
+
+  // If we just finished a round and user clicks "Again"
+  if (numbersAwaitingNext) {
+    numbersIndex = 0;
+    shuffleArray(numbersQuestions); // reuse existing helper
+    showCurrentNumberQuestion();
+    return;
+  }
+
+  const q = numbersQuestions[numbersIndex];
+  const guessRaw = numbersAnswerInput ? numbersAnswerInput.value.trim() : "";
+  if (!guessRaw) {
+    if (numbersFeedback) {
+      numbersFeedback.textContent = "Type an answer first.";
+      numbersFeedback.className = "feedback bad";
+    }
+    return;
+  }
+
+  // Update shared stats
+  sessionTotal++;
+
+  const correct = q.answer.trim();
+  if (guessRaw === correct) {
+    sessionCorrect++;
+    sessionStreak++;
+    bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
+    sessionXP += 10;
+
+    if (numbersFeedback) {
+      numbersFeedback.textContent = "Correct! 🎉";
+      numbersFeedback.className = "feedback ok";
+    }
+  } else {
+    sessionStreak = 0;
+    if (numbersFeedback) {
+      numbersFeedback.textContent = `Almost – the answer is ${correct}.`;
+      numbersFeedback.className = "feedback bad";
+    }
+  }
+
+  refreshStatsUI();
+
+  numbersIndex++;
+  showCurrentNumberQuestion();
+}
+
+async function startNumbersMode() {
+  if (numbersFeedback) {
+    numbersFeedback.textContent = "";
+    numbersFeedback.className = "feedback";
+  }
+  if (currentQuestionEl) currentQuestionEl.textContent = "Loading…";
+
+  await loadNumbersFromSheet();
+
+  if (!numbersQuestions.length) {
+    if (currentQuestionEl) currentQuestionEl.textContent = "No questions.";
+    if (numbersFeedback) {
+      numbersFeedback.textContent = "No numbers set. Ask an adult to fill Numbers_Current.";
+      numbersFeedback.className = "feedback bad";
+    }
+    return;
+  }
+
+  shuffleArray(numbersQuestions);
+  numbersIndex = 0;
+  numbersAwaitingNext = false;
+  showCurrentNumberQuestion();
+}
 /* ========== Word Search Logic ========== */
 function clearDragSelection() {
   if (!wordsearchGridEl) return;
@@ -880,9 +1058,29 @@ startPracticeBtn.addEventListener("click",()=>{
 
   identityStep.style.display = "none";
   practiceStep.style.display = "block";
-  wordsearchStep.style.display = "block";
+
+  // Numbers mode: separate card, no wordsearch
+  if (currentContentMode === "numbers") {
+    if (spellingsCard) spellingsCard.style.display = "none";
+    if (numbersCard) numbersCard.style.display = "block";
+    if (wordsearchStep) wordsearchStep.style.display = "none";
+
+    subtitle.style.display = "none";
+    modeLabel.innerHTML = `<strong>Numbers practice</strong> – practising with ${name}.`;
+
+    if (numbersTitle) numbersTitle.textContent = `Numbers practice: ${name}`;
+    if (numbersListLabel) numbersListLabel.textContent = "Using this week’s numbers.";
+
+    startNumbersMode();
+    return;
+  }
+
+  // Spellings modes (Robin / EYFS)
+  if (spellingsCard) spellingsCard.style.display = "block";
+  if (numbersCard) numbersCard.style.display = "none";
+  if (wordsearchStep) wordsearchStep.style.display = "block";
+
   activeLearnerTitle.textContent = `Practising: ${name}`;
-    // Tidy the header when practising
   subtitle.style.display = "none";
   modeLabel.innerHTML = `<strong>Spellings practice</strong> – practising with ${name}.`;
 
@@ -895,7 +1093,6 @@ startPracticeBtn.addEventListener("click",()=>{
 
   rebuildWordQueue();
   pickNextWord();
-});
 
 eyfsSetSelect.addEventListener("change",()=>{
   if (practiceStep.style.display === "block" && currentContentMode==="eyfs"){
@@ -914,15 +1111,25 @@ answerInput.addEventListener("keydown", e=>{
   }
 });
 
-changeLearnerLink.addEventListener("click",()=>{
+function goBackToIdentity() {
   practiceStep.style.display = "none";
   wordsearchStep.style.display = "none";
   identityStep.style.display = "flex";
-  
+
+  if (spellingsCard) spellingsCard.style.display = "block";
+  if (numbersCard) numbersCard.style.display = "none";
+
   modeLabel.innerHTML = "<strong>Spellings practice</strong>";
   subtitle.style.display = "block";
   subtitle.textContent = "Who’s practising? Enter your name and year to begin.";
-});
+}
+
+if (changeLearnerLink) {
+  changeLearnerLink.addEventListener("click", goBackToIdentity);
+}
+if (numbersChangeLearnerLink) {
+  numbersChangeLearnerLink.addEventListener("click", goBackToIdentity);
+}
 
 if (speakButton) {
   speakButton.addEventListener("click", speakCurrentWord);
@@ -939,6 +1146,36 @@ if (generateWordsearchBtn) {
   generateWordsearchBtn.addEventListener("click", generateWordsearch);
 }
 
+  phaseSelect.addEventListener("change", () => {
+  const phase = phaseSelect.value;
+
+  if (numbersModeOption) {
+    if (phase === "y3") {
+      numbersModeOption.style.display = "block";
+    } else {
+      numbersModeOption.style.display = "none";
+      // If numbers was selected, bounce back to Robin’s spellings
+      const current = getRadioValue("contentMode");
+      if (current === "numbers") {
+        const robinRadio = document.querySelector('input[name="contentMode"][value="robin"]');
+        if (robinRadio) robinRadio.checked = true;
+        currentContentMode = "robin";
+      }
+    }
+  }
+});
+
+  if (numbersCheckButton) {
+  numbersCheckButton.addEventListener("click", handleNumbersAnswer);
+}
+if (numbersAnswerInput) {
+  numbersAnswerInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleNumbersAnswer();
+    }
+  });
+}
 /* ===== Wordsearch drag logic (mouse + touch) ===== */
 function getCellFromEvent(e) {
   if (e.touches && e.touches.length) {
