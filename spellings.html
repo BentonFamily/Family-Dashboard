@@ -707,7 +707,21 @@ async function loadNumbersFromSheet() {
   }
 }
 
-function showCurrentNumberQuestion() {
+  function prettyPrintQuestion(raw) {
+  if (!raw) return "";
+  let s = String(raw);
+
+  // Normalise spacing a bit
+  s = s.replace(/\s+/g, " ").trim();
+
+  // Replace common operator typing with nicer symbols
+  s = s.replace(/[xX*]/g, "×");
+  s = s.replace(/\//g, "÷");
+
+  return s;
+}
+
+  function showCurrentNumberQuestion() {
   if (!numbersQuestions.length) {
     if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
     if (numbersFeedback) {
@@ -735,6 +749,21 @@ function showCurrentNumberQuestion() {
     numbersAwaitingNext = true;
     return;
   }
+
+  const q = numbersQuestions[numbersIndex];
+  const display = prettyPrintQuestion(q.question);
+  if (currentQuestionEl) currentQuestionEl.textContent = display;
+  if (numbersAnswerInput) {
+    numbersAnswerInput.value = "";
+    numbersAnswerInput.focus();
+  }
+  if (numbersFeedback) {
+    numbersFeedback.textContent = "";
+    numbersFeedback.className = "feedback";
+  }
+  if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Check";
+  numbersAwaitingNext = false;
+}
 
   const q = numbersQuestions[numbersIndex];
   if (currentQuestionEl) currentQuestionEl.textContent = q.question;
