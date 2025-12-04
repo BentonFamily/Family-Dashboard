@@ -242,7 +242,9 @@
         <p style="font-size:.85rem; color:#666;" id="numbersListLabel">
           Using this week’s numbers.
         </p>
-    
+        <!-- New progress line -->
+        <p style="font-size:.8rem; color:#666;" id="numbersProgressText"></p>
+        
         <div class="practice-word" id="currentQuestion">12 × 3</div>
     
         <div class="answer-row">
@@ -363,6 +365,7 @@ const numbersModeOption = document.getElementById("numbersModeOption");
 
 const numbersTitle = document.getElementById("numbersTitle");
 const numbersListLabel = document.getElementById("numbersListLabel");
+const numbersProgressText = document.getElementById("numbersProgressText");
 const currentQuestionEl = document.getElementById("currentQuestion");
 const numbersAnswerInput = document.getElementById("numbersAnswerInput");
 const numbersCheckButton = document.getElementById("numbersCheckButton");
