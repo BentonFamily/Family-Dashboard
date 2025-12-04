@@ -96,6 +96,11 @@
     .secondary-btn:hover{
       background:#d4d4d8;
     }
+        /* Locked state for wordsearch button */
+    #generateWordsearchBtn[disabled] {
+      opacity: .5;
+      cursor: not-allowed;
+    }
 
     .feedback{ text-align:center; min-height:1.1rem; font-size:.9rem; }
     .feedback.ok{ color:#16a34a; }
@@ -209,9 +214,10 @@
 
         <div class="mode-tabs">
           <button class="mode-tab active" data-level="1">Level 1 – straight spell it</button>
-          <button class="mode-tab" data-level="2">Level 2 – missing letters</button>
-          <button class="mode-tab" data-level="3">Level 3 – clue & audio</button>
+          <button class="mode-tab disabled" data-level="2">Level 2 – missing letters</button>
+          <button class="mode-tab disabled" data-level="3">Level 3 – clue & audio</button>
         </div>
+
 
         <div class="practice-word" id="currentWord">start</div>
 
@@ -231,7 +237,7 @@
     <div id="wordsearchStep" style="display:none;">
       <div class="practice-card">
         <h3>Word Search</h3>
-        <p style="font-size:.85rem; color:#666;">Using the same words as your current list.</p>
+        <p style="font-size:.85rem; color:#666;" id="wordsearchStatusText">Locked. Finish all 3 levels to unlock the word search.</p>
         <button class="primary-btn" id="generateWordsearchBtn">Generate word search</button>
         <div id="wordsearchGrid" class="wordsearch-grid"></div>
         <p id="wordsearchWords" class="wordsearch-words"></p>
@@ -342,6 +348,19 @@ let sessionCorrect = 0;
 let sessionStreak = 0;
 let bestSessionStreak = 0;
 let sessionXP = 0;
+
+// Level progression: one cycle of up to 6 words per level
+const LEVEL_TARGET_MAX = 6;
+let levelCompletion = {
+  1: false,
+  2: false,
+  3: false
+};
+let levelWordSets = {
+  1: new Set(),
+  2: new Set(),
+  3: new Set()
+};
 
 /* Wordsearch state */
 let wordsearchCurrentWords = [];
@@ -456,6 +475,96 @@ function refreshStatsUI() {
   statTotal.textContent = sessionTotal;
 }
 
+// Return the "target words" we treat as the cycle for level progression.
+// We cap at 6 and dedupe for safety.
+function getBaseTargetWords() {
+  const list = getWordList()
+    .map(w => String(w || "").trim().toLowerCase())
+    .filter(Boolean);
+  const unique = Array.from(new Set(list));
+  return unique.slice(0, LEVEL_TARGET_MAX);
+}
+
+// Update which level tabs are enabled based on completion.
+function updateLevelTabsUI() {
+  const targetsDone1 = levelCompletion[1];
+  const targetsDone2 = levelCompletion[2];
+
+  modeTabs.forEach(tab => {
+    const lvl = Number(tab.dataset.level);
+    if (lvl === 1) {
+      tab.classList.remove('disabled');
+    } else if (lvl === 2) {
+      tab.classList.toggle('disabled', !targetsDone1);
+    } else if (lvl === 3) {
+      tab.classList.toggle('disabled', !targetsDone2);
+    }
+  });
+}
+
+// Update wordsearch lock state based on all three levels.
+function updateWordsearchLockUI() {
+  const allDone = levelCompletion[1] && levelCompletion[2] && levelCompletion[3];
+  if (!generateWordsearchBtn) return;
+
+  const statusEl = document.getElementById('wordsearchStatusText');
+
+  if (allDone) {
+    generateWordsearchBtn.disabled = false;
+    generateWordsearchBtn.textContent = "Generate word search";
+    if (statusEl) {
+      statusEl.textContent = "Unlocked! You completed all 3 levels. Enjoy the word search.";
+    }
+  } else {
+    generateWordsearchBtn.disabled = true;
+    generateWordsearchBtn.textContent = "Locked – finish all 3 levels first";
+    if (statusEl) {
+      statusEl.textContent = "Locked. Complete one cycle of up to 6 words in Levels 1, 2 and 3 to unlock.";
+    }
+  }
+}
+
+// Called when a word is answered correctly to track per-level completion.
+function registerCorrectAnswerForCurrentLevel(word) {
+  if (!word) return;
+  const lvl = currentMode; // 1, 2, or 3
+  if (lvl < 1 || lvl > 3) return;
+
+  const set = levelWordSets[lvl];
+  const baseTargets = getBaseTargetWords();
+  if (!baseTargets.length) return;
+
+  const lower = word.trim().toLowerCase();
+  if (!baseTargets.includes(lower)) {
+    // Not one of the main cycle words, ignore for unlocking.
+    return;
+  }
+
+  set.add(lower);
+  const targetCount = Math.min(LEVEL_TARGET_MAX, baseTargets.length);
+
+  if (!levelCompletion[lvl] && set.size >= targetCount) {
+    levelCompletion[lvl] = true;
+
+    // Small celebration for finishing that level.
+    if (typeof confetti === "function") {
+      confetti({
+        particleCount: 120,
+        spread: 70,
+        origin: { y: 0.7 }
+      });
+    }
+
+    // Quick feedback message.
+    feedbackEl.textContent = `Level ${lvl} complete – nice work!`;
+    feedbackEl.className = "feedback ok";
+
+    // Update tabs and wordsearch lock.
+    updateLevelTabsUI();
+    updateWordsearchLockUI();
+  }
+}
+
 function getWordList() {
   if (currentContentMode === "robin") {
     const fromSheet = robinWordsRemote.length ? robinWordsRemote : null;
@@ -499,7 +608,10 @@ function pickNextWord() {
 function handleAnswer() {
   if (!currentLearner) return;
 
-  if (awaitingNextWord){ pickNextWord(); return; }
+  if (awaitingNextWord){ 
+    pickNextWord(); 
+    return; 
+  }
 
   const target = currentTargetWord.trim().toLowerCase();
   const guess = answerInput.value.trim().toLowerCase();
@@ -520,6 +632,9 @@ function handleAnswer() {
 
     feedbackEl.textContent = "Nice, that’s correct! 🎉";
     feedbackEl.className = "feedback ok";
+
+    // Track progress towards unlocking the next level / word search.
+    registerCorrectAnswerForCurrentLevel(currentTargetWord);
   } else {
     feedbackEl.textContent = `Close – the correct spelling is “${target}”.`;
     feedbackEl.className = "feedback bad";
@@ -745,8 +860,23 @@ startPracticeBtn.addEventListener("click",()=>{
   currentPhase = phase;
   currentContentMode = getRadioValue("contentMode") || "robin";
 
-  sessionTotal = sessionCorrect = sessionStreak = bestSessionStreak = sessionXP = 0;
+  // Reset session stats
+  sessionTotal = 0;
+  sessionCorrect = 0;
+  sessionStreak = 0;
+  bestSessionStreak = 0;
+  sessionXP = 0;
   refreshStatsUI();
+
+  // Reset level progression for this new session
+  levelCompletion = { 1:false, 2:false, 3:false };
+  levelWordSets = {
+    1: new Set(),
+    2: new Set(),
+    3: new Set()
+  };
+  updateLevelTabsUI();
+  updateWordsearchLockUI();
 
   identityStep.style.display = "none";
   practiceStep.style.display = "block";
@@ -928,6 +1058,8 @@ window.addEventListener('load',()=>{
   setInitialTheme();
   initEYFSSelect();
   loadRobinWordsFromSheet();
+  updateLevelTabsUI();
+  updateWordsearchLockUI();
 });
 </script>
 </body>
