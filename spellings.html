@@ -307,10 +307,12 @@ async function loadRobinWordsFromSheet() {
     if (Array.isArray(data.robinCurrent)) {
       robinWordsRemote = data.robinCurrent;
     }
-  } catch {}
+  } catch (err) {
+    console.error('Error loading spellings from Sheet', err);
+  }
 }
 
-/* ========== State ========== */
+/* ========== State / DOM ========== */
 const learnerNameInput = document.getElementById("learnerNameInput");
 const phaseSelect = document.getElementById("phaseSelect");
 const modeLabel = document.getElementById("modeLabel");
@@ -318,22 +320,8 @@ const subtitle = document.getElementById("subtitle");
 const identityStep = document.getElementById("identityStep");
 const practiceStep = document.getElementById("practiceStep");
 const wordsearchStep = document.getElementById("wordsearchStep");
-const spellingsCard = document.getElementById("spellingsCard");
-const numbersCard = document.getElementById("numbersCard");
 
-const numbersModeOption = document.getElementById("numbersModeOption");
-
-const numbersTitle = document.getElementById("numbersTitle");
-const numbersListLabel = document.getElementById("numbersListLabel");
-const currentQuestionEl = document.getElementById("currentQuestion");
-const numbersAnswerInput = document.getElementById("numbersAnswerInput");
-const numbersCheckButton = document.getElementById("numbersCheckButton");
-const numbersCheckButtonLabel = document.getElementById("numbersCheckButtonLabel");
-const numbersFeedback = document.getElementById("numbersFeedback");
-const numbersChangeLearnerLink = document.getElementById("numbersChangeLearnerLink");
-
-  
-/* ========== Back Button Visibility ========== */
+/* Back button visibility */
 const params = new URLSearchParams(window.location.search);
 const isHomeMode = params.get('home') === 'benton';
 const backLink = document.getElementById("backLink");
@@ -365,10 +353,27 @@ const changeLearnerLink = document.getElementById("changeLearnerLink");
 const generateWordsearchBtn = document.getElementById("generateWordsearchBtn");
 const wordsearchGridEl = document.getElementById("wordsearchGrid");
 const wordsearchWordsEl = document.getElementById("wordsearchWords");
+const wordsearchStatusText = document.getElementById("wordsearchStatusText");
 
+/* Numbers DOM (will be null if you haven't added the numbers card yet) */
+const spellingsCard = document.getElementById("spellingsCard");
+const numbersCard = document.getElementById("numbersCard");
+
+const numbersModeOption = document.getElementById("numbersModeOption");
+
+const numbersTitle = document.getElementById("numbersTitle");
+const numbersListLabel = document.getElementById("numbersListLabel");
+const currentQuestionEl = document.getElementById("currentQuestion");
+const numbersAnswerInput = document.getElementById("numbersAnswerInput");
+const numbersCheckButton = document.getElementById("numbersCheckButton");
+const numbersCheckButtonLabel = document.getElementById("numbersCheckButtonLabel");
+const numbersFeedback = document.getElementById("numbersFeedback");
+const numbersChangeLearnerLink = document.getElementById("numbersChangeLearnerLink");
+
+/* Core state */
 let currentLearner = null;
 let currentPhase = "";
-let currentContentMode = "robin";
+let currentContentMode = "robin";   // 'robin' | 'eyfs' | 'numbers'
 
 let currentLevel = 1;
 let currentMode = 1;        // 1 = full word, 2 = missing letters, 3 = clue & audio
@@ -384,12 +389,7 @@ let sessionStreak = 0;
 let bestSessionStreak = 0;
 let sessionXP = 0;
 
-// Numbers practice state
-let numbersQuestions = [];
-let numbersIndex = 0;
-let numbersAwaitingNext = false;
-
-// Level progression: one cycle of up to 6 words per level
+// Level progression: one cycle of up to 6 words per level (spellings only)
 const LEVEL_TARGET_MAX = 6;
 let levelCompletion = {
   1: false,
@@ -413,6 +413,11 @@ let selecting = false;
 let dragStartRow = null;
 let dragStartCol = null;
 let selectionCells = [];
+
+/* Numbers practice state */
+let numbersQuestions = [];
+let numbersIndex = 0;
+let numbersAwaitingNext = false;
 
 /* ========== Helpers ========== */
 function shuffleArray(arr) {
@@ -515,8 +520,7 @@ function refreshStatsUI() {
   statTotal.textContent = sessionTotal;
 }
 
-// Return the "target words" we treat as the cycle for level progression.
-// We cap at 6 and dedupe for safety.
+/* Level / wordsearch helpers */
 function getBaseTargetWords() {
   const list = getWordList()
     .map(w => String(w || "").trim().toLowerCase())
@@ -525,70 +529,62 @@ function getBaseTargetWords() {
   return unique.slice(0, LEVEL_TARGET_MAX);
 }
 
-// Update which level tabs are enabled based on completion.
 function updateLevelTabsUI() {
-  const targetsDone1 = levelCompletion[1];
-  const targetsDone2 = levelCompletion[2];
+  const done1 = levelCompletion[1];
+  const done2 = levelCompletion[2];
 
   modeTabs.forEach(tab => {
     const lvl = Number(tab.dataset.level);
     if (lvl === 1) {
       tab.classList.remove('disabled');
     } else if (lvl === 2) {
-      tab.classList.toggle('disabled', !targetsDone1);
+      tab.classList.toggle('disabled', !done1);
     } else if (lvl === 3) {
-      tab.classList.toggle('disabled', !targetsDone2);
+      tab.classList.toggle('disabled', !done2);
     }
   });
 }
 
-// Update wordsearch lock state based on all three levels.
 function updateWordsearchLockUI() {
-  const allDone = levelCompletion[1] && levelCompletion[2] && levelCompletion[3];
   if (!generateWordsearchBtn) return;
-
-  const statusEl = document.getElementById('wordsearchStatusText');
+  const allDone = levelCompletion[1] && levelCompletion[2] && levelCompletion[3];
 
   if (allDone) {
     generateWordsearchBtn.disabled = false;
     generateWordsearchBtn.textContent = "Generate word search";
-    if (statusEl) {
-      statusEl.textContent = "Unlocked! You completed all 3 levels. Enjoy the word search.";
+    if (wordsearchStatusText) {
+      wordsearchStatusText.textContent = "Unlocked! You completed all 3 levels. Enjoy the word search.";
     }
   } else {
     generateWordsearchBtn.disabled = true;
     generateWordsearchBtn.textContent = "Locked – finish all 3 levels first";
-    if (statusEl) {
-      statusEl.textContent = "Locked. Complete one cycle of up to 6 words in Levels 1, 2 and 3 to unlock.";
+    if (wordsearchStatusText) {
+      wordsearchStatusText.textContent = "Locked. Complete one cycle of up to 6 words in Levels 1, 2 and 3 to unlock.";
     }
   }
 }
 
-// Called when a word is answered correctly to track per-level completion.
 function registerCorrectAnswerForCurrentLevel(word) {
-  // Only spellings count towards level / wordsearch unlock
+  // Numbers mode does NOT affect level / wordsearch unlock
   if (currentContentMode === "numbers") return;
   if (!word) return;
-  const lvl = currentMode; // 1, 2, or 3
+
+  const lvl = currentMode; // 1,2,3
   if (lvl < 1 || lvl > 3) return;
 
-  const set = levelWordSets[lvl];
   const baseTargets = getBaseTargetWords();
   if (!baseTargets.length) return;
 
   const lower = word.trim().toLowerCase();
-  if (!baseTargets.includes(lower)) {
-    // Not one of the main cycle words, ignore for unlocking.
-    return;
-  }
+  if (!baseTargets.includes(lower)) return;
 
+  const set = levelWordSets[lvl];
   set.add(lower);
-  const targetCount = Math.min(LEVEL_TARGET_MAX, baseTargets.length);
 
+  const targetCount = Math.min(LEVEL_TARGET_MAX, baseTargets.length);
   if (!levelCompletion[lvl] && set.size >= targetCount) {
     levelCompletion[lvl] = true;
 
-    // Small celebration for finishing that level.
     if (typeof confetti === "function") {
       confetti({
         particleCount: 120,
@@ -597,25 +593,27 @@ function registerCorrectAnswerForCurrentLevel(word) {
       });
     }
 
-    // Quick feedback message.
     feedbackEl.textContent = `Level ${lvl} complete – nice work!`;
     feedbackEl.className = "feedback ok";
 
-    // Update tabs and wordsearch lock.
     updateLevelTabsUI();
     updateWordsearchLockUI();
   }
 }
 
+/* ========== Word list & practice (spellings) ========== */
 function getWordList() {
   if (currentContentMode === "robin") {
     const fromSheet = robinWordsRemote.length ? robinWordsRemote : null;
     const source = fromSheet || CURRENT_WEEK_SPELLINGS;
     return source.slice();
-  } else {
+  } else if (currentContentMode === "eyfs") {
     const key = eyfsSetSelect.value;
     const set = EYFS_SETS[key];
     return set ? set.words.slice() : [];
+  } else {
+    // Numbers mode uses a different loop, no words
+    return [];
   }
 }
 
@@ -675,7 +673,7 @@ function handleAnswer() {
     feedbackEl.textContent = "Nice, that’s correct! 🎉";
     feedbackEl.className = "feedback ok";
 
-    // Track progress towards unlocking the next level / word search.
+    // Track towards unlocking next levels / wordsearch
     registerCorrectAnswerForCurrentLevel(currentTargetWord);
   } else {
     feedbackEl.textContent = `Close – the correct spelling is “${target}”.`;
@@ -688,7 +686,8 @@ function handleAnswer() {
   checkButtonLabel.textContent = "Next word";
 }
 
-  async function loadNumbersFromSheet() {
+/* ========== Numbers: backend + loop ========== */
+async function loadNumbersFromSheet() {
   numbersQuestions = [];
   try {
     if (!window.config || !window.config.spellingsUrl) return;
@@ -704,10 +703,11 @@ function handleAnswer() {
         .filter(q => q.question && q.answer);
     }
   } catch (err) {
-    console.error('Error loading numbers from sheet', err);
+    console.error('Error loading numbers from Sheet', err);
   }
 }
-  function showCurrentNumberQuestion() {
+
+function showCurrentNumberQuestion() {
   if (!numbersQuestions.length) {
     if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
     if (numbersFeedback) {
@@ -719,7 +719,6 @@ function handleAnswer() {
   }
 
   if (numbersIndex >= numbersQuestions.length) {
-    // Finished the list
     if (currentQuestionEl) currentQuestionEl.textContent = "All done!";
     if (numbersFeedback) {
       numbersFeedback.textContent = "Brilliant – you finished all of this week’s questions!";
@@ -755,10 +754,9 @@ function handleNumbersAnswer() {
   if (!currentLearner) return;
   if (!numbersQuestions.length) return;
 
-  // If we just finished a round and user clicks "Again"
   if (numbersAwaitingNext) {
     numbersIndex = 0;
-    shuffleArray(numbersQuestions); // reuse existing helper
+    shuffleArray(numbersQuestions);
     showCurrentNumberQuestion();
     return;
   }
@@ -773,7 +771,6 @@ function handleNumbersAnswer() {
     return;
   }
 
-  // Update shared stats
   sessionTotal++;
 
   const correct = q.answer.trim();
@@ -824,165 +821,6 @@ async function startNumbersMode() {
   numbersAwaitingNext = false;
   showCurrentNumberQuestion();
 }
-/* ========== Word Search Logic ========== */
-function clearDragSelection() {
-  if (!wordsearchGridEl) return;
-  const selectedCells = wordsearchGridEl.querySelectorAll('.ws-cell.ws-selected');
-  selectedCells.forEach(cell => cell.classList.remove('ws-selected'));
-  selectionCells = [];
-}
-
-function fireWordsearchCelebration() {
-  if (typeof confetti === "function") {
-    confetti({
-      particleCount: 200,
-      spread: 80,
-      origin: { y: 0.6 }
-    });
-  }
-}
-
-function markWordFound(wordIndex, cells) {
-  if (wordsearchFound.has(wordIndex)) return;
-  wordsearchFound.add(wordIndex);
-
-  const colour = wordsearchColours[wordIndex % wordsearchColours.length];
-  cells.forEach(cell => {
-    cell.classList.remove('ws-selected');
-    cell.style.backgroundColor = colour;
-    cell.style.color = '#111';
-  });
-
-  const span = wordsearchWordsEl.querySelector(`.ws-word[data-index="${wordIndex}"]`);
-  if (span) span.classList.add('found');
-
-  if (wordsearchFound.size === wordsearchCurrentWords.length && wordsearchCurrentWords.length > 0) {
-    fireWordsearchCelebration();
-  }
-}
-
-function generateWordsearch() {
-  const wordsRaw = getWordList()
-    .map(w => String(w || "").trim().toLowerCase())
-    .filter(w => w.length > 0);
-
-  if (!wordsRaw.length) {
-    wordsearchGridEl.innerHTML = "<p>No words available for word search.</p>";
-    wordsearchWordsEl.textContent = "";
-    wordsearchCurrentWords = [];
-    return;
-  }
-
-  // We only ever care about the first 6
-  const maxWords = 6;
-  const selected = wordsRaw.slice(0, maxWords);
-
-  const size = 10; // 10×10 grid
-  const directions = [
-    [0, 1],  // right
-    [1, 0]   // down
-  ];
-
-  function tryBuildGrid() {
-    const grid = Array.from({ length: size }, () => Array(size).fill(null));
-
-    for (const word of selected) {
-      if (word.length > size) {
-        // Impossible to place this word in our grid
-        return null;
-      }
-
-      let placed = false;
-      for (let attempts = 0; attempts < 100 && !placed; attempts++) {
-        const [dr, dc] = directions[Math.floor(Math.random() * directions.length)];
-
-        // Choose a start that leaves room for the word
-        const maxRow = dr === 0 ? size - 1 : size - word.length;
-        const maxCol = dc === 0 ? size - word.length : size - 1;
-        const row = Math.floor(Math.random() * (maxRow + 1));
-        const col = Math.floor(Math.random() * (maxCol + 1));
-
-        // Check if it fits at this position
-        let ok = true;
-        for (let i = 0; i < word.length; i++) {
-          const r = row + dr * i;
-          const c = col + dc * i;
-          const cell = grid[r][c];
-          if (cell !== null && cell !== word[i]) {
-            ok = false;
-            break;
-          }
-        }
-        if (!ok) continue;
-
-        // Place it
-        for (let i = 0; i < word.length; i++) {
-          const r = row + dr * i;
-          const c = col + dc * i;
-          grid[r][c] = word[i];
-        }
-        placed = true;
-      }
-
-      if (!placed) {
-        // Couldn’t place this word in this attempt – abort and rebuild
-        return null;
-      }
-    }
-
-    return grid;
-  }
-
-  // Keep trying whole-grid builds until all selected words are placed
-  let grid = null;
-  for (let attempt = 0; attempt < 40 && !grid; attempt++) {
-    grid = tryBuildGrid();
-  }
-
-  if (!grid) {
-    wordsearchGridEl.innerHTML =
-      "<p>Couldn’t fit all words into the grid. Try generating again.</p>";
-    wordsearchWordsEl.textContent = "";
-    wordsearchCurrentWords = [];
-    wordsearchFound = new Set();
-    clearDragSelection();
-    return;
-  }
-
-  // If we get here, all selected words are definitely in the grid
-  wordsearchCurrentWords = selected;
-  wordsearchFound = new Set();
-  clearDragSelection();
-
-  // Fill remaining cells with random letters
-  const alphabet = "abcdefghijklmnopqrstuvwxyz";
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (!grid[r][c]) {
-        const ch = alphabet[Math.floor(Math.random() * alphabet.length)];
-        grid[r][c] = ch;
-      }
-    }
-  }
-
-  // Render grid
-  let html = "<table>";
-  for (let r = 0; r < size; r++) {
-    html += "<tr>";
-    for (let c = 0; c < size; c++) {
-      html += `<td class="ws-cell" data-r="${r}" data-c="${c}">${grid[r][c].toUpperCase()}</td>`;
-    }
-    html += "</tr>";
-  }
-  html += "</table>";
-  wordsearchGridEl.innerHTML = html;
-
-  // Render “Find:” list – indexes line up with wordsearchCurrentWords
-  wordsearchWordsEl.innerHTML =
-    "Find: " + selected
-      .map((w, idx) => `<span class="ws-word" data-index="${idx}">${w}</span>`)
-      .join(", ");
-}
 
 /* ========== UI ========== */
 function initEYFSSelect(){
@@ -994,6 +832,24 @@ function initEYFSSelect(){
     eyfsSetSelect.appendChild(opt);
   });
 }
+
+/* Show numbers radio only for Year 3 */
+phaseSelect.addEventListener("change", () => {
+  const phase = phaseSelect.value;
+  if (numbersModeOption) {
+    if (phase === "y3") {
+      numbersModeOption.style.display = "block";
+    } else {
+      numbersModeOption.style.display = "none";
+      const current = getRadioValue("contentMode");
+      if (current === "numbers") {
+        const robinRadio = document.querySelector('input[name="contentMode"][value="robin"]');
+        if (robinRadio) robinRadio.checked = true;
+        currentContentMode = "robin";
+      }
+    }
+  }
+});
 
 document.querySelectorAll('input[name="contentMode"]').forEach(radio=>{
   radio.addEventListener("change",()=>{
@@ -1023,7 +879,9 @@ modeTabs.forEach(tab=>{
       checkButtonLabel.textContent = "Check";
       toggleSpeakButton();
     } else {
-      if (practiceStep.style.display === "block") pickNextWord();
+      if (practiceStep.style.display === "block" && currentContentMode !== "numbers") {
+        pickNextWord();
+      }
     }
   });
 });
@@ -1046,7 +904,7 @@ startPracticeBtn.addEventListener("click",()=>{
   sessionXP = 0;
   refreshStatsUI();
 
-  // Reset level progression for this new session
+  // Reset level progression
   levelCompletion = { 1:false, 2:false, 3:false };
   levelWordSets = {
     1: new Set(),
@@ -1059,7 +917,6 @@ startPracticeBtn.addEventListener("click",()=>{
   identityStep.style.display = "none";
   practiceStep.style.display = "block";
 
-  // Numbers mode: separate card, no wordsearch
   if (currentContentMode === "numbers") {
     if (spellingsCard) spellingsCard.style.display = "none";
     if (numbersCard) numbersCard.style.display = "block";
@@ -1075,7 +932,7 @@ startPracticeBtn.addEventListener("click",()=>{
     return;
   }
 
-  // Spellings modes (Robin / EYFS)
+  // Spellings (Robin / EYFS)
   if (spellingsCard) spellingsCard.style.display = "block";
   if (numbersCard) numbersCard.style.display = "none";
   if (wordsearchStep) wordsearchStep.style.display = "block";
@@ -1093,6 +950,7 @@ startPracticeBtn.addEventListener("click",()=>{
 
   rebuildWordQueue();
   pickNextWord();
+});
 
 eyfsSetSelect.addEventListener("change",()=>{
   if (practiceStep.style.display === "block" && currentContentMode==="eyfs"){
@@ -1142,30 +1000,8 @@ if (extraClueButton) {
   });
 }
 
-if (generateWordsearchBtn) {
-  generateWordsearchBtn.addEventListener("click", generateWordsearch);
-}
-
-  phaseSelect.addEventListener("change", () => {
-  const phase = phaseSelect.value;
-
-  if (numbersModeOption) {
-    if (phase === "y3") {
-      numbersModeOption.style.display = "block";
-    } else {
-      numbersModeOption.style.display = "none";
-      // If numbers was selected, bounce back to Robin’s spellings
-      const current = getRadioValue("contentMode");
-      if (current === "numbers") {
-        const robinRadio = document.querySelector('input[name="contentMode"][value="robin"]');
-        if (robinRadio) robinRadio.checked = true;
-        currentContentMode = "robin";
-      }
-    }
-  }
-});
-
-  if (numbersCheckButton) {
+/* Numbers button wiring */
+if (numbersCheckButton) {
   numbersCheckButton.addEventListener("click", handleNumbersAnswer);
 }
 if (numbersAnswerInput) {
@@ -1176,7 +1012,165 @@ if (numbersAnswerInput) {
     }
   });
 }
-/* ===== Wordsearch drag logic (mouse + touch) ===== */
+
+/* ===== Wordsearch logic ===== */
+function clearDragSelection() {
+  if (!wordsearchGridEl) return;
+  const selectedCells = wordsearchGridEl.querySelectorAll('.ws-cell.ws-selected');
+  selectedCells.forEach(cell => cell.classList.remove('ws-selected'));
+  selectionCells = [];
+}
+
+function fireWordsearchCelebration() {
+  if (typeof confetti === "function") {
+    confetti({
+      particleCount: 200,
+      spread: 80,
+      origin: { y: 0.6 }
+    });
+  }
+}
+
+function markWordFound(wordIndex, cells) {
+  if (wordsearchFound.has(wordIndex)) return;
+  wordsearchFound.add(wordIndex);
+
+  const colour = wordsearchColours[wordIndex % wordsearchColours.length];
+  cells.forEach(cell => {
+    cell.classList.remove('ws-selected');
+    cell.style.backgroundColor = colour;
+    cell.style.color = '#111';
+  });
+
+  const span = wordsearchWordsEl.querySelector(`.ws-word[data-index="${wordIndex}"]`);
+  if (span) span.classList.add('found');
+
+  if (wordsearchFound.size === wordsearchCurrentWords.length && wordsearchCurrentWords.length > 0) {
+    fireWordsearchCelebration();
+  }
+}
+
+function generateWordsearch() {
+  const wordsRaw = getWordList()
+    .map(w => String(w || "").trim().toLowerCase())
+    .filter(w => w.length > 0);
+
+  if (!wordsRaw.length) {
+    wordsearchGridEl.innerHTML = "<p>No words available for word search.</p>";
+    wordsearchWordsEl.textContent = "";
+    wordsearchCurrentWords = [];
+    return;
+  }
+
+  const maxWords = 6;
+  const selected = wordsRaw.slice(0, maxWords);
+
+  const size = 10;
+  const directions = [
+    [0, 1],  // right
+    [1, 0]   // down
+  ];
+
+  function tryBuildGrid() {
+    const grid = Array.from({ length: size }, () => Array(size).fill(null));
+
+    for (const word of selected) {
+      if (word.length > size) {
+        return null;
+      }
+
+      let placed = false;
+      for (let attempts = 0; attempts < 100 && !placed; attempts++) {
+        const [dr, dc] = directions[Math.floor(Math.random() * directions.length)];
+
+        const maxRow = dr === 0 ? size - 1 : size - word.length;
+        const maxCol = dc === 0 ? size - word.length : size - 1;
+        const row = Math.floor(Math.random() * (maxRow + 1));
+        const col = Math.floor(Math.random() * (maxCol + 1));
+
+        let ok = true;
+        for (let i = 0; i < word.length; i++) {
+          const r = row + dr * i;
+          const c = col + dc * i;
+          const cell = grid[r][c];
+          if (cell !== null && cell !== word[i]) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) continue;
+
+        for (let i = 0; i < word.length; i++) {
+          const r = row + dr * i;
+          const c = col + dc * i;
+          grid[r][c] = word[i];
+        }
+        placed = true;
+      }
+
+      if (!placed) {
+        return null;
+      }
+    }
+
+    return grid;
+  }
+
+  let grid = null;
+  for (let attempt = 0; attempt < 40 && !grid; attempt++) {
+    grid = tryBuildGrid();
+  }
+  if (!grid) {
+    wordsearchGridEl.innerHTML = "<p>Could not place all words. Try again.</p>";
+    wordsearchWordsEl.textContent = "";
+    wordsearchCurrentWords = [];
+    return;
+  }
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (!grid[r][c]) {
+        const letter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+        grid[r][c] = letter;
+      }
+    }
+  }
+
+  wordsearchCurrentWords = selected.slice();
+  wordsearchFound = new Set();
+
+  const table = document.createElement('table');
+  table.className = 'ws-table';
+  for (let r = 0; r < size; r++) {
+    const tr = document.createElement('tr');
+    for (let c = 0; c < size; c++) {
+      const td = document.createElement('td');
+      td.textContent = grid[r][c].toUpperCase();
+      td.classList.add('ws-cell');
+      td.dataset.r = String(r);
+      td.dataset.c = String(c);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  wordsearchGridEl.innerHTML = '';
+  wordsearchGridEl.appendChild(table);
+
+  wordsearchWordsEl.innerHTML = '';
+  wordsearchCurrentWords.forEach((w, idx) => {
+    const span = document.createElement('span');
+    span.className = 'ws-word';
+    span.dataset.index = String(idx);
+    span.textContent = w.toUpperCase();
+    wordsearchWordsEl.appendChild(span);
+  });
+}
+
+if (generateWordsearchBtn) {
+  generateWordsearchBtn.addEventListener("click", generateWordsearch);
+}
+
+/* Wordsearch drag logic (mouse + touch) */
 function getCellFromEvent(e) {
   if (e.touches && e.touches.length) {
     const t = e.touches[0];
@@ -1194,15 +1188,19 @@ function getCellFromEvent(e) {
 }
 
 function updateSelectionToCell(cell) {
-  if (!cell || dragStartRow === null || dragStartCol === null) return;
-
-  const currR = parseInt(cell.dataset.r, 10);
-  const currC = parseInt(cell.dataset.c, 10);
-
-  if (dragStartRow !== currR && dragStartCol !== currC) return; // only straight lines
-
   clearDragSelection();
-  selectionCells = [];
+  if (!cell) return;
+
+  const row = parseInt(cell.dataset.r, 10);
+  const col = parseInt(cell.dataset.c, 10);
+
+  if (dragStartRow === null || dragStartCol === null) {
+    dragStartRow = row;
+    dragStartCol = col;
+  }
+
+  const currR = row;
+  const currC = col;
 
   if (dragStartRow === currR) {
     const minC = Math.min(dragStartCol, currC);
@@ -1278,7 +1276,6 @@ function handleWordsearchUp(e) {
   dragStartRow = dragStartCol = null;
 }
 
-/* Attach listeners */
 if (wordsearchGridEl) {
   wordsearchGridEl.addEventListener('mousedown', handleWordsearchDown);
   wordsearchGridEl.addEventListener('mousemove', handleWordsearchMove);
