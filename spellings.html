@@ -329,18 +329,24 @@ body.dark .numbers-progress-track {
     Using this week’s numbers.
   </p>
 
-  <!-- Numbers mode tabs: Practice / Streak -->
+  <!-- Numbers mode tabs: Practice / Streak / Speed -->
   <div class="numbers-mode-tabs">
     <button class="numbers-mode-tab active" data-nmode="practice">Practice</button>
     <button class="numbers-mode-tab" data-nmode="streak">Streak focus</button>
+    <button class="numbers-mode-tab" data-nmode="speed">Speed round</button>
   </div>
 
   <p id="numbersModeDescription"
-     style="font-size:.8rem; color:#666; margin:.15rem 0 .35rem;">
+     style="font-size:.8rem; color:#666; margin:.15rem 0 .25rem;">
     Answer each question once and see how many you get right.
   </p>
 
-  <!-- Question counter -->
+  <!-- Timer (used in speed mode) -->
+  <p id="numbersTimerText"
+     style="font-size:.9rem; font-weight:600; color:#0f172a; margin:.1rem 0;">
+  </p>
+
+  <!-- Question counter (practice / streak) -->
   <p style="font-size:.8rem; color:#666;" id="numbersProgressText"></p>
 
   <!-- Progress bar -->
@@ -364,7 +370,7 @@ body.dark .numbers-progress-track {
   <!-- Per-question feedback -->
   <div class="feedback" id="numbersFeedback"></div>
 
-  <!-- Medal / how you did this round -->
+  <!-- Medal / how you did this round (practice) -->
   <p style="font-size:.8rem; color:#666; margin-top:.5rem;" id="numbersMedalText"></p>
 
   <!-- Streak summary (for streak mode) -->
@@ -493,10 +499,11 @@ const numbersFeedback = document.getElementById("numbersFeedback");
 const numbersMedalText = document.getElementById("numbersMedalText");
 const numbersChangeLearnerLink = document.getElementById("numbersChangeLearnerLink");
 
-// NEW for numbers modes + streak summary
+// NEW for numbers modes + streak + speed
 const numbersModeTabs = document.querySelectorAll(".numbers-mode-tab");
 const numbersModeDescription = document.getElementById("numbersModeDescription");
 const numbersStreakSummary = document.getElementById("numbersStreakSummary");
+const numbersTimerText = document.getElementById("numbersTimerText");
 
 /* Core state */
 let currentLearner = null;
@@ -546,8 +553,19 @@ let selectionCells = [];
 let numbersQuestions = [];
 let numbersIndex = 0;
 let numbersAwaitingNext = false;
-  // Numbers practice mode: "practice" | "streak"
+
+/* Numbers practice mode: "practice" | "streak" | "speed" */
 let numbersGameMode = "practice";
+
+/* Speed round state */
+const SPEED_START_SECONDS = 30;
+const SPEED_BONUS_SECONDS = 3; // +3 seconds per correct answer
+let speedTimerId = null;
+let speedTimeRemaining = 0;
+let speedRoundActive = false;
+let speedCorrectThisRound = 0;
+let speedAttemptedThisRound = 0;
+let speedQuestionIndex = 0;
 
 /* ========== Helpers ========== */
 function shuffleArray(arr) {
@@ -854,7 +872,193 @@ function prettyPrintQuestion(raw) {
   return s;
 }
 
+function updateNumbersModeDescription() {
+  if (!numbersModeDescription) return;
+  if (numbersGameMode === "streak") {
+    numbersModeDescription.textContent =
+      "Try to build your longest streak of correct answers this round.";
+  } else if (numbersGameMode === "speed") {
+    numbersModeDescription.textContent =
+      "30 seconds. Answer as many as you can. Each correct answer adds 3 seconds.";
+  } else {
+    numbersModeDescription.textContent =
+      "Answer each question once and see how many you get right.";
+  }
+}
+
+function updateSpeedTimerUI() {
+  if (!numbersTimerText) return;
+  numbersTimerText.textContent = `⏱ ${Math.max(0, speedTimeRemaining)}s left`;
+
+  // In speed mode, reuse the bar as time remaining
+  if (numbersProgressFill) {
+    const pct = SPEED_START_SECONDS
+      ? Math.max(0, Math.min(1, speedTimeRemaining / SPEED_START_SECONDS)) * 100
+      : 0;
+    numbersProgressFill.style.width = pct + "%";
+  }
+}
+
+/* Show next question in speed mode (loops through the list) */
+function showSpeedQuestion() {
+  if (!numbersQuestions.length) {
+    if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
+    return;
+  }
+
+  if (speedQuestionIndex >= numbersQuestions.length) {
+    speedQuestionIndex = 0;
+  }
+
+  const q = numbersQuestions[speedQuestionIndex];
+  speedQuestionIndex++;
+
+  const display =
+    (typeof prettyPrintQuestion === "function")
+      ? prettyPrintQuestion(q.question)
+      : q.question;
+
+  if (currentQuestionEl) currentQuestionEl.textContent = display;
+
+  if (numbersAnswerInput) {
+    numbersAnswerInput.value = "";
+    numbersAnswerInput.focus();
+  }
+  if (numbersFeedback) {
+    numbersFeedback.textContent = "";
+    numbersFeedback.className = "feedback";
+  }
+  if (numbersMedalText) numbersMedalText.textContent = "";
+  if (numbersStreakSummary) numbersStreakSummary.textContent = "";
+
+  // In speed mode, question counter is less important
+  if (numbersProgressText) {
+    numbersProgressText.textContent = "";
+  }
+}
+
+  function stopSpeedRound(showSummary) {
+  if (speedTimerId !== null) {
+    clearInterval(speedTimerId);
+    speedTimerId = null;
+  }
+  speedRoundActive = false;
+
+  if (!showSummary) return;
+
+  if (currentQuestionEl) currentQuestionEl.textContent = "Time’s up!";
+
+  const got = speedCorrectThisRound;
+  const total = speedAttemptedThisRound;
+
+  if (numbersFeedback) {
+    let msg;
+    if (!total) {
+      msg = "No questions answered this round.";
+    } else {
+      const accuracy = total ? Math.round((got / total) * 100) : 0;
+      msg =
+        `You answered ${total} question${total === 1 ? "" : "s"}, ` +
+        `${got} correct (${accuracy}%).`;
+    }
+    numbersFeedback.textContent = msg;
+    numbersFeedback.className = "feedback ok";
+  }
+
+  if (numbersMedalText && total) {
+    let medal;
+    if (got === 0) {
+      medal = "Keep trying – another round will help.";
+    } else if (got >= 10) {
+      medal = "🏅 Gold – lightning fast!";
+    } else if (got >= 6) {
+      medal = "🥈 Silver – great speed.";
+    } else if (got >= 3) {
+      medal = "🥉 Bronze – good start.";
+    } else {
+      medal = "Nice effort – have another go.";
+    }
+    numbersMedalText.textContent = medal;
+  } else if (numbersMedalText) {
+    numbersMedalText.textContent = "";
+  }
+
+  if (numbersStreakSummary) {
+    numbersStreakSummary.textContent = "";
+  }
+
+  // Confetti only if at least one correct
+  if (typeof confetti === "function" && got > 0) {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.7 }
+    });
+  }
+
+  if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Again";
+}
+
+function startSpeedRound() {
+  if (!numbersQuestions.length) {
+    if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
+    if (numbersFeedback) {
+      numbersFeedback.textContent =
+        "Ask an adult to add some questions to the Numbers_Current sheet.";
+      numbersFeedback.className = "feedback bad";
+    }
+    return;
+  }
+
+  // Reset round stats
+  speedTimeRemaining = SPEED_START_SECONDS;
+  speedCorrectThisRound = 0;
+  speedAttemptedThisRound = 0;
+  speedQuestionIndex = 0;
+  speedRoundActive = true;
+
+  // Reset shared stats for this run
+  sessionTotal = 0;
+  sessionCorrect = 0;
+  sessionStreak = 0;
+  bestSessionStreak = 0;
+  sessionXP = 0;
+  refreshStatsUI();
+
+  if (numbersMedalText) numbersMedalText.textContent = "";
+  if (numbersStreakSummary) numbersStreakSummary.textContent = "";
+  if (numbersProgressText) numbersProgressText.textContent = "";
+  if (numbersFeedback) {
+    numbersFeedback.textContent = "";
+    numbersFeedback.className = "feedback";
+  }
+
+  if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Check";
+
+  updateSpeedTimerUI();
+  showSpeedQuestion();
+
+  if (speedTimerId !== null) {
+    clearInterval(speedTimerId);
+  }
+  speedTimerId = setInterval(() => {
+    speedTimeRemaining--;
+    if (speedTimeRemaining <= 0) {
+      speedTimeRemaining = 0;
+      updateSpeedTimerUI();
+      stopSpeedRound(true);
+    } else {
+      updateSpeedTimerUI();
+    }
+  }, 1000);
+}
+  
 function showCurrentNumberQuestion() {
+  // Speed mode uses its own question display
+  if (numbersGameMode === "speed") {
+    return;
+  }
+
   // No questions at all
   if (!numbersQuestions.length) {
     if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
@@ -868,10 +1072,11 @@ function showCurrentNumberQuestion() {
     if (numbersProgressFill) numbersProgressFill.style.width = "0%";
     if (numbersMedalText) numbersMedalText.textContent = "";
     if (numbersStreakSummary) numbersStreakSummary.textContent = "";
+    if (numbersTimerText) numbersTimerText.textContent = "";
     return;
   }
 
-  // End of round
+  // End of round (practice / streak)
   if (numbersIndex >= numbersQuestions.length) {
     const got = sessionCorrect;
     const total = sessionTotal;
@@ -883,11 +1088,11 @@ function showCurrentNumberQuestion() {
       if (!total) {
         msg = "No questions answered this round.";
       } else if (got === total) {
-        msg = `Brilliant – you got all ${total} correct! 🎉`;
+        msg = "Brilliant – you got all " + total + " correct! 🎉";
       } else if (got === 0) {
-        msg = `You’ve tried all ${total} questions. Let’s have another go and see if we can get some right.`;
+        msg = "You’ve tried all " + total + " questions. Let’s have another go and see if we can get some right.";
       } else {
-        msg = `Nice work – you got ${got} out of ${total} correct.`;
+        msg = "Nice work – you got " + got + " out of " + total + " correct.";
       }
       numbersFeedback.textContent = msg;
       numbersFeedback.className = "feedback ok";
@@ -900,9 +1105,9 @@ function showCurrentNumberQuestion() {
     // Fill progress bar to 100%
     if (numbersProgressFill) numbersProgressFill.style.width = "100%";
 
-    // Medal award text
+    // Medal award text (practice / streak)
     if (numbersMedalText && total) {
-      const accuracy = got / total;
+      const accuracy = total ? got / total : 0;
       let medal;
       if (got === total) {
         medal = "🏅 Gold – full marks!";
@@ -918,16 +1123,16 @@ function showCurrentNumberQuestion() {
       numbersMedalText.textContent = "";
     }
 
-    // Streak summary line (only really meaningful in streak mode)
+    // Streak summary line (only meaningful in streak mode)
     if (numbersStreakSummary) {
       if (numbersGameMode === "streak") {
         numbersStreakSummary.textContent =
-          `Best streak this round: ${bestSessionStreak} correct in a row.`;
+          "Best streak this round: " + bestSessionStreak + " correct in a row.";
       } else {
         numbersStreakSummary.textContent = "";
       }
     }
-    
+
     // Confetti only if at least one correct
     if (typeof confetti === "function" && sessionCorrect > 0) {
       confetti({
@@ -942,16 +1147,16 @@ function showCurrentNumberQuestion() {
     return;
   }
 
-  // Normal question display
+  // Normal question display (practice / streak)
   const q = numbersQuestions[numbersIndex];
 
   // Question counter
   if (numbersProgressText) {
     numbersProgressText.textContent =
-      `Question ${numbersIndex + 1} of ${numbersQuestions.length}`;
+      "Question " + (numbersIndex + 1) + " of " + numbersQuestions.length;
   }
 
-  // Progress bar
+  // Progress bar (questions done)
   if (numbersProgressFill) {
     const total = numbersQuestions.length;
     const done = numbersIndex; // answered so far
@@ -959,13 +1164,11 @@ function showCurrentNumberQuestion() {
     numbersProgressFill.style.width = pct + "%";
   }
 
-   // Clear any medal mid-round
-  if (numbersMedalText) {
-    numbersMedalText.textContent = "";
-  }
-  // Clear streak summary mid-round
-  if (numbersStreakSummary) {
-    numbersStreakSummary.textContent = "";
+  // Clear any medal & streak mid-round
+  if (numbersMedalText) numbersMedalText.textContent = "";
+  if (numbersStreakSummary) numbersStreakSummary.textContent = "";
+  if (numbersTimerText && numbersGameMode !== "speed") {
+    numbersTimerText.textContent = "";
   }
 
   // Show the question
@@ -993,21 +1196,77 @@ function handleNumbersAnswer() {
   if (!currentLearner) return;
   if (!numbersQuestions.length) return;
 
+  // SPEED MODE: button is "Start" or "Check" for speed round
+  if (numbersGameMode === "speed") {
+    // Start / restart
+    if (!speedRoundActive && (!speedTimerId || speedTimeRemaining === 0)) {
+      startSpeedRound();
+      return;
+    }
+
+    // Normal answer during speed round
+    const qIndex = (speedQuestionIndex - 1 + numbersQuestions.length) % numbersQuestions.length;
+    const q = numbersQuestions[qIndex];
+    const guessRaw = numbersAnswerInput ? numbersAnswerInput.value.trim() : "";
+    if (!guessRaw) {
+      if (numbersFeedback) {
+        numbersFeedback.textContent = "Type an answer first.";
+        numbersFeedback.className = "feedback bad";
+      }
+      return;
+    }
+
+    speedAttemptedThisRound++;
+    sessionTotal++;
+
+    const correct = q.answer.trim();
+    if (guessRaw === correct) {
+      speedCorrectThisRound++;
+      sessionCorrect++;
+      sessionStreak++;
+      bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
+      sessionXP += 10;
+
+      // Add bonus time
+      speedTimeRemaining += SPEED_BONUS_SECONDS;
+      if (speedTimeRemaining > SPEED_START_SECONDS + 30) {
+        speedTimeRemaining = SPEED_START_SECONDS + 30; // soft cap
+      }
+
+      if (numbersFeedback) {
+        numbersFeedback.textContent = `Correct! +${SPEED_BONUS_SECONDS}s 🎉`;
+        numbersFeedback.className = "feedback ok";
+      }
+    } else {
+      sessionStreak = 0;
+      if (numbersFeedback) {
+        numbersFeedback.textContent = `Almost – the answer is ${correct}.`;
+        numbersFeedback.className = "feedback bad";
+      }
+    }
+
+    refreshStatsUI();
+    updateSpeedTimerUI();
+    showSpeedQuestion();
+    return;
+  }
+
+  // PRACTICE / STREAK MODE BELOW
   // If we are waiting for "Next question" OR "Again"
   if (numbersAwaitingNext) {
     // Finished the round, "Again" clicked
-      if (numbersIndex >= numbersQuestions.length) {
-    numbersIndex = 0;
-    shuffleArray(numbersQuestions);
-    numbersAwaitingNext = false;
+    if (numbersIndex >= numbersQuestions.length) {
+      numbersIndex = 0;
+      shuffleArray(numbersQuestions);
+      numbersAwaitingNext = false;
 
-    // Reset bar + medal for fresh round
-    if (numbersProgressFill) numbersProgressFill.style.width = "0%";
-    if (numbersMedalText) numbersMedalText.textContent = "";
+      if (numbersProgressFill) numbersProgressFill.style.width = "0%";
+      if (numbersMedalText) numbersMedalText.textContent = "";
+      if (numbersStreakSummary) numbersStreakSummary.textContent = "";
 
-    showCurrentNumberQuestion();
-    return;
-  }
+      showCurrentNumberQuestion();
+      return;
+    }
 
     // Mid-round: move on to the next question
     numbersAwaitingNext = false;
@@ -1016,7 +1275,7 @@ function handleNumbersAnswer() {
     return;
   }
 
-  // Normal case: checking the current answer
+  // Normal case: checking the current answer (practice / streak)
   const q = numbersQuestions[numbersIndex];
   const guessRaw = numbersAnswerInput ? numbersAnswerInput.value.trim() : "";
   if (!guessRaw) {
@@ -1073,6 +1332,11 @@ async function startNumbersMode() {
   if (numbersProgressText) numbersProgressText.textContent = "";
   if (numbersProgressFill) numbersProgressFill.style.width = "0%";
   if (numbersMedalText) numbersMedalText.textContent = "";
+  if (numbersStreakSummary) numbersStreakSummary.textContent = "";
+  if (numbersTimerText) numbersTimerText.textContent = "";
+
+  // Stop any existing speed round
+  stopSpeedRound(false);
 
   await loadNumbersFromSheet();
 
@@ -1082,13 +1346,38 @@ async function startNumbersMode() {
       numbersFeedback.textContent = "No numbers set. Ask an adult to fill Numbers_Current.";
       numbersFeedback.className = "feedback bad";
     }
-    if (numbersProgressText) numbersProgressText.textContent = "";
     return;
   }
 
   shuffleArray(numbersQuestions);
   numbersIndex = 0;
   numbersAwaitingNext = false;
+
+  // Reset shared stats
+  sessionTotal = 0;
+  sessionCorrect = 0;
+  sessionStreak = 0;
+  bestSessionStreak = 0;
+  sessionXP = 0;
+  refreshStatsUI();
+
+  updateNumbersModeDescription();
+
+  if (numbersGameMode === "speed") {
+    // Prepare for speed round, but do not start timer until first click
+    speedRoundActive = false;
+    speedTimeRemaining = SPEED_START_SECONDS;
+    if (numbersTimerText) {
+      numbersTimerText.textContent = `⏱ Ready – ${SPEED_START_SECONDS}s`;
+    }
+    if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Start speed round";
+    if (currentQuestionEl) currentQuestionEl.textContent = "Press start to begin the speed round.";
+    if (numbersProgressFill) numbersProgressFill.style.width = "100%";
+    return;
+  }
+
+  // Practice / streak behaviour
+  if (numbersTimerText) numbersTimerText.textContent = "";
   showCurrentNumberQuestion();
 }
 
@@ -1202,19 +1491,18 @@ modeTabs.forEach(tab=>{
   });
 });
 
-  // Numbers mode tab switching (Practice / Streak)
+// Numbers mode tab switching (Practice / Streak / Speed)
 if (numbersModeTabs && numbersModeTabs.length) {
   numbersModeTabs.forEach(btn => {
     btn.addEventListener("click", () => {
       const mode = btn.dataset.nmode || "practice";
       numbersGameMode = mode;
 
-      // Toggle active class
       numbersModeTabs.forEach(b => {
         b.classList.toggle("active", b === btn);
       });
 
-      // Reset round-specific UI
+      // Reset UI for the new mode
       if (numbersStreakSummary) numbersStreakSummary.textContent = "";
       if (numbersMedalText) numbersMedalText.textContent = "";
       if (numbersProgressFill) numbersProgressFill.style.width = "0%";
@@ -1223,8 +1511,12 @@ if (numbersModeTabs && numbersModeTabs.length) {
         numbersFeedback.textContent = "";
         numbersFeedback.className = "feedback";
       }
+      if (numbersTimerText) numbersTimerText.textContent = "";
 
-      // Reset session stats for this run
+      // Stop any running speed round
+      stopSpeedRound(false);
+
+      // Reset shared stats for this run
       sessionTotal = 0;
       sessionCorrect = 0;
       sessionStreak = 0;
@@ -1232,14 +1524,31 @@ if (numbersModeTabs && numbersModeTabs.length) {
       sessionXP = 0;
       refreshStatsUI();
 
-      // Restart numbers from the beginning if we have questions
       numbersIndex = 0;
       numbersAwaitingNext = false;
-      if (numbersQuestions && numbersQuestions.length) {
-        showCurrentNumberQuestion();
-      }
 
       updateNumbersModeDescription();
+
+      if (numbersQuestions && numbersQuestions.length) {
+        if (numbersGameMode === "speed") {
+          // Prepare speed mode
+          speedRoundActive = false;
+          speedTimeRemaining = SPEED_START_SECONDS;
+          if (numbersTimerText) {
+            numbersTimerText.textContent = `⏱ Ready – ${SPEED_START_SECONDS}s`;
+          }
+          if (numbersCheckButtonLabel) {
+            numbersCheckButtonLabel.textContent = "Start speed round";
+          }
+          if (currentQuestionEl) {
+            currentQuestionEl.textContent = "Press start to begin the speed round.";
+          }
+          if (numbersProgressFill) numbersProgressFill.style.width = "100%";
+        } else {
+          // Practice / streak
+          showCurrentNumberQuestion();
+        }
+      }
     });
   });
 }
@@ -1645,7 +1954,6 @@ if (wordsearchGridEl) {
   document.addEventListener('touchcancel', handleWordsearchUp);
 }
 
-/* ========== Boot ========== */
 window.addEventListener('load',()=>{
   setInitialTheme();
   initEYFSSelect();
