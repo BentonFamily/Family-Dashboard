@@ -735,56 +735,65 @@ function showCurrentNumberQuestion() {
       numbersFeedback.className = "feedback bad";
     }
     if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Check";
-    if (numbersProgressText) numbersProgressText.textContent = "";
+    if (typeof numbersProgressText !== "undefined" && numbersProgressText) {
+      numbersProgressText.textContent = "";
+    }
     return;
   }
 
-if (numbersIndex >= numbersQuestions.length) {
-  const got = sessionCorrect;
-  const total = sessionTotal;
+  // End of this round: show honest summary
+  if (numbersIndex >= numbersQuestions.length) {
+    const got = sessionCorrect;
+    const total = sessionTotal;
 
-  if (currentQuestionEl) currentQuestionEl.textContent = "All done!";
+    if (currentQuestionEl) currentQuestionEl.textContent = "All done!";
 
-  if (numbersFeedback) {
-    let msg;
-
-    if (!total) {
-      msg = "No questions answered this round.";
-    } else if (got === total) {
-      msg = `Brilliant – you got all ${total} correct! 🎉`;
-    } else if (got === 0) {
-      msg = `You’ve tried all ${total} questions. Let’s have another go and see if we can get some right.`;
-    } else {
-      msg = `Nice work – you got ${got} out of ${total} correct.`;
+    if (numbersFeedback) {
+      let msg;
+      if (!total) {
+        msg = "No questions answered this round.";
+      } else if (got === total) {
+        msg = `Brilliant – you got all ${total} correct! 🎉`;
+      } else if (got === 0) {
+        msg = `You’ve tried all ${total} questions. Let’s have another go and see if we can get some right.`;
+      } else {
+        msg = `Nice work – you got ${got} out of ${total} correct.`;
+      }
+      numbersFeedback.textContent = msg;
+      numbersFeedback.className = "feedback ok";
     }
 
-    numbersFeedback.textContent = msg;
-    numbersFeedback.className = "feedback ok";
+    if (typeof numbersProgressText !== "undefined" && numbersProgressText) {
+      numbersProgressText.textContent = "All questions finished for this round.";
+    }
+
+    // Confetti only if at least one correct
+    if (typeof confetti === "function" && sessionCorrect > 0) {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.7 }
+      });
+    }
+
+    if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Again";
+    numbersAwaitingNext = true;   // "Again" mode
+    return;
   }
 
-  // Only throw confetti if at least one was right
-  if (typeof confetti === "function" && sessionCorrect > 0) {
-    confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.7 }
-    });
-  }
-
-  if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Again";
-  numbersAwaitingNext = true;
-  return;
-}
-
+  // Normal question display
   const q = numbersQuestions[numbersIndex];
 
-  // Progress within this week's set
-  if (numbersProgressText) {
+  if (typeof numbersProgressText !== "undefined" && numbersProgressText) {
     numbersProgressText.textContent =
       `Question ${numbersIndex + 1} of ${numbersQuestions.length}`;
   }
 
-  const display = prettyPrintQuestion(q.question);
+  const display =
+    (typeof prettyPrintQuestion === "function")
+      ? prettyPrintQuestion(q.question)
+      : q.question;
+
   if (currentQuestionEl) currentQuestionEl.textContent = display;
   if (numbersAnswerInput) {
     numbersAnswerInput.value = "";
@@ -795,6 +804,8 @@ if (numbersIndex >= numbersQuestions.length) {
     numbersFeedback.className = "feedback";
   }
   if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Check";
+
+  // We’re ready to *check* the next answer
   numbersAwaitingNext = false;
 }
 
@@ -802,14 +813,25 @@ function handleNumbersAnswer() {
   if (!currentLearner) return;
   if (!numbersQuestions.length) return;
 
-  // If we just finished a round and user clicks "Again"
+  // If we are waiting for "Next question" OR "Again"
   if (numbersAwaitingNext) {
-    numbersIndex = 0;
-    shuffleArray(numbersQuestions);
+    // Finished the round, "Again" clicked
+    if (numbersIndex >= numbersQuestions.length) {
+      numbersIndex = 0;
+      shuffleArray(numbersQuestions);
+      numbersAwaitingNext = false;
+      showCurrentNumberQuestion();
+      return;
+    }
+
+    // Mid-round: move on to the next question
+    numbersAwaitingNext = false;
+    numbersIndex++;
     showCurrentNumberQuestion();
     return;
   }
 
+  // Normal case: checking the current answer
   const q = numbersQuestions[numbersIndex];
   const guessRaw = numbersAnswerInput ? numbersAnswerInput.value.trim() : "";
   if (!guessRaw) {
@@ -820,7 +842,7 @@ function handleNumbersAnswer() {
     return;
   }
 
-  // Update shared stats
+  // Shared stats
   sessionTotal++;
 
   const correct = q.answer.trim();
@@ -844,10 +866,19 @@ function handleNumbersAnswer() {
 
   refreshStatsUI();
 
-  numbersIndex++;
-  showCurrentNumberQuestion();
+  // If this was the last question, go straight to summary
+  if (numbersIndex >= numbersQuestions.length - 1) {
+    numbersIndex++;
+    showCurrentNumberQuestion();
+  } else {
+    // Otherwise, wait for "Next question"
+    numbersAwaitingNext = true;
+    if (numbersCheckButtonLabel) {
+      numbersCheckButtonLabel.textContent = "Next question";
+    }
+  }
 }
-
+  
 async function startNumbersMode() {
   if (numbersFeedback) {
     numbersFeedback.textContent = "";
