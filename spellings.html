@@ -739,26 +739,42 @@ function showCurrentNumberQuestion() {
     return;
   }
 
-  if (numbersIndex >= numbersQuestions.length) {
-    if (currentQuestionEl) currentQuestionEl.textContent = "All done!";
-    if (numbersFeedback) {
-      numbersFeedback.textContent = "Brilliant – you finished all of this week’s questions!";
-      numbersFeedback.className = "feedback ok";
+if (numbersIndex >= numbersQuestions.length) {
+  const got = sessionCorrect;
+  const total = sessionTotal;
+
+  if (currentQuestionEl) currentQuestionEl.textContent = "All done!";
+
+  if (numbersFeedback) {
+    let msg;
+
+    if (!total) {
+      msg = "No questions answered this round.";
+    } else if (got === total) {
+      msg = `Brilliant – you got all ${total} correct! 🎉`;
+    } else if (got === 0) {
+      msg = `You’ve tried all ${total} questions. Let’s have another go and see if we can get some right.`;
+    } else {
+      msg = `Nice work – you got ${got} out of ${total} correct.`;
     }
-    if (typeof confetti === "function") {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.7 }
-      });
-    }
-    if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Again";
-    if (numbersProgressText) {
-      numbersProgressText.textContent = "All questions finished for this round.";
-    }
-    numbersAwaitingNext = true;
-    return;
+
+    numbersFeedback.textContent = msg;
+    numbersFeedback.className = "feedback ok";
   }
+
+  // Only throw confetti if at least one was right
+  if (typeof confetti === "function" && sessionCorrect > 0) {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.7 }
+    });
+  }
+
+  if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Again";
+  numbersAwaitingNext = true;
+  return;
+}
 
   const q = numbersQuestions[numbersIndex];
 
