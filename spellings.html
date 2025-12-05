@@ -163,6 +163,26 @@
     background: linear-gradient(90deg,#6366f1,#22c55e);
     transition: width .25s ease-out;
   }
+  .numbers-mode-tabs {
+    display: flex;
+    gap: .25rem;
+    margin: .25rem 0 .25rem;
+    flex-wrap: wrap;
+  }
+  .numbers-mode-tab {
+    flex: 1 1 auto;
+    font-size: .8rem;
+    padding: .25rem .5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .numbers-mode-tab.active {
+    background: rgba(255,255,255,0.18);
+  }
+
   </style>
 </head>
 <body>
@@ -257,33 +277,52 @@
         <div class="small-link" id="changeLearnerLink">Change learner / list</div>
       </div>
     
-      <!-- Numbers practice card (new) -->
-      <div class="practice-card" id="numbersCard" style="display:none;">
-        <h3 id="numbersTitle">Numbers practice</h3>
-        <p style="font-size:.85rem; color:#666;" id="numbersListLabel">
-          Using this week’s numbers.
-        </p>
-       
-      <p style="font-size:.8rem; color:#666;" id="numbersProgressText"></p>
+<div class="practice-card" id="numbersCard" style="display:none;">
+  <h3 id="numbersTitle">Numbers practice</h3>
+  <p style="font-size:.85rem; color:#666;" id="numbersListLabel">
+    Using this week’s numbers.
+  </p>
 
-      <!-- New: simple progress bar -->
-      <div class="numbers-progress">
-        <div class="numbers-progress-track">
-          <div class="numbers-progress-fill" id="numbersProgressFill"></div>
-        </div>
-      </div>
-    
-      <div class="practice-word" id="currentQuestion">12 × 3</div>
-    
-      <div class="answer-row">
-        <input id="numbersAnswerInput" type="text" placeholder="Type the answer…" autocomplete="off" />
-        <button class="primary-btn" id="numbersCheckButton"><span id="numbersCheckButtonLabel">Check</span></button>
-      </div>
-    
-      <div class="feedback" id="numbersFeedback"></div>
+  <!-- Numbers mode tabs: Practice / Streak -->
+  <div class="numbers-mode-tabs">
+    <button class="numbers-mode-tab active" data-nmode="practice">Practice</button>
+    <button class="numbers-mode-tab" data-nmode="streak">Streak focus</button>
+  </div>
 
-  <!-- New: medal / “how you did” line -->
+  <p id="numbersModeDescription"
+     style="font-size:.8rem; color:#666; margin:.15rem 0 .35rem;">
+    Answer each question once and see how many you get right.
+  </p>
+
+  <!-- Question counter -->
+  <p style="font-size:.8rem; color:#666;" id="numbersProgressText"></p>
+
+  <!-- Progress bar -->
+  <div class="numbers-progress">
+    <div class="numbers-progress-track">
+      <div class="numbers-progress-fill" id="numbersProgressFill"></div>
+    </div>
+  </div>
+
+  <!-- Current question -->
+  <div class="practice-word" id="currentQuestion">12 × 3</div>
+
+  <!-- Answer input and button -->
+  <div class="answer-row">
+    <input id="numbersAnswerInput" type="text" placeholder="Type the answer…" autocomplete="off" />
+    <button class="primary-btn" id="numbersCheckButton">
+      <span id="numbersCheckButtonLabel">Check</span>
+    </button>
+  </div>
+
+  <!-- Per-question feedback -->
+  <div class="feedback" id="numbersFeedback"></div>
+
+  <!-- Medal / how you did this round -->
   <p style="font-size:.8rem; color:#666; margin-top:.5rem;" id="numbersMedalText"></p>
+
+  <!-- Streak summary (for streak mode) -->
+  <p style="font-size:.8rem; color:#666; margin-top:.25rem;" id="numbersStreakSummary"></p>
 
   <div class="small-link" id="numbersChangeLearnerLink">Change learner / activity</div>
 </div>
@@ -399,14 +438,19 @@ const numbersModeOption = document.getElementById("numbersModeOption");
 const numbersTitle = document.getElementById("numbersTitle");
 const numbersListLabel = document.getElementById("numbersListLabel");
 const numbersProgressText = document.getElementById("numbersProgressText");
-const numbersProgressFill = document.getElementById("numbersProgressFill");   // ← new
+const numbersProgressFill = document.getElementById("numbersProgressFill");
 const currentQuestionEl = document.getElementById("currentQuestion");
 const numbersAnswerInput = document.getElementById("numbersAnswerInput");
 const numbersCheckButton = document.getElementById("numbersCheckButton");
 const numbersCheckButtonLabel = document.getElementById("numbersCheckButtonLabel");
 const numbersFeedback = document.getElementById("numbersFeedback");
-const numbersMedalText = document.getElementById("numbersMedalText");        // ← new
+const numbersMedalText = document.getElementById("numbersMedalText");
 const numbersChangeLearnerLink = document.getElementById("numbersChangeLearnerLink");
+
+// NEW for numbers modes + streak summary
+const numbersModeTabs = document.querySelectorAll(".numbers-mode-tab");
+const numbersModeDescription = document.getElementById("numbersModeDescription");
+const numbersStreakSummary = document.getElementById("numbersStreakSummary");
 
 /* Core state */
 let currentLearner = null;
@@ -456,6 +500,8 @@ let selectionCells = [];
 let numbersQuestions = [];
 let numbersIndex = 0;
 let numbersAwaitingNext = false;
+  // Numbers practice mode: "practice" | "streak"
+let numbersGameMode = "practice";
 
 /* ========== Helpers ========== */
 function shuffleArray(arr) {
@@ -775,6 +821,7 @@ function showCurrentNumberQuestion() {
     if (numbersProgressText) numbersProgressText.textContent = "";
     if (numbersProgressFill) numbersProgressFill.style.width = "0%";
     if (numbersMedalText) numbersMedalText.textContent = "";
+    if (numbersStreakSummary) numbersStreakSummary.textContent = "";
     return;
   }
 
@@ -825,6 +872,16 @@ function showCurrentNumberQuestion() {
       numbersMedalText.textContent = "";
     }
 
+    // Streak summary line (only really meaningful in streak mode)
+    if (numbersStreakSummary) {
+      if (numbersGameMode === "streak") {
+        numbersStreakSummary.textContent =
+          `Best streak this round: ${bestSessionStreak} correct in a row.`;
+      } else {
+        numbersStreakSummary.textContent = "";
+      }
+    }
+    
     // Confetti only if at least one correct
     if (typeof confetti === "function" && sessionCorrect > 0) {
       confetti({
@@ -856,9 +913,13 @@ function showCurrentNumberQuestion() {
     numbersProgressFill.style.width = pct + "%";
   }
 
-  // Clear any medal mid-round
+   // Clear any medal mid-round
   if (numbersMedalText) {
     numbersMedalText.textContent = "";
+  }
+  // Clear streak summary mid-round
+  if (numbersStreakSummary) {
+    numbersStreakSummary.textContent = "";
   }
 
   // Show the question
@@ -985,6 +1046,17 @@ async function startNumbersMode() {
   showCurrentNumberQuestion();
 }
 
+  function updateNumbersModeDescription() {
+  if (!numbersModeDescription) return;
+  if (numbersGameMode === "streak") {
+    numbersModeDescription.textContent =
+      "Try to build your longest streak of correct answers this round.";
+  } else {
+    numbersModeDescription.textContent =
+      "Answer each question once and see how many you get right.";
+  }
+}
+
 /* ========== UI ========== */
 function initEYFSSelect(){
   eyfsSetSelect.innerHTML = "";
@@ -1055,7 +1127,7 @@ document.querySelectorAll('input[name="contentMode"]').forEach(radio=>{
     eyfsSetRow.style.display = currentContentMode === "eyfs" ? "block" : "none";
   });
 });
-
+  
 modeTabs.forEach(tab=>{
   tab.addEventListener("click",()=>{
     if (tab.classList.contains("disabled")) return;
@@ -1083,6 +1155,48 @@ modeTabs.forEach(tab=>{
     }
   });
 });
+
+  // Numbers mode tab switching (Practice / Streak)
+if (numbersModeTabs && numbersModeTabs.length) {
+  numbersModeTabs.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const mode = btn.dataset.nmode || "practice";
+      numbersGameMode = mode;
+
+      // Toggle active class
+      numbersModeTabs.forEach(b => {
+        b.classList.toggle("active", b === btn);
+      });
+
+      // Reset round-specific UI
+      if (numbersStreakSummary) numbersStreakSummary.textContent = "";
+      if (numbersMedalText) numbersMedalText.textContent = "";
+      if (numbersProgressFill) numbersProgressFill.style.width = "0%";
+      if (numbersProgressText) numbersProgressText.textContent = "";
+      if (numbersFeedback) {
+        numbersFeedback.textContent = "";
+        numbersFeedback.className = "feedback";
+      }
+
+      // Reset session stats for this run
+      sessionTotal = 0;
+      sessionCorrect = 0;
+      sessionStreak = 0;
+      bestSessionStreak = 0;
+      sessionXP = 0;
+      refreshStatsUI();
+
+      // Restart numbers from the beginning if we have questions
+      numbersIndex = 0;
+      numbersAwaitingNext = false;
+      if (numbersQuestions && numbersQuestions.length) {
+        showCurrentNumberQuestion();
+      }
+
+      updateNumbersModeDescription();
+    });
+  });
+}
 
 startPracticeBtn.addEventListener("click",()=>{
   const name = learnerNameInput.value.trim();
@@ -1492,6 +1606,7 @@ window.addEventListener('load',()=>{
   loadRobinWordsFromSheet();
   updateLevelTabsUI();
   updateWordsearchLockUI();
+  updateNumbersModeDescription();
 });
 </script>
 </body>
