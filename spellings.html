@@ -384,7 +384,15 @@ body.dark .numbers-progress-track {
 
   <!-- Answer input and button -->
   <div class="answer-row">
-    <input id="numbersAnswerInput" type="text" placeholder="Type the answer…" autocomplete="off" />
+    <input
+  id="numbersAnswerInput"
+  type="text"
+  inputmode="numeric"
+  pattern="[0-9]*"
+  placeholder="Type the answer…"
+  autocomplete="off"
+/>
+
     <button class="primary-btn" id="numbersCheckButton">
       <span id="numbersCheckButtonLabel">Check</span>
     </button>
@@ -580,9 +588,18 @@ let numbersAwaitingNext = false;
 /* Numbers practice mode: "practice" | "streak" | "speed" */
 let numbersGameMode = "practice";
 
-  /* Numbers unlocks (session-only) */
+/* Numbers unlocks (session-only) */
 let numbersUnlocks = {
+  streak: false,
   speed: false
+};
+
+/* Best medal per mode so far in this session
+   0 = none, 1 = bronze, 2 = silver, 3 = gold */
+let numbersBestMedal = {
+  practice: 0,
+  streak: 0,
+  speed: 0
 };
 
 /* Speed round state */
@@ -596,11 +613,25 @@ let speedAttemptedThisRound = 0;
 let speedQuestionIndex = 0;
 
 /* ========== Helpers ========== */
+/* Update locks on the numbers mode tabs (e.g., streak / speed locked/unlocked) */
 function updateNumbersModeLocks() {
   if (!numbersModeTabs || !numbersModeTabs.length) return;
 
   numbersModeTabs.forEach(btn => {
     const mode = btn.dataset.nmode;
+
+    if (mode === "streak") {
+      const locked = !numbersUnlocks.streak;
+      btn.classList.toggle("locked", locked);
+      btn.disabled = locked;
+
+      if (locked) {
+        btn.textContent = "Streak focus (locked)";
+      } else {
+        btn.textContent = "Streak focus";
+      }
+    }
+
     if (mode === "speed") {
       const locked = !numbersUnlocks.speed;
       btn.classList.toggle("locked", locked);
@@ -1015,23 +1046,27 @@ function showSpeedQuestion() {
   if (numbersMedalText && total) {
     const accuracy = total ? (got / total) : 0;
     let medal;
+    let tier = 0;
 
     if (got === 0) {
       medal = "Keep trying – another round will help.";
+      tier = 0;
     } else if (got >= 10 && accuracy >= 0.8) {
-      // High volume AND high accuracy
       medal = "🏅 Gold – lightning fast and accurate!";
+      tier = 3;
     } else if ((got >= 8 && accuracy >= 0.6) || accuracy >= 0.75) {
-      // Solid volume with decent accuracy OR very good accuracy
       medal = "🥈 Silver – great speed.";
+      tier = 2;
     } else if (got >= 5 || accuracy >= 0.5) {
-      // Reasonable attempt or 50%+ correct
       medal = "🥉 Bronze – good effort.";
+      tier = 1;
     } else {
       medal = "Nice effort – have another go.";
+      tier = 0;
     }
 
     numbersMedalText.textContent = medal;
+    numbersBestMedal.speed = Math.max(numbersBestMedal.speed, tier);
   } else if (numbersMedalText) {
     numbersMedalText.textContent = "";
   }
@@ -1158,34 +1193,35 @@ function showCurrentNumberQuestion() {
     // Fill progress bar to 100%
     if (numbersProgressFill) numbersProgressFill.style.width = "100%";
 
-    // Medal award text (practice / streak)
+       // Medal award text (practice / streak) + track best medal
     if (numbersMedalText && total) {
       const accuracy = total ? got / total : 0;
       let medal;
+      let tier = 0;
+
       if (got === total) {
         medal = "🏅 Gold – full marks!";
+        tier = 3;
       } else if (accuracy >= 0.8) {
         medal = "🥈 Silver – great job.";
+        tier = 2;
       } else if (accuracy >= 0.5) {
         medal = "🥉 Bronze – you're getting there.";
+        tier = 1;
       } else {
         medal = "Keep going – another round will help.";
+        tier = 0;
       }
       numbersMedalText.textContent = medal;
+
+      if (numbersGameMode === "practice") {
+        numbersBestMedal.practice = Math.max(numbersBestMedal.practice, tier);
+      } else if (numbersGameMode === "streak") {
+        numbersBestMedal.streak = Math.max(numbersBestMedal.streak, tier);
+      }
     } else if (numbersMedalText) {
       numbersMedalText.textContent = "";
     }
-
-    // Streak summary line (only meaningful in streak mode)
-    if (numbersStreakSummary) {
-      if (numbersGameMode === "streak") {
-        numbersStreakSummary.textContent =
-          "Best streak this round: " + bestSessionStreak + " correct in a row.";
-      } else {
-        numbersStreakSummary.textContent = "";
-      }
-    }
-
     // Confetti only if at least one correct
     if (typeof confetti === "function" && sessionCorrect > 0) {
       confetti({
@@ -1194,9 +1230,15 @@ function showCurrentNumberQuestion() {
         origin: { y: 0.7 }
       });
     }
+        // Tiered unlocks:
+    // 1) Finish a Practice round → unlock Streak
+    if (numbersGameMode === "practice" && !numbersUnlocks.streak) {
+      numbersUnlocks.streak = true;
+      updateNumbersModeLocks();
+    }
 
-        // Unlock speed round after finishing one full Practice run
-    if (numbersGameMode === "practice" && !numbersUnlocks.speed) {
+    // 2) Finish a Streak round → unlock Speed
+    if (numbersGameMode === "streak" && !numbersUnlocks.speed) {
       numbersUnlocks.speed = true;
       updateNumbersModeLocks();
     }
@@ -1556,11 +1598,19 @@ if (numbersModeTabs && numbersModeTabs.length) {
     btn.addEventListener("click", () => {
       const mode = btn.dataset.nmode || "practice";
 
-      // Block speed if still locked
+      // Enforce unlock order
+      if (mode === "streak" && !numbersUnlocks.streak) {
+        if (numbersFeedback) {
+          numbersFeedback.textContent =
+            "Finish one full Practice round first to unlock Streak focus.";
+          numbersFeedback.className = "feedback bad";
+        }
+        return;
+      }
       if (mode === "speed" && !numbersUnlocks.speed) {
         if (numbersFeedback) {
           numbersFeedback.textContent =
-            "Finish one full Practice round first to unlock Speed round.";
+            "Beat a full Streak round first to unlock Speed round.";
           numbersFeedback.className = "feedback bad";
         }
         return;
