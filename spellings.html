@@ -146,6 +146,23 @@
       background:#166534;
       color:#fff;
     }
+      .numbers-progress {
+    margin: .25rem 0 .5rem;
+  }
+  .numbers-progress-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.3);
+    overflow: hidden;
+  }
+  .numbers-progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg,#6366f1,#22c55e);
+    transition: width .25s ease-out;
+  }
   </style>
 </head>
 <body>
@@ -246,20 +263,30 @@
         <p style="font-size:.85rem; color:#666;" id="numbersListLabel">
           Using this week’s numbers.
         </p>
-        <!-- New progress line -->
-        <p style="font-size:.8rem; color:#666;" id="numbersProgressText"></p>
-        
-        <div class="practice-word" id="currentQuestion">12 × 3</div>
-    
-        <div class="answer-row">
-          <input id="numbersAnswerInput" type="text" placeholder="Type the answer…" autocomplete="off" />
-          <button class="primary-btn" id="numbersCheckButton"><span id="numbersCheckButtonLabel">Check</span></button>
+       
+      <p style="font-size:.8rem; color:#666;" id="numbersProgressText"></p>
+
+      <!-- New: simple progress bar -->
+      <div class="numbers-progress">
+        <div class="numbers-progress-track">
+          <div class="numbers-progress-fill" id="numbersProgressFill"></div>
         </div>
-    
-        <div class="feedback" id="numbersFeedback"></div>
-        <div class="small-link" id="numbersChangeLearnerLink">Change learner / activity</div>
       </div>
-    </div>
+    
+      <div class="practice-word" id="currentQuestion">12 × 3</div>
+    
+      <div class="answer-row">
+        <input id="numbersAnswerInput" type="text" placeholder="Type the answer…" autocomplete="off" />
+        <button class="primary-btn" id="numbersCheckButton"><span id="numbersCheckButtonLabel">Check</span></button>
+      </div>
+    
+      <div class="feedback" id="numbersFeedback"></div>
+
+  <!-- New: medal / “how you did” line -->
+  <p style="font-size:.8rem; color:#666; margin-top:.5rem;" id="numbersMedalText"></p>
+
+  <div class="small-link" id="numbersChangeLearnerLink">Change learner / activity</div>
+</div>
 
     <div id="wordsearchStep" style="display:none;">
       <div class="practice-card">
@@ -372,11 +399,13 @@ const numbersModeOption = document.getElementById("numbersModeOption");
 const numbersTitle = document.getElementById("numbersTitle");
 const numbersListLabel = document.getElementById("numbersListLabel");
 const numbersProgressText = document.getElementById("numbersProgressText");
+const numbersProgressFill = document.getElementById("numbersProgressFill");   // ← new
 const currentQuestionEl = document.getElementById("currentQuestion");
 const numbersAnswerInput = document.getElementById("numbersAnswerInput");
 const numbersCheckButton = document.getElementById("numbersCheckButton");
 const numbersCheckButtonLabel = document.getElementById("numbersCheckButtonLabel");
 const numbersFeedback = document.getElementById("numbersFeedback");
+const numbersMedalText = document.getElementById("numbersMedalText");        // ← new
 const numbersChangeLearnerLink = document.getElementById("numbersChangeLearnerLink");
 
 /* Core state */
@@ -734,20 +763,22 @@ function prettyPrintQuestion(raw) {
 }
 
 function showCurrentNumberQuestion() {
+  // No questions at all
   if (!numbersQuestions.length) {
     if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
     if (numbersFeedback) {
-      numbersFeedback.textContent = "Ask an adult to add some questions to the Numbers_Current sheet.";
+      numbersFeedback.textContent =
+        "Ask an adult to add some questions to the Numbers_Current sheet.";
       numbersFeedback.className = "feedback bad";
     }
     if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Check";
-    if (typeof numbersProgressText !== "undefined" && numbersProgressText) {
-      numbersProgressText.textContent = "";
-    }
+    if (numbersProgressText) numbersProgressText.textContent = "";
+    if (numbersProgressFill) numbersProgressFill.style.width = "0%";
+    if (numbersMedalText) numbersMedalText.textContent = "";
     return;
   }
 
-  // End of this round: show honest summary
+  // End of round
   if (numbersIndex >= numbersQuestions.length) {
     const got = sessionCorrect;
     const total = sessionTotal;
@@ -769,8 +800,29 @@ function showCurrentNumberQuestion() {
       numbersFeedback.className = "feedback ok";
     }
 
-    if (typeof numbersProgressText !== "undefined" && numbersProgressText) {
+    if (numbersProgressText) {
       numbersProgressText.textContent = "All questions finished for this round.";
+    }
+
+    // Fill progress bar to 100%
+    if (numbersProgressFill) numbersProgressFill.style.width = "100%";
+
+    // Medal award text
+    if (numbersMedalText && total) {
+      const accuracy = got / total;
+      let medal;
+      if (got === total) {
+        medal = "🏅 Gold – full marks!";
+      } else if (accuracy >= 0.8) {
+        medal = "🥈 Silver – great job.";
+      } else if (accuracy >= 0.5) {
+        medal = "🥉 Bronze – you're getting there.";
+      } else {
+        medal = "Keep going – another round will help.";
+      }
+      numbersMedalText.textContent = medal;
+    } else if (numbersMedalText) {
+      numbersMedalText.textContent = "";
     }
 
     // Confetti only if at least one correct
@@ -783,24 +835,40 @@ function showCurrentNumberQuestion() {
     }
 
     if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Again";
-    numbersAwaitingNext = true;   // "Again" mode
+    numbersAwaitingNext = true;
     return;
   }
 
   // Normal question display
   const q = numbersQuestions[numbersIndex];
 
-  if (typeof numbersProgressText !== "undefined" && numbersProgressText) {
+  // Question counter
+  if (numbersProgressText) {
     numbersProgressText.textContent =
       `Question ${numbersIndex + 1} of ${numbersQuestions.length}`;
   }
 
+  // Progress bar
+  if (numbersProgressFill) {
+    const total = numbersQuestions.length;
+    const done = numbersIndex; // answered so far
+    const pct = total ? (done / total) * 100 : 0;
+    numbersProgressFill.style.width = pct + "%";
+  }
+
+  // Clear any medal mid-round
+  if (numbersMedalText) {
+    numbersMedalText.textContent = "";
+  }
+
+  // Show the question
   const display =
     (typeof prettyPrintQuestion === "function")
       ? prettyPrintQuestion(q.question)
       : q.question;
 
   if (currentQuestionEl) currentQuestionEl.textContent = display;
+
   if (numbersAnswerInput) {
     numbersAnswerInput.value = "";
     numbersAnswerInput.focus();
@@ -811,7 +879,6 @@ function showCurrentNumberQuestion() {
   }
   if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Check";
 
-  // We’re ready to *check* the next answer
   numbersAwaitingNext = false;
 }
 
@@ -822,13 +889,18 @@ function handleNumbersAnswer() {
   // If we are waiting for "Next question" OR "Again"
   if (numbersAwaitingNext) {
     // Finished the round, "Again" clicked
-    if (numbersIndex >= numbersQuestions.length) {
-      numbersIndex = 0;
-      shuffleArray(numbersQuestions);
-      numbersAwaitingNext = false;
-      showCurrentNumberQuestion();
-      return;
-    }
+      if (numbersIndex >= numbersQuestions.length) {
+    numbersIndex = 0;
+    shuffleArray(numbersQuestions);
+    numbersAwaitingNext = false;
+
+    // Reset bar + medal for fresh round
+    if (numbersProgressFill) numbersProgressFill.style.width = "0%";
+    if (numbersMedalText) numbersMedalText.textContent = "";
+
+    showCurrentNumberQuestion();
+    return;
+  }
 
     // Mid-round: move on to the next question
     numbersAwaitingNext = false;
@@ -892,6 +964,8 @@ async function startNumbersMode() {
   }
   if (currentQuestionEl) currentQuestionEl.textContent = "Loading…";
   if (numbersProgressText) numbersProgressText.textContent = "";
+  if (numbersProgressFill) numbersProgressFill.style.width = "0%";
+  if (numbersMedalText) numbersMedalText.textContent = "";
 
   await loadNumbersFromSheet();
 
