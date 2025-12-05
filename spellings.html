@@ -254,6 +254,15 @@ body.dark .numbers-progress-track {
     text-shadow: 0 0 6px rgba(15,23,42,0.9);
   }
 
+      .numbers-boss-text {
+    font-size: .85rem;
+    margin: .15rem 0 .25rem;
+    color: #6b21a8;
+  }
+
+  body.dark .numbers-boss-text {
+    color: #e9d5ff;
+  }
   </style>
 </head>
 <body>
@@ -354,11 +363,12 @@ body.dark .numbers-progress-track {
     Using this week’s numbers.
   </p>
 
-  <!-- Numbers mode tabs: Practice / Streak / Speed -->
+  <!-- Numbers mode tabs: Practice / Streak / Speed / Boss -->
   <div class="numbers-mode-tabs">
     <button class="numbers-mode-tab active" data-nmode="practice">Practice</button>
     <button class="numbers-mode-tab" data-nmode="streak">Streak focus</button>
     <button class="numbers-mode-tab" data-nmode="speed">Speed round</button>
+    <button class="numbers-mode-tab" data-nmode="boss">Boss battle</button>
   </div>
 
   <p id="numbersModeDescription"
@@ -372,12 +382,15 @@ body.dark .numbers-progress-track {
   <!-- Question counter (practice / streak) -->
   <p style="font-size:.8rem; color:#666;" id="numbersProgressText"></p>
 
-  <!-- Progress bar -->
+  <!-- Progress bar (questions, time, or boss HP depending on mode) -->
   <div class="numbers-progress">
     <div class="numbers-progress-track">
       <div class="numbers-progress-fill" id="numbersProgressFill"></div>
     </div>
   </div>
+
+  <!-- Boss status line -->
+  <p id="numbersBossText" class="numbers-boss-text"></p>
 
   <!-- Current question -->
   <div class="practice-word" id="currentQuestion">12 × 3</div>
@@ -385,14 +398,13 @@ body.dark .numbers-progress-track {
   <!-- Answer input and button -->
   <div class="answer-row">
     <input
-  id="numbersAnswerInput"
-  type="text"
-  inputmode="numeric"
-  pattern="[0-9]*"
-  placeholder="Type the answer…"
-  autocomplete="off"
-/>
-
+      id="numbersAnswerInput"
+      type="text"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      placeholder="Type the answer…"
+      autocomplete="off"
+    />
     <button class="primary-btn" id="numbersCheckButton">
       <span id="numbersCheckButtonLabel">Check</span>
     </button>
@@ -401,7 +413,7 @@ body.dark .numbers-progress-track {
   <!-- Per-question feedback -->
   <div class="feedback" id="numbersFeedback"></div>
 
-  <!-- Medal / how you did this round (practice) -->
+  <!-- Medal / how you did this round (practice / speed) -->
   <p style="font-size:.8rem; color:#666; margin-top:.5rem;" id="numbersMedalText"></p>
 
   <!-- Streak summary (for streak mode) -->
@@ -535,6 +547,7 @@ const numbersModeTabs = document.querySelectorAll(".numbers-mode-tab");
 const numbersModeDescription = document.getElementById("numbersModeDescription");
 const numbersStreakSummary = document.getElementById("numbersStreakSummary");
 const numbersTimerText = document.getElementById("numbersTimerText");
+const numbersBossText = document.getElementById("numbersBossText");
 
 /* Core state */
 let currentLearner = null;
@@ -591,7 +604,8 @@ let numbersGameMode = "practice";
 /* Numbers unlocks (session-only) */
 let numbersUnlocks = {
   streak: false,
-  speed: false
+  speed: false,
+  boss: false
 };
 
 /* Best medal per mode so far in this session
@@ -599,8 +613,18 @@ let numbersUnlocks = {
 let numbersBestMedal = {
   practice: 0,
   streak: 0,
-  speed: 0
+  speed: 0,
+  boss: 0
 };
+
+/* Boss battle state */
+const BOSS_MAX_HEALTH = 10;
+let bossHealth = BOSS_MAX_HEALTH;
+let bossActive = false;
+let bossQuestionIndex = 0;
+let bossCurrentIndex = 0;
+let bossCorrect = 0;
+let bossAttempts = 0;
 
 /* Speed round state */
 const SPEED_START_SECONDS = 30;
@@ -613,9 +637,19 @@ let speedAttemptedThisRound = 0;
 let speedQuestionIndex = 0;
 
 /* ========== Helpers ========== */
-/* Update locks on the numbers mode tabs (e.g., streak / speed locked/unlocked) */
+/* Update locks on the numbers mode tabs (practice is always open, others unlock in tiers) */
 function updateNumbersModeLocks() {
   if (!numbersModeTabs || !numbersModeTabs.length) return;
+
+  // Boss unlock condition: at least bronze in practice, streak, speed
+  const bossShouldUnlock =
+    numbersBestMedal.practice >= 1 &&
+    numbersBestMedal.streak >= 1 &&
+    numbersBestMedal.speed >= 1;
+
+  if (bossShouldUnlock && !numbersUnlocks.boss) {
+    numbersUnlocks.boss = true;
+  }
 
   numbersModeTabs.forEach(btn => {
     const mode = btn.dataset.nmode;
@@ -624,24 +658,21 @@ function updateNumbersModeLocks() {
       const locked = !numbersUnlocks.streak;
       btn.classList.toggle("locked", locked);
       btn.disabled = locked;
-
-      if (locked) {
-        btn.textContent = "Streak focus (locked)";
-      } else {
-        btn.textContent = "Streak focus";
-      }
+      btn.textContent = locked ? "Streak focus (locked)" : "Streak focus";
     }
 
     if (mode === "speed") {
       const locked = !numbersUnlocks.speed;
       btn.classList.toggle("locked", locked);
       btn.disabled = locked;
+      btn.textContent = locked ? "Speed round (locked)" : "Speed round";
+    }
 
-      if (locked) {
-        btn.textContent = "Speed round (locked)";
-      } else {
-        btn.textContent = "Speed round";
-      }
+    if (mode === "boss") {
+      const locked = !numbersUnlocks.boss;
+      btn.classList.toggle("locked", locked);
+      btn.disabled = locked;
+      btn.textContent = locked ? "Boss battle (locked)" : "Boss battle";
     }
   });
 }
@@ -824,6 +855,66 @@ function registerCorrectAnswerForCurrentLevel(word) {
 
     updateLevelTabsUI();
     updateWordsearchLockUI();
+  }
+}
+
+  function updateBossUI() {
+  if (numbersBossText) {
+    numbersBossText.textContent = "Boss HP: " + bossHealth + " / " + BOSS_MAX_HEALTH;
+  }
+  if (numbersProgressFill) {
+    const pct = (bossHealth / BOSS_MAX_HEALTH) * 100;
+    numbersProgressFill.style.width = pct + "%";
+  }
+}
+
+function resetBossState() {
+  bossHealth = BOSS_MAX_HEALTH;
+  bossActive = false;
+  bossQuestionIndex = 0;
+  bossCurrentIndex = 0;
+  bossCorrect = 0;
+  bossAttempts = 0;
+
+  updateBossUI();
+
+  if (numbersFeedback) {
+    numbersFeedback.textContent = "";
+    numbersFeedback.className = "feedback";
+  }
+  if (numbersMedalText) numbersMedalText.textContent = "";
+  if (numbersStreakSummary) numbersStreakSummary.textContent = "";
+  if (numbersTimerText) numbersTimerText.textContent = "";
+}
+
+function showBossQuestion() {
+  if (!numbersQuestions.length) {
+    if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
+    return;
+  }
+
+  if (bossQuestionIndex >= numbersQuestions.length) {
+    bossQuestionIndex = 0;
+  }
+
+  const q = numbersQuestions[bossQuestionIndex];
+  bossCurrentIndex = bossQuestionIndex;
+  bossQuestionIndex++;
+
+  const display =
+    (typeof prettyPrintQuestion === "function")
+      ? prettyPrintQuestion(q.question)
+      : q.question;
+
+  if (currentQuestionEl) currentQuestionEl.textContent = display;
+
+  if (numbersAnswerInput) {
+    numbersAnswerInput.value = "";
+    numbersAnswerInput.focus();
+  }
+  if (numbersFeedback) {
+    numbersFeedback.textContent = "";
+    numbersFeedback.className = "feedback";
   }
 }
 
@@ -1143,7 +1234,7 @@ function startSpeedRound() {
   
 function showCurrentNumberQuestion() {
   // Speed mode uses its own question display
-  if (numbersGameMode === "speed") {
+  if (numbersGameMode === "speed" || numbersGameMode === "boss") {
     return;
   }
 
@@ -1297,7 +1388,7 @@ function handleNumbersAnswer() {
   if (!currentLearner) return;
   if (!numbersQuestions.length) return;
 
-  // SPEED MODE: button is "Start" or "Check" for speed round
+  // SPEED MODE
   if (numbersGameMode === "speed") {
     // Start / restart
     if (!speedRoundActive && (!speedTimerId || speedTimeRemaining === 0)) {
@@ -1335,13 +1426,13 @@ function handleNumbersAnswer() {
       }
 
       if (numbersFeedback) {
-        numbersFeedback.textContent = `Correct! +${SPEED_BONUS_SECONDS}s 🎉`;
+        numbersFeedback.textContent = "Correct! +" + SPEED_BONUS_SECONDS + "s 🎉";
         numbersFeedback.className = "feedback ok";
       }
     } else {
       sessionStreak = 0;
       if (numbersFeedback) {
-        numbersFeedback.textContent = `Almost – the answer is ${correct}.`;
+        numbersFeedback.textContent = "Almost – the answer is " + correct + ".";
         numbersFeedback.className = "feedback bad";
       }
     }
@@ -1352,7 +1443,109 @@ function handleNumbersAnswer() {
     return;
   }
 
+  // BOSS MODE
+  if (numbersGameMode === "boss") {
+    // Start battle
+    if (!bossActive && bossHealth === BOSS_MAX_HEALTH && bossAttempts === 0) {
+      resetBossState();
+      bossActive = true;
+      if (numbersCheckButtonLabel) {
+        numbersCheckButtonLabel.textContent = "Attack!";
+      }
+      showBossQuestion();
+      return;
+    }
+
+    if (!bossActive) {
+      // Battle finished, clicking "Fight again"
+      resetBossState();
+      bossActive = true;
+      if (numbersCheckButtonLabel) {
+        numbersCheckButtonLabel.textContent = "Attack!";
+      }
+      showBossQuestion();
+      return;
+    }
+
+    const q = numbersQuestions[bossCurrentIndex];
+    const guessRaw = numbersAnswerInput ? numbersAnswerInput.value.trim() : "";
+    if (!guessRaw) {
+      if (numbersFeedback) {
+        numbersFeedback.textContent = "Type an answer first.";
+        numbersFeedback.className = "feedback bad";
+      }
+      return;
+    }
+
+    bossAttempts++;
+    sessionTotal++;
+
+    const correct = q.answer.trim();
+    if (guessRaw === correct) {
+      bossCorrect++;
+      bossHealth = Math.max(0, bossHealth - 1);
+      sessionCorrect++;
+      sessionStreak++;
+      bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
+      sessionXP += 15; // a bit more XP for boss hits
+
+      if (numbersFeedback) {
+        numbersFeedback.textContent = "Hit! The boss takes damage.";
+        numbersFeedback.className = "feedback ok";
+      }
+    } else {
+      sessionStreak = 0;
+      if (numbersFeedback) {
+        numbersFeedback.textContent = "Miss! The answer was " + correct + ".";
+        numbersFeedback.className = "feedback bad";
+      }
+    }
+
+    refreshStatsUI();
+    updateBossUI();
+
+    // Check victory
+    if (bossHealth <= 0) {
+      bossActive = false;
+      if (currentQuestionEl) currentQuestionEl.textContent = "Boss defeated!";
+      const wrong = bossAttempts - bossCorrect;
+      if (numbersBossText) {
+        numbersBossText.textContent =
+          "You beat the boss with " + bossCorrect + " hits and " + wrong + " misses.";
+      }
+
+      // Basic "medal" for boss if needed later
+      let tier = 0;
+      if (bossCorrect >= 10 && wrong === 0) {
+        tier = 3;
+      } else if (bossCorrect >= 10) {
+        tier = 2;
+      } else if (bossCorrect >= 5) {
+        tier = 1;
+      }
+      numbersBestMedal.boss = Math.max(numbersBestMedal.boss, tier);
+
+      if (typeof confetti === "function") {
+        confetti({
+          particleCount: 180,
+          spread: 70,
+          origin: { y: 0.7 }
+        });
+      }
+
+      if (numbersCheckButtonLabel) {
+        numbersCheckButtonLabel.textContent = "Fight again";
+      }
+      return;
+    }
+
+    // Continue battle: next question
+    showBossQuestion();
+    return;
+  }
+
   // PRACTICE / STREAK MODE BELOW
+
   // If we are waiting for "Next question" OR "Again"
   if (numbersAwaitingNext) {
     // Finished the round, "Again" clicked
@@ -1364,6 +1557,7 @@ function handleNumbersAnswer() {
       if (numbersProgressFill) numbersProgressFill.style.width = "0%";
       if (numbersMedalText) numbersMedalText.textContent = "";
       if (numbersStreakSummary) numbersStreakSummary.textContent = "";
+      if (numbersBossText) numbersBossText.textContent = "";
 
       showCurrentNumberQuestion();
       return;
@@ -1404,7 +1598,7 @@ function handleNumbersAnswer() {
   } else {
     sessionStreak = 0;
     if (numbersFeedback) {
-      numbersFeedback.textContent = `Almost – the answer is ${correct}.`;
+      numbersFeedback.textContent = "Almost – the answer is " + correct + ".";
       numbersFeedback.className = "feedback bad";
     }
   }
@@ -1592,7 +1786,7 @@ modeTabs.forEach(tab=>{
   });
 });
 
-// Numbers mode tab switching (Practice / Streak / Speed)
+// Numbers mode tab switching (Practice / Streak / Speed / Boss)
 if (numbersModeTabs && numbersModeTabs.length) {
   numbersModeTabs.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1615,6 +1809,14 @@ if (numbersModeTabs && numbersModeTabs.length) {
         }
         return;
       }
+      if (mode === "boss" && !numbersUnlocks.boss) {
+        if (numbersFeedback) {
+          numbersFeedback.textContent =
+            "Earn at least Bronze in Practice, Streak, and Speed to unlock the Boss battle.";
+          numbersFeedback.className = "feedback bad";
+        }
+        return;
+      }
 
       numbersGameMode = mode;
 
@@ -1627,6 +1829,7 @@ if (numbersModeTabs && numbersModeTabs.length) {
       if (numbersMedalText) numbersMedalText.textContent = "";
       if (numbersProgressFill) numbersProgressFill.style.width = "0%";
       if (numbersProgressText) numbersProgressText.textContent = "";
+      if (numbersBossText) numbersBossText.textContent = "";
       if (numbersFeedback) {
         numbersFeedback.textContent = "";
         numbersFeedback.className = "feedback";
@@ -1664,6 +1867,15 @@ if (numbersModeTabs && numbersModeTabs.length) {
             currentQuestionEl.textContent = "Press start to begin the speed round.";
           }
           if (numbersProgressFill) numbersProgressFill.style.width = "100%";
+        } else if (numbersGameMode === "boss") {
+          // Prepare boss mode
+          resetBossState();
+          if (currentQuestionEl) {
+            currentQuestionEl.textContent = "Press start to challenge the boss.";
+          }
+          if (numbersCheckButtonLabel) {
+            numbersCheckButtonLabel.textContent = "Start battle";
+          }
         } else {
           // Practice / streak
           showCurrentNumberQuestion();
