@@ -177,12 +177,16 @@
       <div class="identity-card">
         <h3>What are you practising?</h3>
         <div class="mode-options">
-          <label><input type="radio" name="contentMode" value="robin" checked> Weekly spellings (Year 3)</label>
-          <label><input type="radio" name="contentMode" value="eyfs"> EYFS sound blending</label>
-          <label id="numbersModeOption" style="display:none;">
-            <input type="radio" name="contentMode" value="numbers"> Numbers practice (Year 3)
-          </label>
-        </div>
+        <label id="robinModeOption">
+          <input type="radio" name="contentMode" value="robin" checked> Weekly spellings (Year 3)
+        </label>
+        <label id="eyfsModeOption">
+          <input type="radio" name="contentMode" value="eyfs"> EYFS sound blending
+        </label>
+        <label id="numbersModeOption" style="display:none;">
+          <input type="radio" name="contentMode" value="numbers"> Numbers practice (Year 3)
+        </label>
+      </div>
 
         <div id="eyfsSetRow" style="margin-top:.5rem; display:none;">
           <label for="eyfsSetSelect">EYFS set</label>
@@ -361,6 +365,8 @@ const wordsearchStatusText = document.getElementById("wordsearchStatusText");
 const spellingsCard = document.getElementById("spellingsCard");
 const numbersCard = document.getElementById("numbersCard");
 
+const robinModeOption  = document.getElementById("robinModeOption");
+const eyfsModeOption   = document.getElementById("eyfsModeOption");
 const numbersModeOption = document.getElementById("numbersModeOption");
 
 const numbersTitle = document.getElementById("numbersTitle");
@@ -916,21 +922,56 @@ function initEYFSSelect(){
   });
 }
 
-/* Show numbers radio only for Year 3 */
+/* Show the right content options for each phase */
 phaseSelect.addEventListener("change", () => {
   const phase = phaseSelect.value;
-  if (numbersModeOption) {
-    if (phase === "y3") {
-      numbersModeOption.style.display = "block";
-    } else {
-      numbersModeOption.style.display = "none";
-      const current = getRadioValue("contentMode");
-      if (current === "numbers") {
-        const robinRadio = document.querySelector('input[name="contentMode"][value="robin"]');
-        if (robinRadio) robinRadio.checked = true;
-        currentContentMode = "robin";
-      }
+
+  const robinRadio   = document.querySelector('input[name="contentMode"][value="robin"]');
+  const eyfsRadio    = document.querySelector('input[name="contentMode"][value="eyfs"]');
+  const numbersRadio = document.querySelector('input[name="contentMode"][value="numbers"]');
+
+  if (phase === "eyfs") {
+    // EYFS: only show EYFS option
+    if (robinModeOption)  robinModeOption.style.display = "none";
+    if (numbersModeOption) numbersModeOption.style.display = "none";
+    if (eyfsModeOption)   eyfsModeOption.style.display = "block";
+
+    if (eyfsRadio) eyfsRadio.checked = true;
+    currentContentMode = "eyfs";
+
+    if (eyfsSetRow) eyfsSetRow.style.display = "block";
+    return;
+  }
+
+  if (phase === "y3") {
+    // Year 3: show Robin + Numbers, hide EYFS
+    if (robinModeOption)  robinModeOption.style.display = "block";
+    if (numbersModeOption) numbersModeOption.style.display = "block";
+    if (eyfsModeOption)   eyfsModeOption.style.display = "none";
+
+    const current = getRadioValue("contentMode");
+    if (current === "eyfs" || !current) {
+      if (robinRadio) robinRadio.checked = true;
+      currentContentMode = "robin";
     }
+
+    if (eyfsSetRow) eyfsSetRow.style.display = "none";
+    return;
+  }
+
+  // Default / unknown phase: show Robin + EYFS, hide Numbers
+  if (robinModeOption)  robinModeOption.style.display = "block";
+  if (eyfsModeOption)   eyfsModeOption.style.display = "block";
+  if (numbersModeOption) numbersModeOption.style.display = "none";
+
+  const current = getRadioValue("contentMode");
+  if (current === "numbers") {
+    if (robinRadio) robinRadio.checked = true;
+    currentContentMode = "robin";
+  }
+
+  if (eyfsSetRow) {
+    eyfsSetRow.style.display = currentContentMode === "eyfs" ? "block" : "none";
   }
 });
 
