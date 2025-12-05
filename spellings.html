@@ -229,6 +229,31 @@ body.dark .numbers-progress-track {
     font-weight: 600;
   }
 
+    .numbers-mode-tab.locked {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+      .numbers-timer {
+    margin: .1rem 0 .2rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-align: left;
+  }
+
+  /* Light mode timer */
+  body:not(.dark) .numbers-timer {
+    font-size: 1.05rem;
+    color: #0f172a;
+  }
+
+  /* Dark mode timer – brighter and clearer */
+  body.dark .numbers-timer {
+    font-size: 1.15rem;
+    color: #e5e7eb;
+    text-shadow: 0 0 6px rgba(15,23,42,0.9);
+  }
+
   </style>
 </head>
 <body>
@@ -342,9 +367,7 @@ body.dark .numbers-progress-track {
   </p>
 
   <!-- Timer (used in speed mode) -->
-  <p id="numbersTimerText"
-     style="font-size:.9rem; font-weight:600; color:#0f172a; margin:.1rem 0;">
-  </p>
+  <p id="numbersTimerText" class="numbers-timer"></p>
 
   <!-- Question counter (practice / streak) -->
   <p style="font-size:.8rem; color:#666;" id="numbersProgressText"></p>
@@ -557,6 +580,11 @@ let numbersAwaitingNext = false;
 /* Numbers practice mode: "practice" | "streak" | "speed" */
 let numbersGameMode = "practice";
 
+  /* Numbers unlocks (session-only) */
+let numbersUnlocks = {
+  speed: false
+};
+
 /* Speed round state */
 const SPEED_START_SECONDS = 30;
 const SPEED_BONUS_SECONDS = 3; // +3 seconds per correct answer
@@ -568,6 +596,25 @@ let speedAttemptedThisRound = 0;
 let speedQuestionIndex = 0;
 
 /* ========== Helpers ========== */
+function updateNumbersModeLocks() {
+  if (!numbersModeTabs || !numbersModeTabs.length) return;
+
+  numbersModeTabs.forEach(btn => {
+    const mode = btn.dataset.nmode;
+    if (mode === "speed") {
+      const locked = !numbersUnlocks.speed;
+      btn.classList.toggle("locked", locked);
+      btn.disabled = locked;
+
+      if (locked) {
+        btn.textContent = "Speed round (locked)";
+      } else {
+        btn.textContent = "Speed round";
+      }
+    }
+  });
+}
+  
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -966,18 +1013,24 @@ function showSpeedQuestion() {
   }
 
   if (numbersMedalText && total) {
+    const accuracy = total ? (got / total) : 0;
     let medal;
+
     if (got === 0) {
       medal = "Keep trying – another round will help.";
-    } else if (got >= 10) {
-      medal = "🏅 Gold – lightning fast!";
-    } else if (got >= 6) {
+    } else if (got >= 10 && accuracy >= 0.8) {
+      // High volume AND high accuracy
+      medal = "🏅 Gold – lightning fast and accurate!";
+    } else if ((got >= 8 && accuracy >= 0.6) || accuracy >= 0.75) {
+      // Solid volume with decent accuracy OR very good accuracy
       medal = "🥈 Silver – great speed.";
-    } else if (got >= 3) {
-      medal = "🥉 Bronze – good start.";
+    } else if (got >= 5 || accuracy >= 0.5) {
+      // Reasonable attempt or 50%+ correct
+      medal = "🥉 Bronze – good effort.";
     } else {
       medal = "Nice effort – have another go.";
     }
+
     numbersMedalText.textContent = medal;
   } else if (numbersMedalText) {
     numbersMedalText.textContent = "";
@@ -1140,6 +1193,12 @@ function showCurrentNumberQuestion() {
         spread: 70,
         origin: { y: 0.7 }
       });
+    }
+
+        // Unlock speed round after finishing one full Practice run
+    if (numbersGameMode === "practice" && !numbersUnlocks.speed) {
+      numbersUnlocks.speed = true;
+      updateNumbersModeLocks();
     }
 
     if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Again";
@@ -1496,6 +1555,17 @@ if (numbersModeTabs && numbersModeTabs.length) {
   numbersModeTabs.forEach(btn => {
     btn.addEventListener("click", () => {
       const mode = btn.dataset.nmode || "practice";
+
+      // Block speed if still locked
+      if (mode === "speed" && !numbersUnlocks.speed) {
+        if (numbersFeedback) {
+          numbersFeedback.textContent =
+            "Finish one full Practice round first to unlock Speed round.";
+          numbersFeedback.className = "feedback bad";
+        }
+        return;
+      }
+
       numbersGameMode = mode;
 
       numbersModeTabs.forEach(b => {
@@ -1535,7 +1605,7 @@ if (numbersModeTabs && numbersModeTabs.length) {
           speedRoundActive = false;
           speedTimeRemaining = SPEED_START_SECONDS;
           if (numbersTimerText) {
-            numbersTimerText.textContent = `⏱ Ready – ${SPEED_START_SECONDS}s`;
+            numbersTimerText.textContent = "⏱ Ready – " + SPEED_START_SECONDS + "s";
           }
           if (numbersCheckButtonLabel) {
             numbersCheckButtonLabel.textContent = "Start speed round";
@@ -1961,6 +2031,7 @@ window.addEventListener('load',()=>{
   updateLevelTabsUI();
   updateWordsearchLockUI();
   updateNumbersModeDescription();
+  updateNumbersModeLocks();
 });
 </script>
 </body>
