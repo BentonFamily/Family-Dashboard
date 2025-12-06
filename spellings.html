@@ -275,9 +275,9 @@ body.dark .numbers-progress-track {
     display: block;
   }
 
-  .numbers-boss-hit {
-    animation: numbersBossHit .3s ease;
-  }
+.numbers-boss-hit {
+  animation: numbersBossHit .3s ease;
+}
 
   .numbers-boss-defeated {
     animation: numbersBossDefeated .5s ease forwards;
@@ -306,6 +306,36 @@ body.dark .numbers-progress-track {
 
   body.dark .numbers-player-text {
     color: #fecaca;
+  }
+      #numbersCard.numbers-damage-flash {
+    animation: numbersDamageFlash .3s ease;
+  }
+
+  @keyframes numbersDamageFlash {
+    0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.0); background-color: inherit; }
+    40%  { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3); background-color: rgba(254, 202, 202, 0.4); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.0); background-color: inherit; }
+  }
+
+  body.dark #numbersCard.numbers-damage-flash {
+    background-color: rgba(127, 29, 29, 0.5);
+  }
+      .numbers-boss-graphic .boss-taunt {
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+
+  .numbers-boss-graphic.numbers-boss-taunt .boss-taunt {
+    opacity: 1;
+  }
+
+  .numbers-boss-graphic.numbers-boss-taunt {
+    animation: numbersBossLaugh .6s ease-in-out infinite alternate;
+  }
+
+  @keyframes numbersBossLaugh {
+    0%   { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-4px) scale(1.03); }
   }
   </style>
 </head>
@@ -468,6 +498,11 @@ body.dark .numbers-progress-track {
       <!-- Horns -->
       <path d="M30 25 L22 15 L28 25" fill="#fbbf24"></path>
       <path d="M90 25 L98 15 L92 25" fill="#fbbf24"></path>
+
+      <!-- Taunt text shown when player loses -->
+      <text x="60" y="20" text-anchor="middle"
+            font-size="12" fill="#f97316"
+            class="boss-taunt">Ha ha!</text>
     </svg>
   </div>
 
@@ -984,7 +1019,11 @@ function resetBossState() {
       (numbersGameMode === "boss") ? "block" : "none";
   }
   if (numbersBossGraphic) {
-    numbersBossGraphic.classList.remove("numbers-boss-hit", "numbers-boss-defeated");
+    numbersBossGraphic.classList.remove(
+      "numbers-boss-hit",
+      "numbers-boss-defeated",
+      "numbers-boss-taunt"
+    );
   }
 
   if (numbersFeedback) {
@@ -1592,7 +1631,7 @@ function handleNumbersAnswer() {
     sessionTotal++;
 
     const correct = q.answer.trim();
-    if (guessRaw === correct) {
+        if (guessRaw === correct) {
       bossCorrect++;
       bossHealth = Math.max(0, bossHealth - 1);
       sessionCorrect++;
@@ -1605,10 +1644,14 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback ok";
       }
 
-      // Shake the boss on hit
+      // Shake the boss on every hit
       if (numbersBossGraphic) {
+        // hard reset any existing animation
         numbersBossGraphic.classList.remove("numbers-boss-hit");
-        void numbersBossGraphic.offsetWidth; // restart animation
+        numbersBossGraphic.style.animation = "none";
+        // force reflow
+        void numbersBossGraphic.offsetWidth;
+        numbersBossGraphic.style.animation = "";
         numbersBossGraphic.classList.add("numbers-boss-hit");
       }
     } else {
@@ -1616,8 +1659,17 @@ function handleNumbersAnswer() {
       playerLives = Math.max(0, playerLives - 1);
 
       if (numbersFeedback) {
-        numbersFeedback.textContent = "Miss! The answer was " + correct + ".";
+        numbersFeedback.textContent =
+          "Miss! You lose a life. The answer was " + correct + ".";
         numbersFeedback.className = "feedback bad";
+      }
+
+      // Flash the card to show damage taken
+      const card = document.getElementById("numbersCard");
+      if (card) {
+        card.classList.remove("numbers-damage-flash");
+        void card.offsetWidth;
+        card.classList.add("numbers-damage-flash");
       }
     }
 
@@ -1634,7 +1686,14 @@ function handleNumbersAnswer() {
       if (numbersCheckButtonLabel) {
         numbersCheckButtonLabel.textContent = "Try again";
       }
-      // Boss stays onscreen, no confetti
+
+      // Boss taunts you
+      if (numbersBossGraphic) {
+        numbersBossGraphic.classList.remove("numbers-boss-hit", "numbers-boss-defeated");
+        numbersBossGraphic.classList.add("numbers-boss-taunt");
+      }
+
+      // No confetti on player defeat
       return;
     }
 
@@ -1661,7 +1720,7 @@ function handleNumbersAnswer() {
 
       // Defeat animation
       if (numbersBossGraphic) {
-        numbersBossGraphic.classList.remove("numbers-boss-hit");
+        numbersBossGraphic.classList.remove("numbers-boss-hit", "numbers-boss-taunt");
         numbersBossGraphic.classList.add("numbers-boss-defeated");
       }
 
