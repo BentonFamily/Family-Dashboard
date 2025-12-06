@@ -979,6 +979,12 @@ function registerCorrectAnswerForCurrentLevel(word) {
 
 function updateBossUI() {
   if (numbersGameMode === "boss") {
+    // Show wrapper in boss mode
+    if (numbersBossGraphicWrapper) {
+      numbersBossGraphicWrapper.style.display = "block";
+    }
+
+    // Texts
     if (numbersBossText) {
       numbersBossText.textContent =
         "Boss HP: " + bossHealth + " / " + BOSS_MAX_HEALTH;
@@ -991,15 +997,27 @@ function updateBossUI() {
       if (!hearts) hearts = "💀";
       numbersPlayerText.textContent = "Your lives: " + hearts;
     }
+
+    // Use progress bar for boss HP
+    if (numbersProgressFill) {
+      const pct = (bossHealth / BOSS_MAX_HEALTH) * 100;
+      numbersProgressFill.style.width = pct + "%";
+    }
   } else {
+    // Leaving boss mode: clear everything
     if (numbersBossText) numbersBossText.textContent = "";
     if (numbersPlayerText) numbersPlayerText.textContent = "";
-  }
 
-  // Use the bar for boss HP in boss mode
-  if (numbersProgressFill && numbersGameMode === "boss") {
-    const pct = (bossHealth / BOSS_MAX_HEALTH) * 100;
-    numbersProgressFill.style.width = pct + "%";
+    if (numbersBossGraphicWrapper) {
+      numbersBossGraphicWrapper.style.display = "none";
+    }
+    if (numbersBossGraphic) {
+      numbersBossGraphic.classList.remove(
+        "numbers-boss-hit",
+        "numbers-boss-defeated",
+        "numbers-boss-taunt"
+      );
+    }
   }
 }
 
@@ -1024,6 +1042,11 @@ function resetBossState() {
       "numbers-boss-defeated",
       "numbers-boss-taunt"
     );
+  }
+
+  const card = document.getElementById("numbersCard");
+  if (card) {
+    card.classList.remove("numbers-damage-flash");
   }
 
   if (numbersFeedback) {
@@ -1631,7 +1654,7 @@ function handleNumbersAnswer() {
     sessionTotal++;
 
     const correct = q.answer.trim();
-        if (guessRaw === correct) {
+    if (guessRaw === correct) {
       bossCorrect++;
       bossHealth = Math.max(0, bossHealth - 1);
       sessionCorrect++;
@@ -1644,17 +1667,17 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback ok";
       }
 
-      // Shake the boss on every hit
+      // Shake the boss on every hit (robust restart)
       if (numbersBossGraphic) {
-        // hard reset any existing animation
         numbersBossGraphic.classList.remove("numbers-boss-hit");
-        numbersBossGraphic.style.animation = "none";
-        // force reflow
-        void numbersBossGraphic.offsetWidth;
-        numbersBossGraphic.style.animation = "";
-        numbersBossGraphic.classList.add("numbers-boss-hit");
+        // Use RAF so the browser fully applies the removal before re-adding
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            numbersBossGraphic.classList.add("numbers-boss-hit");
+          });
+        });
       }
-    } else {
+        } else {
       sessionStreak = 0;
       playerLives = Math.max(0, playerLives - 1);
 
@@ -1664,12 +1687,13 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback bad";
       }
 
-      // Flash the card to show damage taken
+      // Flash the card to show damage taken (quick pulse, then clear)
       const card = document.getElementById("numbersCard");
       if (card) {
-        card.classList.remove("numbers-damage-flash");
-        void card.offsetWidth;
         card.classList.add("numbers-damage-flash");
+        setTimeout(() => {
+          card.classList.remove("numbers-damage-flash");
+        }, 250);
       }
     }
 
@@ -1975,7 +1999,7 @@ modeTabs.forEach(tab=>{
   });
 });
 
-// Numbers mode tab switching (Practice / Streak / Speed / Boss)
+/* Numbers mode tab switching (Practice / Streak / Speed / Boss) */
 if (numbersModeTabs && numbersModeTabs.length) {
   numbersModeTabs.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1990,6 +2014,7 @@ if (numbersModeTabs && numbersModeTabs.length) {
         }
         return;
       }
+
       if (mode === "speed" && !numbersUnlocks.speed) {
         if (numbersFeedback) {
           numbersFeedback.textContent =
@@ -1998,6 +2023,7 @@ if (numbersModeTabs && numbersModeTabs.length) {
         }
         return;
       }
+
       if (mode === "boss" && !numbersUnlocks.boss) {
         if (numbersFeedback) {
           numbersFeedback.textContent =
@@ -2007,8 +2033,10 @@ if (numbersModeTabs && numbersModeTabs.length) {
         return;
       }
 
+      // Switch mode
       numbersGameMode = mode;
 
+      // Update active tab styling
       numbersModeTabs.forEach(b => {
         b.classList.toggle("active", b === btn);
       });
@@ -2039,31 +2067,40 @@ if (numbersModeTabs && numbersModeTabs.length) {
       numbersIndex = 0;
       numbersAwaitingNext = false;
 
+      // If we are leaving boss mode, reset boss state + UI
+      if (numbersGameMode !== "boss") {
+        bossActive = false;
+        bossHealth = BOSS_MAX_HEALTH;
+        bossQuestionIndex = 0;
+        bossCurrentIndex = 0;
+        bossCorrect = 0;
+        bossAttempts = 0;
+        updateBossUI();
+      }
+
       updateNumbersModeDescription();
 
       if (numbersQuestions && numbersQuestions.length) {
-        if (numbersBossGraphicWrapper) {
-          numbersBossGraphicWrapper.style.display =
-            (numbersGameMode === "boss") ? "block" : "none";
-         }
-        
         if (numbersGameMode === "speed") {
           // Prepare speed mode
           speedRoundActive = false;
           speedTimeRemaining = SPEED_START_SECONDS;
           if (numbersTimerText) {
-            numbersTimerText.textContent = "⏱ Ready – " + SPEED_START_SECONDS + "s";
+            numbersTimerText.textContent =
+              "⏱ Ready – " + SPEED_START_SECONDS + "s";
           }
           if (numbersCheckButtonLabel) {
             numbersCheckButtonLabel.textContent = "Start speed round";
           }
           if (currentQuestionEl) {
-            currentQuestionEl.textContent = "Press start to begin the speed round.";
+            currentQuestionEl.textContent =
+              "Press start to begin the speed round.";
           }
           if (numbersProgressFill) numbersProgressFill.style.width = "100%";
         } else if (numbersGameMode === "boss") {
           // Prepare boss mode
-          resetBossState();
+          resetBossState();        // this calls updateBossUI() too
+          bossActive = false;      // battle not started until first click
           if (currentQuestionEl) {
             currentQuestionEl.textContent = "Press start to challenge the boss.";
           }
