@@ -1158,6 +1158,8 @@ function showSpeedQuestion() {
 
     numbersMedalText.textContent = medal;
     numbersBestMedal.speed = Math.max(numbersBestMedal.speed, tier);
+        // Re-check unlocks now that Speed has a medal
+    updateNumbersModeLocks();
   } else if (numbersMedalText) {
     numbersMedalText.textContent = "";
   }
@@ -1674,17 +1676,6 @@ async function startNumbersMode() {
   // Practice / streak behaviour
   if (numbersTimerText) numbersTimerText.textContent = "";
   showCurrentNumberQuestion();
-}
-
-  function updateNumbersModeDescription() {
-  if (!numbersModeDescription) return;
-  if (numbersGameMode === "streak") {
-    numbersModeDescription.textContent =
-      "Try to build your longest streak of correct answers this round.";
-  } else {
-    numbersModeDescription.textContent =
-      "Answer each question once and see how many you get right.";
-  }
 }
 
 /* ========== UI ========== */
