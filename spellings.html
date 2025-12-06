@@ -1214,13 +1214,21 @@ function prettyPrintQuestion(raw) {
 
 function updateNumbersModeDescription() {
   if (!numbersModeDescription) return;
+
   if (numbersGameMode === "streak") {
     numbersModeDescription.textContent =
       "Try to build your longest streak of correct answers this round.";
-  } else if (numbersGameMode === "speed") {
+  }
+  else if (numbersGameMode === "speed") {
     numbersModeDescription.textContent =
-      "30 seconds. Answer as many as you can. Each correct answer adds 3 seconds.";
-  } else {
+      "30 seconds. Answer as many as you can — each correct answer adds extra time!";
+  }
+  else if (numbersGameMode === "boss") {
+    numbersModeDescription.textContent =
+      "⚔️ Beat the boss by answering each question! But be warned — a wrong move costs you a life!";
+  }
+  else {
+    // practice mode fallback
     numbersModeDescription.textContent =
       "Answer each question once and see how many you get right.";
   }
