@@ -263,6 +263,50 @@ body.dark .numbers-progress-track {
   body.dark .numbers-boss-text {
     color: #e9d5ff;
   }
+
+    #numbersBossGraphicWrapper {
+    display: none; /* only shown in boss mode */
+  }
+
+  .numbers-boss-graphic {
+    width: 120px;
+    height: 120px;
+    margin: .25rem auto .5rem;
+    display: block;
+  }
+
+  .numbers-boss-hit {
+    animation: numbersBossHit .3s ease;
+  }
+
+  .numbers-boss-defeated {
+    animation: numbersBossDefeated .5s ease forwards;
+  }
+
+  @keyframes numbersBossHit {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+  }
+
+  @keyframes numbersBossDefeated {
+    0%   { transform: scale(1) translateY(0); opacity: 1; }
+    60%  { transform: scale(1.05) translateY(-6px); opacity: 1; }
+    100% { transform: scale(0.8) translateY(10px); opacity: 0; }
+  }
+
+  .numbers-player-text {
+    font-size: .85rem;
+    margin: .05rem 0 .25rem;
+    color: #dc2626;
+  }
+
+  body.dark .numbers-player-text {
+    color: #fecaca;
+  }
   </style>
 </head>
 <body>
@@ -389,8 +433,43 @@ body.dark .numbers-progress-track {
     </div>
   </div>
 
-  <!-- Boss status line -->
+    <!-- Boss status line -->
   <p id="numbersBossText" class="numbers-boss-text"></p>
+  <p id="numbersPlayerText" class="numbers-player-text"></p>
+
+  <!-- Boss graphic -->
+  <div id="numbersBossGraphicWrapper">
+    <svg id="numbersBossGraphic" class="numbers-boss-graphic"
+         viewBox="0 0 120 120" aria-hidden="true">
+      <!-- Body -->
+      <rect x="20" y="25" width="80" height="70" rx="20" ry="20"
+            fill="#4f46e5" stroke="#312e81" stroke-width="4"></rect>
+
+      <!-- Eyes -->
+      <circle cx="45" cy="50" r="9" fill="white"></circle>
+      <circle cx="75" cy="50" r="9" fill="white"></circle>
+      <circle cx="45" cy="50" r="4" fill="#111827"></circle>
+      <circle cx="75" cy="50" r="4" fill="#111827"></circle>
+
+      <!-- Mouth (calculator-style) -->
+      <rect x="40" y="65" width="40" height="14" rx="4" ry="4"
+            fill="#111827"></rect>
+      <rect x="44" y="67" width="6" height="4" fill="#f97316"></rect>
+      <rect x="52" y="67" width="6" height="4" fill="#f97316"></rect>
+      <rect x="60" y="67" width="6" height="4" fill="#f97316"></rect>
+      <rect x="68" y="67" width="6" height="4" fill="#f97316"></rect>
+
+      <!-- Maths symbols on body -->
+      <text x="32" y="40" font-size="10" fill="#e5e7eb">+</text>
+      <text x="88" y="40" font-size="10" fill="#e5e7eb">−</text>
+      <text x="32" y="80" font-size="10" fill="#e5e7eb">×</text>
+      <text x="88" y="80" font-size="10" fill="#e5e7eb">÷</text>
+
+      <!-- Horns -->
+      <path d="M30 25 L22 15 L28 25" fill="#fbbf24"></path>
+      <path d="M90 25 L98 15 L92 25" fill="#fbbf24"></path>
+    </svg>
+  </div>
 
   <!-- Current question -->
   <div class="practice-word" id="currentQuestion">12 × 3</div>
@@ -548,6 +627,9 @@ const numbersModeDescription = document.getElementById("numbersModeDescription")
 const numbersStreakSummary = document.getElementById("numbersStreakSummary");
 const numbersTimerText = document.getElementById("numbersTimerText");
 const numbersBossText = document.getElementById("numbersBossText");
+const numbersPlayerText = document.getElementById("numbersPlayerText");
+const numbersBossGraphicWrapper = document.getElementById("numbersBossGraphicWrapper");
+const numbersBossGraphic = document.getElementById("numbersBossGraphic");
 
 /* Core state */
 let currentLearner = null;
@@ -619,12 +701,14 @@ let numbersBestMedal = {
 
 /* Boss battle state */
 const BOSS_MAX_HEALTH = 10;
+const PLAYER_MAX_LIVES = 3;
 let bossHealth = BOSS_MAX_HEALTH;
 let bossActive = false;
 let bossQuestionIndex = 0;
 let bossCurrentIndex = 0;
 let bossCorrect = 0;
 let bossAttempts = 0;
+let playerLives = PLAYER_MAX_LIVES;
 
 /* Speed round state */
 const SPEED_START_SECONDS = 30;
@@ -858,11 +942,27 @@ function registerCorrectAnswerForCurrentLevel(word) {
   }
 }
 
-  function updateBossUI() {
-  if (numbersBossText) {
-    numbersBossText.textContent = "Boss HP: " + bossHealth + " / " + BOSS_MAX_HEALTH;
+function updateBossUI() {
+  if (numbersGameMode === "boss") {
+    if (numbersBossText) {
+      numbersBossText.textContent =
+        "Boss HP: " + bossHealth + " / " + BOSS_MAX_HEALTH;
+    }
+    if (numbersPlayerText) {
+      let hearts = "";
+      for (let i = 0; i < playerLives; i++) {
+        hearts += (i ? " " : "") + "❤️";
+      }
+      if (!hearts) hearts = "💀";
+      numbersPlayerText.textContent = "Your lives: " + hearts;
+    }
+  } else {
+    if (numbersBossText) numbersBossText.textContent = "";
+    if (numbersPlayerText) numbersPlayerText.textContent = "";
   }
-  if (numbersProgressFill) {
+
+  // Use the bar for boss HP in boss mode
+  if (numbersProgressFill && numbersGameMode === "boss") {
     const pct = (bossHealth / BOSS_MAX_HEALTH) * 100;
     numbersProgressFill.style.width = pct + "%";
   }
@@ -875,8 +975,17 @@ function resetBossState() {
   bossCurrentIndex = 0;
   bossCorrect = 0;
   bossAttempts = 0;
+  playerLives = PLAYER_MAX_LIVES;
 
   updateBossUI();
+
+  if (numbersBossGraphicWrapper) {
+    numbersBossGraphicWrapper.style.display =
+      (numbersGameMode === "boss") ? "block" : "none";
+  }
+  if (numbersBossGraphic) {
+    numbersBossGraphic.classList.remove("numbers-boss-hit", "numbers-boss-defeated");
+  }
 
   if (numbersFeedback) {
     numbersFeedback.textContent = "";
@@ -886,7 +995,7 @@ function resetBossState() {
   if (numbersStreakSummary) numbersStreakSummary.textContent = "";
   if (numbersTimerText) numbersTimerText.textContent = "";
 }
-
+  
 function showBossQuestion() {
   if (!numbersQuestions.length) {
     if (currentQuestionEl) currentQuestionEl.textContent = "No questions set.";
@@ -1489,14 +1598,23 @@ function handleNumbersAnswer() {
       sessionCorrect++;
       sessionStreak++;
       bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
-      sessionXP += 15; // a bit more XP for boss hits
+      sessionXP += 15; // extra XP for boss hits
 
       if (numbersFeedback) {
         numbersFeedback.textContent = "Hit! The boss takes damage.";
         numbersFeedback.className = "feedback ok";
       }
+
+      // Shake the boss on hit
+      if (numbersBossGraphic) {
+        numbersBossGraphic.classList.remove("numbers-boss-hit");
+        void numbersBossGraphic.offsetWidth; // restart animation
+        numbersBossGraphic.classList.add("numbers-boss-hit");
+      }
     } else {
       sessionStreak = 0;
+      playerLives = Math.max(0, playerLives - 1);
+
       if (numbersFeedback) {
         numbersFeedback.textContent = "Miss! The answer was " + correct + ".";
         numbersFeedback.className = "feedback bad";
@@ -1506,7 +1624,21 @@ function handleNumbersAnswer() {
     refreshStatsUI();
     updateBossUI();
 
-    // Check victory
+    // Check player defeat first
+    if (playerLives <= 0) {
+      bossActive = false;
+      if (currentQuestionEl) currentQuestionEl.textContent = "You were defeated!";
+      if (numbersBossText) {
+        numbersBossText.textContent = "The boss wins this time. Try again!";
+      }
+      if (numbersCheckButtonLabel) {
+        numbersCheckButtonLabel.textContent = "Try again";
+      }
+      // Boss stays onscreen, no confetti
+      return;
+    }
+
+    // Then check boss defeat
     if (bossHealth <= 0) {
       bossActive = false;
       if (currentQuestionEl) currentQuestionEl.textContent = "Boss defeated!";
@@ -1526,6 +1658,12 @@ function handleNumbersAnswer() {
         tier = 1;
       }
       numbersBestMedal.boss = Math.max(numbersBestMedal.boss, tier);
+
+      // Defeat animation
+      if (numbersBossGraphic) {
+        numbersBossGraphic.classList.remove("numbers-boss-hit");
+        numbersBossGraphic.classList.add("numbers-boss-defeated");
+      }
 
       if (typeof confetti === "function") {
         confetti({
@@ -1560,6 +1698,7 @@ function handleNumbersAnswer() {
       if (numbersMedalText) numbersMedalText.textContent = "";
       if (numbersStreakSummary) numbersStreakSummary.textContent = "";
       if (numbersBossText) numbersBossText.textContent = "";
+      if (numbersPlayerText) numbersPlayerText.textContent = "";
 
       showCurrentNumberQuestion();
       return;
@@ -1844,6 +1983,11 @@ if (numbersModeTabs && numbersModeTabs.length) {
       updateNumbersModeDescription();
 
       if (numbersQuestions && numbersQuestions.length) {
+        if (numbersBossGraphicWrapper) {
+          numbersBossGraphicWrapper.style.display =
+            (numbersGameMode === "boss") ? "block" : "none";
+         }
+        
         if (numbersGameMode === "speed") {
           // Prepare speed mode
           speedRoundActive = false;
