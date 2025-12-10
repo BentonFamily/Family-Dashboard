@@ -570,29 +570,49 @@ modeBtn.onclick = () => {
 /* Fallback list only. Real data comes from Sheet. */
 const CURRENT_WEEK_SPELLINGS = ["placeholder"];
 
-const EYFS_SETS = {
-  set1: { label: "Phase 2 – Set 1 (s a t p)", words: ["sat","tap","pat","sap","at","as"] },
-  set2: { label: "Phase 2 – Set 2 (i n m d)", words: ["din","dim","pin","nip","mad","sad"] },
-  set3: { label: "Phase 2 – Set 3 (g o c k)", words: ["dog","cog","cop","cot","kit","kick"] },
-  set4: { label: "Phase 2 – Set 4 (ck e u r)", words: ["duck","back","tuck","ruck","red","bed"] }
-};
-
+/**
+ * For now:
+ * - Robin's weekly spellings come from Spellings_CurrentWeek via Apps Script
+ * - EYFS words come from EYFS_Current via Apps Script
+ *
+ * Both are "one current set at a time" lists managed in the Sheet.
+ */
 let robinWordsRemote = [];
+let eyfsWordsRemote = [];
 
+// Load Robin's current weekly spellings
 async function loadRobinWordsFromSheet() {
   try {
     if (!window.config || !window.config.spellingsUrl) return;
-    const url = window.config.spellingsUrl + '?t=' + Date.now();
-    const resp = await fetch(url, { cache:'no-store' });
+    const url = window.config.spellingsUrl + "?t=" + Date.now();
+    const resp = await fetch(url, { cache: "no-store" });
     const data = await resp.json();
     if (Array.isArray(data.robinCurrent)) {
-      robinWordsRemote = data.robinCurrent;
+      robinWordsRemote = data.robinCurrent
+        .map(w => String(w || "").trim().toLowerCase())
+        .filter(w => w.length > 0);
     }
   } catch (err) {
-    console.error('Error loading spellings from Sheet', err);
+    console.error("Error loading Robin spellings from Sheet", err);
   }
 }
 
+// Load EYFS current blending words
+async function loadEyfsWordsFromSheet() {
+  try {
+    if (!window.config || !window.config.spellingsUrl) return;
+    const url = window.config.spellingsUrl + "?mode=eyfs&t=" + Date.now();
+    const resp = await fetch(url, { cache: "no-store" });
+    const data = await resp.json();
+    if (Array.isArray(data.eyfsCurrent)) {
+      eyfsWordsRemote = data.eyfsCurrent
+        .map(w => String(w || "").trim().toLowerCase())
+        .filter(w => w.length > 0);
+    }
+  } catch (err) {
+    console.error("Error loading EYFS words from Sheet", err);
+  }
+}
 /* ========== State / DOM ========== */
 const learnerNameInput = document.getElementById("learnerNameInput");
 const phaseSelect = document.getElementById("phaseSelect");
@@ -811,25 +831,55 @@ function rebuildWordQueue() {
 }
 
 function maskWordForLevel2(word) {
-  const chars = word.split('');
-  if (chars.length <= 2) {
-    if (chars.length === 2) chars[1] = '_';
-    return chars.join('');
-  }
-  const interior = [];
-  for (let i = 1; i < chars.length - 1; i++) interior.push(i);
-  let toHide = 1;
-  if (chars.length >= 4 && chars.length <= 6) toHide = 2;
-  if (chars.length >= 7) toHide = 3;
-  if (toHide > interior.length) toHide = interior.length;
-  for (let i = interior.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [interior[i], interior[j]] = [interior[j], interior[i]];
-  }
-  for (let k = 0; k < toHide; k++) chars[interior[k]] = '_';
-  return chars.join('');
-}
+  const clean = String(word || "").trim();
+  if (!clean) return "";
 
+  const chars = clean.split("");
+
+  // EYFS: keep it ultra simple, hide exactly one interior letter
+  if (currentContentMode === "eyfs") {
+    if (chars.length <= 2) {
+      if (chars.length === 2) chars[1] = "_";
+      return chars.join("");
+    }
+
+    const interior = [];
+    for (let i = 1; i < chars.length - 1; i++) interior.push(i);
+    const idx = interior[Math.floor(Math.random() * interior.length)];
+    chars[idx] = "_";
+    return chars.join("");
+  }
+
+  // Robin (Y3): keep your existing increasing-difficulty behaviour
+  if (chars.length <= 2) {
+    if (chars.length === 2) chars[1] = "_";
+    return chars.join("");
+  }
+
+  const interiorIndexes = [];
+  for (let i = 1; i < chars.length - 1; i++) {
+    interiorIndexes.push(i);
+  }
+
+  let lettersToHide = 1;
+  if (chars.length >= 4 && chars.length <= 6) lettersToHide = 2;
+  if (chars.length >= 7) lettersToHide = 3;
+  if (lettersToHide > interiorIndexes.length) lettersToHide = interiorIndexes.length;
+
+  // Shuffle interior indexes
+  for (let i = interiorIndexes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [interiorIndexes[i], interiorIndexes[j]] = [interiorIndexes[j], interiorIndexes[i]];
+  }
+
+  for (let k = 0; k < lettersToHide; k++) {
+    const idx = interiorIndexes[k];
+    chars[idx] = "_";
+  }
+
+  return chars.join("");
+}
+  
 function buildClueForLevel3(word) {
   if (!word) return "";
   const clean = String(word).trim();
@@ -1090,15 +1140,20 @@ function showBossQuestion() {
 }
 
 /* ========== Word list & practice (spellings) ========== */
+/* ========== Word list & practice (spellings) ========== */
 function getWordList() {
   if (currentContentMode === "robin") {
+    // Robin (Y3): prefer Sheet, fall back to local list
     const fromSheet = robinWordsRemote.length ? robinWordsRemote : null;
     const source = fromSheet || CURRENT_WEEK_SPELLINGS;
     return source.slice();
   } else if (currentContentMode === "eyfs") {
-    const key = eyfsSetSelect.value;
-    const set = EYFS_SETS[key];
-    return set ? set.words.slice() : [];
+    // EYFS: always use whatever is in EYFS_Current
+    if (eyfsWordsRemote.length) {
+      return eyfsWordsRemote.slice();
+    }
+    // No EYFS words set yet
+    return [];
   } else {
     // Numbers mode uses a different loop, no words
     return [];
@@ -1909,14 +1964,15 @@ async function startNumbersMode() {
 }
 
 /* ========== UI ========== */
-function initEYFSSelect(){
+function initEYFSSelect() {
+  if (!eyfsSetSelect) return;
   eyfsSetSelect.innerHTML = "";
-  Object.entries(EYFS_SETS).forEach(([key,val])=>{
-    const opt = document.createElement("option");
-    opt.value = key;
-    opt.textContent = val.label;
-    eyfsSetSelect.appendChild(opt);
-  });
+
+  // For now we just have one "current book" that comes from EYFS_Current
+  const opt = document.createElement("option");
+  opt.value = "current";
+  opt.textContent = "Current EYFS book (from sheet)";
+  eyfsSetSelect.appendChild(opt);
 }
 
 /* Show the right content options for each phase */
@@ -2179,21 +2235,19 @@ startPracticeBtn.addEventListener("click",()=>{
   subtitle.style.display = "none";
   modeLabel.innerHTML = `<strong>Spellings practice</strong> – practising with ${name}.`;
 
-  if (currentContentMode === "robin"){
-    listLabel.textContent = "Using this week’s spellings list.";
-  } else {
-    const set = EYFS_SETS[eyfsSetSelect.value];
-    listLabel.textContent = set ? set.label : "EYFS blending set.";
-  }
+if (currentContentMode === "robin"){
+  listLabel.textContent = "Using this week’s spellings list.";
+} else {
+  listLabel.textContent = "EYFS blending – current book from sheet.";
+}
 
   rebuildWordQueue();
   pickNextWord();
 });
 
-eyfsSetSelect.addEventListener("change",()=>{
-  if (practiceStep.style.display === "block" && currentContentMode==="eyfs"){
-    const set = EYFS_SETS[eyfsSetSelect.value];
-    listLabel.textContent = set ? set.label : "EYFS set.";
+eyfsSetSelect.addEventListener("change", () => {
+  if (practiceStep.style.display === "block" && currentContentMode === "eyfs") {
+    listLabel.textContent = "EYFS blending – current book from sheet.";
     rebuildWordQueue();
     pickNextWord();
   }
@@ -2525,10 +2579,11 @@ if (wordsearchGridEl) {
   document.addEventListener('touchcancel', handleWordsearchUp);
 }
 
-window.addEventListener('load',()=>{
+window.addEventListener("load", () => {
   setInitialTheme();
   initEYFSSelect();
   loadRobinWordsFromSheet();
+  loadEyfsWordsFromSheet();
   updateLevelTabsUI();
   updateWordsearchLockUI();
   updateNumbersModeDescription();
