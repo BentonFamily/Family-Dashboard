@@ -2354,10 +2354,50 @@ function generateWordsearch() {
     return;
   }
 
-  const maxWords = 6;
-  const selected = wordsRaw.slice(0, maxWords);
+  // Shuffle so we don't always get the same first N words
+  const pool = shuffleArray(wordsRaw.slice());
 
-  const size = 10;
+  // Decide grid size based on longest word, with a sensible cap
+  const MIN_GRID_SIZE = 10;
+  const MAX_GRID_SIZE = 12;
+
+  let longest = 0;
+  for (const w of pool) {
+    if (w.length > longest) longest = w.length;
+  }
+
+  // If some words are longer than our hard cap, drop them from the wordsearch pool
+  let usable = pool;
+  if (longest > MAX_GRID_SIZE) {
+    usable = pool.filter(w => w.length <= MAX_GRID_SIZE);
+  }
+
+  if (!usable.length) {
+    wordsearchGridEl.innerHTML =
+      "<p>These words are too long for the current word search grid.</p>";
+    wordsearchWordsEl.textContent = "";
+    wordsearchCurrentWords = [];
+    return;
+  }
+
+  // Recompute longest among usable words and set grid size
+  longest = 0;
+  for (const w of usable) {
+    if (w.length > longest) longest = w.length;
+  }
+  const size = Math.max(MIN_GRID_SIZE, longest);
+
+  // Allow more words for EYFS (shorter words), keep 6 for Robin
+  const maxWords = (currentContentMode === "eyfs") ? 12 : 6;
+  const selected = usable.slice(0, Math.min(maxWords, usable.length));
+
+  if (!selected.length) {
+    wordsearchGridEl.innerHTML = "<p>No suitable words for word search.</p>";
+    wordsearchWordsEl.textContent = "";
+    wordsearchCurrentWords = [];
+    return;
+  }
+
   const directions = [
     [0, 1],  // right
     [1, 0]   // down
@@ -2419,6 +2459,7 @@ function generateWordsearch() {
     return;
   }
 
+  // Fill empty cells with random letters
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
       if (!grid[r][c]) {
