@@ -337,6 +337,11 @@ body.dark .numbers-progress-track {
     0%   { transform: translateY(0) scale(1); }
     100% { transform: translateY(-4px) scale(1.03); }
   }
+    
+.numbers-boss-graphic.gold-boss .boss-body {
+  fill: #facc15;   /* gold */
+  stroke: #b45309; /* darker outline */
+}
   </style>
 </head>
 <body>
@@ -754,16 +759,23 @@ let numbersBestMedal = {
   boss: 0
 };
 
-/* Boss battle state */
 const BOSS_MAX_HEALTH = 10;
+const GOLD_BOSS_MAX_HEALTH = 12;   // optional if you want HP harder too
 const PLAYER_MAX_LIVES = 3;
+const GOLD_PLAYER_MAX_LIVES = 1;   // the real “peril” lever
+
 let bossHealth = BOSS_MAX_HEALTH;
 let bossActive = false;
 let bossQuestionIndex = 0;
 let bossCurrentIndex = 0;
 let bossCorrect = 0;
 let bossAttempts = 0;
+
 let playerLives = PLAYER_MAX_LIVES;
+
+// Gold boss progression
+let bossWinStreak = 0;          // consecutive normal boss wins
+let goldBossActive = false;     // we are currently fighting the gold boss (or it is queued)
 
 /* Speed round state */
 const SPEED_START_SECONDS = 30;
@@ -1029,16 +1041,18 @@ function registerCorrectAnswerForCurrentLevel(word) {
 
 function updateBossUI() {
   if (numbersGameMode === "boss") {
-    // Show wrapper in boss mode
     if (numbersBossGraphicWrapper) {
       numbersBossGraphicWrapper.style.display = "block";
     }
 
-    // Texts
+    const maxHP = goldBossActive ? GOLD_BOSS_MAX_HEALTH : BOSS_MAX_HEALTH;
+
     if (numbersBossText) {
+      const title = goldBossActive ? "Gold Boss" : "Boss";
       numbersBossText.textContent =
-        "Boss HP: " + bossHealth + " / " + BOSS_MAX_HEALTH;
+        title + " HP: " + bossHealth + " / " + maxHP;
     }
+
     if (numbersPlayerText) {
       let hearts = "";
       for (let i = 0; i < playerLives; i++) {
@@ -1048,13 +1062,11 @@ function updateBossUI() {
       numbersPlayerText.textContent = "Your lives: " + hearts;
     }
 
-    // Use progress bar for boss HP
     if (numbersProgressFill) {
-      const pct = (bossHealth / BOSS_MAX_HEALTH) * 100;
+      const pct = (bossHealth / maxHP) * 100;
       numbersProgressFill.style.width = pct + "%";
     }
   } else {
-    // Leaving boss mode: clear everything
     if (numbersBossText) numbersBossText.textContent = "";
     if (numbersPlayerText) numbersPlayerText.textContent = "";
 
@@ -1065,20 +1077,26 @@ function updateBossUI() {
       numbersBossGraphic.classList.remove(
         "numbers-boss-hit",
         "numbers-boss-defeated",
-        "numbers-boss-taunt"
+        "numbers-boss-taunt",
+        "gold-boss"
       );
     }
   }
 }
 
 function resetBossState() {
-  bossHealth = BOSS_MAX_HEALTH;
+  // Gold boss stays active until beaten
+  const maxHP = goldBossActive ? GOLD_BOSS_MAX_HEALTH : BOSS_MAX_HEALTH;
+  const maxLives = goldBossActive ? GOLD_PLAYER_MAX_LIVES : PLAYER_MAX_LIVES;
+
+  bossHealth = maxHP;
   bossActive = false;
   bossQuestionIndex = 0;
   bossCurrentIndex = 0;
   bossCorrect = 0;
   bossAttempts = 0;
-  playerLives = PLAYER_MAX_LIVES;
+
+  playerLives = maxLives;
 
   updateBossUI();
 
@@ -1086,12 +1104,19 @@ function resetBossState() {
     numbersBossGraphicWrapper.style.display =
       (numbersGameMode === "boss") ? "block" : "none";
   }
+
   if (numbersBossGraphic) {
     numbersBossGraphic.classList.remove(
       "numbers-boss-hit",
       "numbers-boss-defeated",
       "numbers-boss-taunt"
     );
+
+    if (goldBossActive) {
+      numbersBossGraphic.classList.add("gold-boss");
+    } else {
+      numbersBossGraphic.classList.remove("gold-boss");
+    }
   }
 
   const card = document.getElementById("numbersCard");
@@ -1780,6 +1805,11 @@ function handleNumbersAnswer() {
         numbersBossGraphic.classList.add("numbers-boss-taunt");
       }
 
+  // Losing breaks the normal win streak
+  bossWinStreak = 0;
+
+  // If this is a gold boss attempt, it stays gold until beaten
+  // (so we do NOT set goldBossActive = false here)
       // No confetti on player defeat
       return;
     }
@@ -1787,6 +1817,29 @@ function handleNumbersAnswer() {
     // Then check boss defeat
     if (bossHealth <= 0) {
       bossActive = false;
+      // ---- Gold Boss progression ----
+  if (goldBossActive) {
+  // We just beat the gold boss
+  goldBossActive = false;
+  bossWinStreak = 0;
+
+  if (numbersBossText) {
+    numbersBossText.textContent += " Gold Boss beaten! 🏆";
+  }
+} else {
+  // Normal boss win
+  bossWinStreak++;
+
+  // After 2 normal wins, the NEXT boss becomes gold
+  if (bossWinStreak >= 2) {
+    goldBossActive = true;
+    if (numbersBossText) {
+      numbersBossText.textContent += " Gold Boss unlocked next fight!";
+    }
+  }
+}
+// ---- End Gold Boss progression ----
+      
       if (currentQuestionEl) currentQuestionEl.textContent = "Boss defeated!";
       const wrong = bossAttempts - bossCorrect;
       if (numbersBossText) {
@@ -2181,8 +2234,24 @@ if (numbersModeTabs && numbersModeTabs.length) {
 }
 
 startPracticeBtn.addEventListener("click",()=>{
-  const name = learnerNameInput.value.trim();
+  const nameRaw = learnerNameInput.value || "";
+  const name = nameRaw.trim();
   const phase = phaseSelect.value;
+
+  // Secret parent unlock code: type it into the name box
+  const SECRET_UNLOCK = "grownups-only"; // change to anything you like
+  if (name.toLowerCase() === SECRET_UNLOCK) {
+    if (typeof parentUnlockAll === "function") {
+      parentUnlockAll();
+    }
+
+    // Don’t start a session with the secret word
+    learnerNameInput.value = "";
+    // Quiet confirmation (no alert if you prefer)
+    alert("Unlocked for testing. Now type the child’s name and start as normal.");
+    return;
+  }
+
   if (!name){ alert("Enter a name."); return; }
   if (!phase){ alert("Choose a year/phase."); return; }
 
