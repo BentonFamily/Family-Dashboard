@@ -1258,6 +1258,7 @@ function resetBossState() {
 
   updateBossUI();
 
+  // Show the hard-mode warning ONLY when gold boss is active
   if (goldBossActive) {
     showBigBanner(
       "gold",
@@ -1278,6 +1279,14 @@ function resetBossState() {
       "numbers-boss-taunt"
     );
 
+    // Toggle gold visuals
+    if (goldBossActive) {
+      numbersBossGraphic.classList.add("gold-boss");
+    } else {
+      numbersBossGraphic.classList.remove("gold-boss");
+    }
+  }
+
   const card = document.getElementById("numbersCard");
   if (card) {
     card.classList.remove("numbers-damage-flash");
@@ -1290,14 +1299,6 @@ function resetBossState() {
   if (numbersMedalText) numbersMedalText.textContent = "";
   if (numbersStreakSummary) numbersStreakSummary.textContent = "";
   if (numbersTimerText) numbersTimerText.textContent = "";
-}
-
-  if (goldBossActive) {
-  showBigBanner(
-    "gold",
-    "GOLD BOSS!",
-    "Hard Mode: You only have ONE life. Slow down and be careful!"
-  );
 }
   
 function showBossQuestion() {
