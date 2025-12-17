@@ -342,6 +342,82 @@ body.dark .numbers-progress-track {
   fill: #facc15;   /* gold */
   stroke: #b45309; /* darker outline */
 }
+
+#numbersCard { position: relative; }
+/* ===== Big centre banner overlay ===== */
+.big-banner.hidden { display: none; }
+
+.big-banner {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.65);
+  padding: 16px;
+}
+
+.big-banner-inner {
+  width: min(520px, 92vw);
+  border-radius: 18px;
+  padding: 18px 16px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  background: rgba(255,255,255,0.92);
+  animation: bannerPop .35s ease;
+}
+
+body.dark .big-banner-inner {
+  background: rgba(20,20,28,0.92);
+}
+
+.big-banner-title {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin: 6px 0 10px;
+}
+
+.big-banner-text {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 14px;
+}
+
+.big-banner-close {
+  font-size: 16px;
+  font-weight: 800;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 0;
+  cursor: pointer;
+}
+
+.big-banner.gold .big-banner-title,
+.big-banner.gold .big-banner-text {
+  color: #92400e;
+}
+
+body.dark .big-banner.gold .big-banner-title,
+body.dark .big-banner.gold .big-banner-text {
+  color: #fbbf24;
+}
+
+.big-banner.win .big-banner-title,
+.big-banner.win .big-banner-text {
+  color: #166534;
+}
+
+body.dark .big-banner.win .big-banner-title,
+body.dark .big-banner.win .big-banner-text {
+  color: #86efac;
+}
+
+@keyframes bannerPop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
   </style>
 </head>
 <body>
@@ -449,6 +525,15 @@ body.dark .numbers-progress-track {
     <button class="numbers-mode-tab" data-nmode="speed">Speed round</button>
     <button class="numbers-mode-tab" data-nmode="boss">Boss battle</button>
   </div>
+  
+  <!-- Big centre banner overlay (Gold Boss + Wins) -->
+<div id="numbersBigBanner" class="big-banner hidden" aria-live="polite">
+  <div class="big-banner-inner">
+    <div id="numbersBigBannerTitle" class="big-banner-title">GOLD BOSS!</div>
+    <div id="numbersBigBannerText" class="big-banner-text">One life. Stay sharp.</div>
+    <button id="numbersBigBannerClose" class="big-banner-close" type="button">OK</button>
+  </div>
+</div>
 
   <p id="numbersModeDescription"
      style="font-size:.8rem; color:#666; margin:.15rem 0 .25rem;">
@@ -691,6 +776,33 @@ const numbersPlayerText = document.getElementById("numbersPlayerText");
 const numbersBossGraphicWrapper = document.getElementById("numbersBossGraphicWrapper");
 const numbersBossGraphic = document.getElementById("numbersBossGraphic");
 
+// Big banner (add here)
+const numbersBigBanner = document.getElementById("numbersBigBanner");
+const numbersBigBannerTitle = document.getElementById("numbersBigBannerTitle");
+const numbersBigBannerText = document.getElementById("numbersBigBannerText");
+const numbersBigBannerClose = document.getElementById("numbersBigBannerClose");
+
+/* ===== Section 4.1: Big banner helpers ===== */
+function showBigBanner(type, title, text) {
+  if (!numbersBigBanner || !numbersBigBannerTitle || !numbersBigBannerText) return;
+
+  numbersBigBanner.classList.remove("hidden", "gold", "win");
+  numbersBigBanner.classList.add(type);
+
+  numbersBigBannerTitle.textContent = title || "";
+  numbersBigBannerText.textContent = text || "";
+
+  if (numbersBigBannerClose) {
+    setTimeout(() => numbersBigBannerClose.focus(), 50);
+  }
+}
+
+function hideBigBanner() {
+  if (!numbersBigBanner) return;
+  numbersBigBanner.classList.add("hidden");
+  numbersBigBanner.classList.remove("gold", "win");
+}
+  
 /* Core state */
 let currentLearner = null;
 let currentPhase = "";
@@ -788,9 +900,14 @@ let speedCorrectThisRound = 0;
 let speedAttemptedThisRound = 0;
 let speedQuestionIndex = 0;
 
+if (numbersBigBannerClose) {
+  numbersBigBannerClose.addEventListener("click", hideBigBanner);
+}
+
 /* ========== Helpers ========== */
 /* Update locks on the numbers mode tabs (practice is always open, others unlock in tiers) */
 function updateNumbersModeLocks() {
+
   if (!numbersModeTabs || !numbersModeTabs.length) return;
 
   // Boss unlock condition: at least bronze in practice, streak, speed
@@ -1141,6 +1258,14 @@ function resetBossState() {
 
   updateBossUI();
 
+  if (goldBossActive) {
+    showBigBanner(
+      "gold",
+      "GOLD BOSS!",
+      "Hard Mode: You only have ONE life. Slow down and be careful!"
+    );
+  }
+
   if (numbersBossGraphicWrapper) {
     numbersBossGraphicWrapper.style.display =
       (numbersGameMode === "boss") ? "block" : "none";
@@ -1152,13 +1277,6 @@ function resetBossState() {
       "numbers-boss-defeated",
       "numbers-boss-taunt"
     );
-
-    if (goldBossActive) {
-      numbersBossGraphic.classList.add("gold-boss");
-    } else {
-      numbersBossGraphic.classList.remove("gold-boss");
-    }
-  }
 
   const card = document.getElementById("numbersCard");
   if (card) {
@@ -1172,6 +1290,14 @@ function resetBossState() {
   if (numbersMedalText) numbersMedalText.textContent = "";
   if (numbersStreakSummary) numbersStreakSummary.textContent = "";
   if (numbersTimerText) numbersTimerText.textContent = "";
+}
+
+  if (goldBossActive) {
+  showBigBanner(
+    "gold",
+    "GOLD BOSS!",
+    "Hard Mode: You only have ONE life. Slow down and be careful!"
+  );
 }
   
 function showBossQuestion() {
@@ -1880,6 +2006,25 @@ function handleNumbersAnswer() {
   }
 }
 // ---- End Gold Boss progression ----
+      
+      // ===== Section 6: Big WIN banner (only when Gold Boss was beaten) =====
+if (!goldBossActive && bossWinStreak === 0) {
+  // goldBossActive was just turned off above when the gold boss is beaten
+  showBigBanner(
+    "win",
+    "YOU DID IT!",
+    "Gold Boss defeated! 🏆 Mega win!"
+  );
+
+  // Extra confetti blasts (you already use confetti() below)
+  try {
+    if (typeof confetti === "function") {
+      confetti({ particleCount: 220, spread: 80, origin: { y: 0.7 } });
+      setTimeout(() => confetti({ particleCount: 180, spread: 70, origin: { y: 0.7 } }), 250);
+      setTimeout(() => confetti({ particleCount: 140, spread: 65, origin: { y: 0.7 } }), 500);
+    }
+  } catch {}
+}
       
       if (currentQuestionEl) currentQuestionEl.textContent = "Boss defeated!";
       const wrong = bossAttempts - bossCorrect;
