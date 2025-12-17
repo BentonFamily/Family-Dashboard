@@ -477,8 +477,8 @@ body.dark .numbers-progress-track {
     <svg id="numbersBossGraphic" class="numbers-boss-graphic"
          viewBox="0 0 120 120" aria-hidden="true">
       <!-- Body -->
-      <rect x="20" y="25" width="80" height="70" rx="20" ry="20"
-            fill="#4f46e5" stroke="#312e81" stroke-width="4"></rect>
+    <rect class="boss-body" x="20" y="25" width="80" height="70" rx="20" ry="20"
+      fill="#4f46e5" stroke="#312e81" stroke-width="4"></rect>
 
       <!-- Eyes -->
       <circle cx="45" cy="50" r="9" fill="white"></circle>
@@ -695,6 +695,7 @@ const numbersBossGraphic = document.getElementById("numbersBossGraphic");
 let currentLearner = null;
 let currentPhase = "";
 let currentContentMode = "robin";   // 'robin' | 'eyfs' | 'numbers'
+let parentTestUnlockActive = false;
 
 let currentLevel = 1;
 let currentMode = 1;        // 1 = full word, 2 = missing letters, 3 = clue & audio
@@ -2239,18 +2240,18 @@ startPracticeBtn.addEventListener("click",()=>{
   const phase = phaseSelect.value;
 
   // Secret parent unlock code: type it into the name box
-  const SECRET_UNLOCK = "grownups-only"; // change to anything you like
-  if (name.toLowerCase() === SECRET_UNLOCK) {
-    if (typeof parentUnlockAll === "function") {
-      parentUnlockAll();
-    }
+const SECRET_UNLOCK = "grownups-only"; // change if you like
+if (name.toLowerCase() === SECRET_UNLOCK) {
+  parentTestUnlockActive = true;
 
-    // Don’t start a session with the secret word
-    learnerNameInput.value = "";
-    // Quiet confirmation (no alert if you prefer)
-    alert("Unlocked for testing. Now type the child’s name and start as normal.");
-    return;
+  if (typeof parentUnlockAll === "function") {
+    parentUnlockAll();
   }
+
+  learnerNameInput.value = "";
+  alert("Unlocked for testing. Now type the child’s name and start as normal.");
+  return;
+}
 
   if (!name){ alert("Enter a name."); return; }
   if (!phase){ alert("Choose a year/phase."); return; }
@@ -2312,6 +2313,11 @@ if (currentContentMode === "robin"){
 
   rebuildWordQueue();
   pickNextWord();
+
+    // If parent testing unlock is active, re-apply after the normal start resets
+  if (parentTestUnlockActive && typeof parentUnlockAll === "function") {
+    parentUnlockAll();
+  }
 });
 
 eyfsSetSelect.addEventListener("change", () => {
