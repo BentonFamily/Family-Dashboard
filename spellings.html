@@ -1003,6 +1003,46 @@ function updateWordsearchLockUI() {
   }
 }
 
+function parentUnlockAll() {
+  console.log("[UNLOCK] parentUnlockAll() fired");
+
+  // ---- Spellings levels / wordsearch ----
+  if (typeof levelCompletion !== "undefined") {
+    levelCompletion[1] = true;
+    levelCompletion[2] = true;
+    levelCompletion[3] = true;
+  }
+
+  if (typeof levelWordSets !== "undefined") {
+    if (levelWordSets[1]) levelWordSets[1].clear();
+    if (levelWordSets[2]) levelWordSets[2].clear();
+    if (levelWordSets[3]) levelWordSets[3].clear();
+  }
+
+  if (typeof updateLevelTabsUI === "function") updateLevelTabsUI();
+  if (typeof updateWordsearchLockUI === "function") updateWordsearchLockUI();
+
+  // ---- Numbers unlocks (if present) ----
+  if (typeof numbersUnlocks !== "undefined") {
+    numbersUnlocks.streak = true;
+    numbersUnlocks.speed = true;
+    numbersUnlocks.boss = true;
+  }
+
+  if (typeof numbersBestMedal !== "undefined") {
+    numbersBestMedal.practice = 3;
+    numbersBestMedal.streak = 3;
+    numbersBestMedal.speed = 3;
+    if (typeof numbersBestMedal.boss !== "undefined") {
+      numbersBestMedal.boss = Math.max(numbersBestMedal.boss || 0, 1);
+    }
+  }
+
+  if (typeof updateNumbersModeLocks === "function") updateNumbersModeLocks();
+
+  console.log("[UNLOCK] done");
+}
+
 function registerCorrectAnswerForCurrentLevel(word) {
   // Numbers mode does NOT affect level / wordsearch unlock
   if (currentContentMode === "numbers") return;
@@ -2240,18 +2280,20 @@ startPracticeBtn.addEventListener("click",()=>{
   const phase = phaseSelect.value;
 
   // Secret parent unlock code: type it into the name box
-const SECRET_UNLOCK = "grownups-only"; // change if you like
-if (name.toLowerCase() === SECRET_UNLOCK) {
-  parentTestUnlockActive = true;
+  const SECRET_UNLOCK = "grownups-only"; // change if you like
+  if (name.toLowerCase() === SECRET_UNLOCK) {
+    parentTestUnlockActive = true;
 
-  if (typeof parentUnlockAll === "function") {
-    parentUnlockAll();
+    if (typeof parentUnlockAll === "function") {
+      parentUnlockAll();
+    } else {
+      console.warn("[UNLOCK] parentUnlockAll() is missing – did you add the function?");
+    }
+
+    learnerNameInput.value = "";
+    alert("Unlocked for testing. Now type the child’s name and start as normal.");
+    return;
   }
-
-  learnerNameInput.value = "";
-  alert("Unlocked for testing. Now type the child’s name and start as normal.");
-  return;
-}
 
   if (!name){ alert("Enter a name."); return; }
   if (!phase){ alert("Choose a year/phase."); return; }
