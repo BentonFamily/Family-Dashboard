@@ -1263,7 +1263,7 @@ function resetBossState() {
     showBigBanner(
       "gold",
       "GOLD BOSS!",
-      "Hard Mode: You only have ONE life. Slow down and be careful!"
+      "Hard Mode: ONE life.\nDefeat this boss to see what’s watching you."
     );
   }
 
@@ -1998,24 +1998,36 @@ function handleNumbersAnswer() {
   // Normal boss win
   bossWinStreak++;
 
+  // Tease after first boss win
+  if (bossWinStreak === 1) {
+    if (numbersBossText) {
+      numbersBossText.textContent =
+        "The boss trembles… something stronger has noticed you.";
+    }
+  }
+
   // After 2 normal wins, the NEXT boss becomes gold
   if (bossWinStreak >= 2) {
     goldBossActive = true;
-    if (numbersBossText) {
-      numbersBossText.textContent += " Gold Boss unlocked next fight!";
-    }
+
+    // Big tease banner (this is the “keep playing” hook)
+    showBigBanner(
+      "gold",
+      "⚠️ A GREATER CHALLENGE AWAKENS",
+      "You’ve beaten two bosses.\nKeep going and you won’t face just a Gold Boss…\nSomething bigger is coming."
+    );
   }
 }
 // ---- End Gold Boss progression ----
       
       // ===== Section 6: Big WIN banner (only when Gold Boss was beaten) =====
 if (!goldBossActive && bossWinStreak === 0) {
-  // goldBossActive was just turned off above when the gold boss is beaten
   showBigBanner(
     "win",
-    "YOU DID IT!",
-    "Gold Boss defeated! 🏆 Mega win!"
+    "YOU FEEL THE GROUND TREMBLE",
+    "The Gold Boss is defeated…\nBut something far stronger has awakened.\nKeep playing to challenge it."
   );
+}
 
   // Extra confetti blasts (you already use confetti() below)
   try {
