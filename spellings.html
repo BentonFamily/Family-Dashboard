@@ -2042,10 +2042,25 @@ if (!goldBossActive && bossWinStreak === 0) {
       if (currentQuestionEl) currentQuestionEl.textContent = "Boss defeated!";
       const wrong = bossAttempts - bossCorrect;
       if (numbersBossText) {
+        // Stats first
         numbersBossText.textContent =
           "You beat the boss with " + bossCorrect + " hits and " + wrong + " misses.";
+      
+        // Then teaser (depends what just happened)
+        if (bossWinStreak === 1 && !goldBossActive) {
+          numbersBossText.textContent += " The boss trembles… something stronger has noticed you.";
+        }
+      
+        if (goldBossActive) {
+          // This line will only show during the moment goldBossActive is still true
+          numbersBossText.textContent += " ⚠️ A greater challenge is waking up…";
+        }
+      
+        if (!goldBossActive && bossWinStreak === 0) {
+          // This is your “just beat the Gold Boss” state
+          numbersBossText.textContent += " You feel the ground tremble… something far stronger has awakened.";
+        }
       }
-
       // Basic "medal" for boss if needed later
       let tier = 0;
       if (bossCorrect >= 10 && wrong === 0) {
