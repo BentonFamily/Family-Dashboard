@@ -2037,8 +2037,6 @@ if (!goldBossActive && bossWinStreak === 0) {
       setTimeout(() => confetti({ particleCount: 140, spread: 65, origin: { y: 0.7 } }), 500);
     }
   } catch {}
-}
-      
       if (currentQuestionEl) currentQuestionEl.textContent = "Boss defeated!";
       const wrong = bossAttempts - bossCorrect;
       if (numbersBossText) {
