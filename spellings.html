@@ -355,6 +355,22 @@ body.dark .numbers-progress-track {
   stroke: #b45309; /* darker outline */
 }
 
+    /* ===== Prime Colossus (Final Boss) look ===== */
+.numbers-boss-graphic.prime-colossus {
+  transform: scale(1.25);
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
+}
+
+.numbers-boss-graphic.prime-colossus .boss-body {
+  fill: #111827;       /* dark armour */
+  stroke: #f59e0b;     /* gold trim */
+}
+
+.numbers-boss-graphic.prime-colossus text {
+  fill: #fbbf24;       /* make symbols pop */
+  font-weight: 900;
+}
+
 #numbersCard { position: relative; }
 
 .boss-arena{
@@ -973,6 +989,11 @@ const BOSS_MAX_HEALTH = 10;
 const GOLD_BOSS_MAX_HEALTH = 12;   // optional if you want HP harder too
 const PLAYER_MAX_LIVES = 3;
 const GOLD_PLAYER_MAX_LIVES = 1;   // the real “peril” lever
+const FINAL_BOSS_MAX_HEALTH = 18;   // Prime Colossus: chunkier
+const FINAL_PLAYER_MAX_LIVES = 2;   // still hard, but not cruel
+
+let finalBossActive = false;        // true when fighting the Prime Colossus
+let finalBossQueued = false;        // becomes true after Gold Boss is beaten
 
 let bossHealth = BOSS_MAX_HEALTH;
 let bossActive = false;
@@ -1300,10 +1321,13 @@ function updateBossUI() {
       numbersBossGraphicWrapper.style.display = "block";
     }
 
-    const maxHP = goldBossActive ? GOLD_BOSS_MAX_HEALTH : BOSS_MAX_HEALTH;
+    const maxHP = finalBossActive
+    ? FINAL_BOSS_MAX_HEALTH
+    : (goldBossActive ? GOLD_BOSS_MAX_HEALTH : BOSS_MAX_HEALTH);
+
 
     if (numbersBossText) {
-      const title = goldBossActive ? "Gold Boss" : "Boss";
+      const title = finalBossActive ? "Prime Colossus" : (goldBossActive ? "Gold Boss" : "Boss");
       numbersBossText.textContent =
         title + " HP: " + bossHealth + " / " + maxHP;
     }
@@ -1341,8 +1365,13 @@ function updateBossUI() {
 
 function resetBossState() {
   // Gold boss stays active until beaten
-  const maxHP = goldBossActive ? GOLD_BOSS_MAX_HEALTH : BOSS_MAX_HEALTH;
-  const maxLives = goldBossActive ? GOLD_PLAYER_MAX_LIVES : PLAYER_MAX_LIVES;
+  const maxHP = finalBossActive
+    ? FINAL_BOSS_MAX_HEALTH
+    : (goldBossActive ? GOLD_BOSS_MAX_HEALTH : BOSS_MAX_HEALTH);
+  
+  const maxLives = finalBossActive
+    ? FINAL_PLAYER_MAX_LIVES
+    : (goldBossActive ? GOLD_PLAYER_MAX_LIVES : PLAYER_MAX_LIVES);
 
   bossHealth = maxHP;
   bossActive = false;
@@ -1369,20 +1398,22 @@ function resetBossState() {
       (numbersGameMode === "boss") ? "block" : "none";
   }
 
-  if (numbersBossGraphic) {
-    numbersBossGraphic.classList.remove(
-      "numbers-boss-hit",
-      "numbers-boss-defeated",
-      "numbers-boss-taunt"
-    );
+if (numbersBossGraphic) {
+  numbersBossGraphic.classList.remove(
+    "numbers-boss-hit",
+    "numbers-boss-defeated",
+    "numbers-boss-taunt",
+    "gold-boss",
+    "prime-colossus"
+  );
 
-    // Toggle gold visuals
-    if (goldBossActive) {
-      numbersBossGraphic.classList.add("gold-boss");
-    } else {
-      numbersBossGraphic.classList.remove("gold-boss");
-    }
+  // Apply correct boss skin
+  if (finalBossActive) {
+    numbersBossGraphic.classList.add("prime-colossus");
+  } else if (goldBossActive) {
+    numbersBossGraphic.classList.add("gold-boss");
   }
+}
 
   const card = document.getElementById("numbersCard");
   if (card) {
@@ -1993,10 +2024,22 @@ function handleNumbersAnswer() {
     return;
   }
 
-  // BOSS MODE
-  if (numbersGameMode === "boss") {
-    // Start battle
-    if (!bossActive && bossHealth === BOSS_MAX_HEALTH && bossAttempts === 0) {
+    // BOSS MODE
+    if (numbersGameMode === "boss") {
+      // Start battle
+      if (!bossActive && bossAttempts === 0) {
+          if (finalBossQueued) {
+      finalBossActive = true;
+      finalBossQueued = false;
+  
+      showBigBanner(
+        "gold",
+        "⚔️ PRIME COLOSSUS",
+        "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
+      );
+    } else {
+    finalBossActive = false;
+  }
       resetBossState();
       bossActive = true;
       if (numbersCheckButtonLabel) {
@@ -2115,6 +2158,8 @@ function handleNumbersAnswer() {
   // We just beat the gold boss
   goldBossActive = false;
   bossWinStreak = 0;
+
+  finalBossQueued = true;
 
   if (numbersBossText) {
     numbersBossText.textContent += " Gold Boss beaten! 🏆";
