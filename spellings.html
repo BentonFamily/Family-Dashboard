@@ -264,8 +264,9 @@ body.dark .numbers-progress-track {
     color: #e9d5ff;
   }
 
-    #numbersBossGraphicWrapper {
+  #numbersBossGraphicWrapper {
     display: none; /* only shown in boss mode */
+    will-change: transform;
   }
 
   .numbers-boss-graphic {
@@ -289,6 +290,9 @@ body.dark .numbers-progress-track {
 
 .numbers-boss-hit {
   animation: numbersBossHit .3s ease;
+/* Make sure the wrapper can shake reliably */
+  #numbersBossGraphicWrapper {
+  will-change: transform;
 }
 
   .numbers-boss-defeated {
@@ -2087,16 +2091,17 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback ok";
       }
 
-      // Shake the boss on every hit (robust restart)
-      if (numbersBossGraphic) {
-        numbersBossGraphic.classList.remove("numbers-boss-hit");
-        // Use RAF so the browser fully applies the removal before re-adding
+    // Shake the boss on every hit (robust restart)
+    // IMPORTANT: shake the wrapper, not the SVG, so we don't fight SVG scale transforms
+    const shakeEl = numbersBossGraphicWrapper || numbersBossGraphic;
+    if (shakeEl) {
+      shakeEl.classList.remove("numbers-boss-hit");
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            numbersBossGraphic.classList.add("numbers-boss-hit");
-          });
+          shakeEl.classList.add("numbers-boss-hit");
         });
-      }
+      });
+    }
       
       triggerHeroAttack();
   } else {
