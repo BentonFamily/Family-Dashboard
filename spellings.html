@@ -344,6 +344,56 @@ body.dark .numbers-progress-track {
 }
 
 #numbersCard { position: relative; }
+
+.boss-arena{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap: 16px;
+}
+
+.numbers-hero-graphic{
+  width: 90px;
+  height: 90px;
+  display:block;
+  transform-origin: 60px 60px;
+}
+
+/* --- Hero attack animation --- */
+.numbers-hero-graphic.hero-attack .hero-arm,
+.numbers-hero-graphic.hero-attack .hero-sword{
+  animation: heroSwing .28s ease-out;
+  transform-origin: 40px 56px;
+}
+
+@keyframes heroSwing{
+  0%   { transform: rotate(0deg) translateX(0); }
+  40%  { transform: rotate(-18deg) translateX(1px); }
+  100% { transform: rotate(0deg) translateX(0); }
+}
+
+/* --- Boss attack animation (bigger than hit shake) --- */
+.numbers-boss-graphic.boss-attack{
+  animation: bossLunge .35s ease-in-out;
+  transform-origin: 60px 80px;
+}
+
+@keyframes bossLunge{
+  0%   { transform: translateX(0) scale(1); }
+  35%  { transform: translateX(-8px) scale(1.05); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* Optional: hero takes damage */
+.numbers-hero-graphic.hero-hurt{
+  animation: heroHurt .25s ease;
+}
+@keyframes heroHurt{
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
 /* ===== Big centre banner overlay ===== */
 .big-banner.hidden { display: none; }
 
@@ -557,13 +607,40 @@ body.dark .big-banner.win .big-banner-text {
   <p id="numbersBossText" class="numbers-boss-text"></p>
   <p id="numbersPlayerText" class="numbers-player-text"></p>
 
-  <!-- Boss graphic -->
-  <div id="numbersBossGraphicWrapper">
+<!-- Boss graphic -->
+<div id="numbersBossGraphicWrapper">
+  <div class="boss-arena">
+
+    <!-- HERO -->
+    <svg id="numbersHeroGraphic" class="numbers-hero-graphic"
+         viewBox="0 0 120 120" aria-hidden="true">
+      <!-- Head -->
+      <circle cx="35" cy="35" r="12"
+              fill="#fde68a" stroke="#92400e" stroke-width="3"></circle>
+
+      <!-- Body -->
+      <rect x="28" y="48" width="14" height="28" rx="6"
+            fill="#60a5fa" stroke="#1e3a8a" stroke-width="3"></rect>
+
+      <!-- Arm -->
+      <rect class="hero-arm" x="40" y="52" width="22" height="8" rx="4"
+            fill="#fde68a" stroke="#92400e" stroke-width="3"></rect>
+
+      <!-- Sword -->
+      <rect class="hero-sword" x="58" y="44" width="8" height="28" rx="3"
+            fill="#e5e7eb" stroke="#334155" stroke-width="3"></rect>
+      <rect x="54" y="54" width="16" height="6" rx="3"
+            fill="#f97316"></rect>
+    </svg>
+
+    <!-- BOSS -->
     <svg id="numbersBossGraphic" class="numbers-boss-graphic"
          viewBox="0 0 120 120" aria-hidden="true">
+
+      <!-- KEEP YOUR EXISTING BOSS SVG CONTENT BELOW -->
       <!-- Body -->
-    <rect class="boss-body" x="20" y="25" width="80" height="70" rx="20" ry="20"
-      fill="#4f46e5" stroke="#312e81" stroke-width="4"></rect>
+      <rect class="boss-body" x="20" y="25" width="80" height="70" rx="20" ry="20"
+            fill="#4f46e5" stroke="#312e81" stroke-width="4"></rect>
 
       <!-- Eyes -->
       <circle cx="45" cy="50" r="9" fill="white"></circle>
@@ -571,7 +648,7 @@ body.dark .big-banner.win .big-banner-text {
       <circle cx="45" cy="50" r="4" fill="#111827"></circle>
       <circle cx="75" cy="50" r="4" fill="#111827"></circle>
 
-      <!-- Mouth (calculator-style) -->
+      <!-- Mouth -->
       <rect x="40" y="65" width="40" height="14" rx="4" ry="4"
             fill="#111827"></rect>
       <rect x="44" y="67" width="6" height="4" fill="#f97316"></rect>
@@ -579,7 +656,7 @@ body.dark .big-banner.win .big-banner-text {
       <rect x="60" y="67" width="6" height="4" fill="#f97316"></rect>
       <rect x="68" y="67" width="6" height="4" fill="#f97316"></rect>
 
-      <!-- Maths symbols on body -->
+      <!-- Maths symbols -->
       <text x="32" y="40" font-size="10" fill="#e5e7eb">+</text>
       <text x="88" y="40" font-size="10" fill="#e5e7eb">−</text>
       <text x="32" y="80" font-size="10" fill="#e5e7eb">×</text>
@@ -589,12 +666,14 @@ body.dark .big-banner.win .big-banner-text {
       <path d="M30 25 L22 15 L28 25" fill="#fbbf24"></path>
       <path d="M90 25 L98 15 L92 25" fill="#fbbf24"></path>
 
-      <!-- Taunt text shown when player loses -->
+      <!-- Taunt -->
       <text x="60" y="20" text-anchor="middle"
             font-size="12" fill="#f97316"
             class="boss-taunt">Ha ha!</text>
     </svg>
+
   </div>
+</div>
 
   <!-- Current question -->
   <div class="practice-word" id="currentQuestion">12 × 3</div>
@@ -775,6 +854,7 @@ const numbersBossText = document.getElementById("numbersBossText");
 const numbersPlayerText = document.getElementById("numbersPlayerText");
 const numbersBossGraphicWrapper = document.getElementById("numbersBossGraphicWrapper");
 const numbersBossGraphic = document.getElementById("numbersBossGraphic");
+const numbersHeroGraphic = document.getElementById("numbersHeroGraphic");
 
 // Big banner (add here)
 const numbersBigBanner = document.getElementById("numbersBigBanner");
@@ -1330,6 +1410,30 @@ function showBossQuestion() {
     numbersFeedback.textContent = "";
     numbersFeedback.className = "feedback";
   }
+}
+
+  function triggerHeroAttack() {
+  if (!numbersHeroGraphic) return;
+  numbersHeroGraphic.classList.remove("hero-attack");
+  requestAnimationFrame(() => {
+    numbersHeroGraphic.classList.add("hero-attack");
+  });
+}
+
+function triggerBossAttack() {
+  if (!numbersBossGraphic) return;
+  numbersBossGraphic.classList.remove("boss-attack");
+  requestAnimationFrame(() => {
+    numbersBossGraphic.classList.add("boss-attack");
+  });
+}
+
+function triggerHeroHurt() {
+  if (!numbersHeroGraphic) return;
+  numbersHeroGraphic.classList.remove("hero-hurt");
+  requestAnimationFrame(() => {
+    numbersHeroGraphic.classList.add("hero-hurt");
+  });
 }
 
 /* ========== Word list & practice (spellings) ========== */
@@ -1933,7 +2037,9 @@ function handleNumbersAnswer() {
           });
         });
       }
-        } else {
+      
+      triggerHeroAttack();
+  } else {
       sessionStreak = 0;
       playerLives = Math.max(0, playerLives - 1);
 
@@ -1951,6 +2057,8 @@ function handleNumbersAnswer() {
           card.classList.remove("numbers-damage-flash");
         }, 250);
       }
+    triggerBossAttack();
+    triggerHeroHurt();
     }
 
     refreshStatsUI();
@@ -1997,14 +2105,6 @@ function handleNumbersAnswer() {
 } else {
   // Normal boss win
   bossWinStreak++;
-
-  // Tease after first boss win
-  if (bossWinStreak === 1) {
-    if (numbersBossText) {
-      numbersBossText.textContent =
-        "The boss trembles… something stronger has noticed you.";
-    }
-  }
 
   // After 2 normal wins, the NEXT boss becomes gold
   if (bossWinStreak >= 2) {
