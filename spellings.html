@@ -271,9 +271,21 @@ body.dark .numbers-progress-track {
   .numbers-boss-graphic {
     width: 120px;
     height: 120px;
-    margin: .25rem auto .5rem;
+    margin: 0;
     display: block;
   }
+
+  .boss-arena{
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 16px;
+}
+
+.boss-arena svg{
+  margin: 0;
+}
 
 .numbers-boss-hit {
   animation: numbersBossHit .3s ease;
@@ -361,7 +373,9 @@ body.dark .numbers-progress-track {
 
 /* --- Hero attack animation --- */
 .numbers-hero-graphic.hero-attack .hero-arm,
-.numbers-hero-graphic.hero-attack .hero-sword{
+.numbers-hero-graphic.hero-attack .hero-sword,
+.numbers-hero-graphic.hero-attack .hero-guard{
+
   animation: heroSwing .28s ease-out;
   transform-origin: 40px 56px;
 }
@@ -629,8 +643,7 @@ body.dark .big-banner.win .big-banner-text {
       <!-- Sword -->
       <rect class="hero-sword" x="58" y="44" width="8" height="28" rx="3"
             fill="#e5e7eb" stroke="#334155" stroke-width="3"></rect>
-      <rect x="54" y="54" width="16" height="6" rx="3"
-            fill="#f97316"></rect>
+      <rect class="hero-guard" x="54" y="55" width="14" height="5" rx="2" fill="#f97316"></rect>
     </svg>
 
     <!-- BOSS -->
