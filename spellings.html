@@ -276,11 +276,11 @@ body.dark .numbers-progress-track {
     display: block;
   }
 
-  .boss-arena{
+.boss-arena{
   width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
   gap: 16px;
 }
 
@@ -288,31 +288,32 @@ body.dark .numbers-progress-track {
   margin: 0;
 }
 
-.numbers-boss-hit {
+/* ===== Boss shake + defeat (FIXED) ===== */
+
+/* Shake the WRAPPER (so flex/layout doesn’t fight transforms) */
+#numbersBossGraphicWrapper.numbers-boss-hit{
   animation: numbersBossHit .3s ease;
-/* Make sure the wrapper can shake reliably */
-  #numbersBossGraphicWrapper {
-  will-change: transform;
 }
 
-  .numbers-boss-defeated {
-    animation: numbersBossDefeated .5s ease forwards;
-  }
+@keyframes numbersBossHit {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
 
-  @keyframes numbersBossHit {
-    0% { transform: translateX(0); }
-    20% { transform: translateX(-4px); }
-    40% { transform: translateX(4px); }
-    60% { transform: translateX(-2px); }
-    80% { transform: translateX(2px); }
-    100% { transform: translateX(0); }
-  }
+/* Defeated anim applies to the SVG */
+.numbers-boss-graphic.numbers-boss-defeated{
+  animation: numbersBossDefeated .5s ease forwards;
+}
 
-  @keyframes numbersBossDefeated {
-    0%   { transform: scale(1) translateY(0); opacity: 1; }
-    60%  { transform: scale(1.05) translateY(-6px); opacity: 1; }
-    100% { transform: scale(0.8) translateY(10px); opacity: 0; }
-  }
+@keyframes numbersBossDefeated {
+  0%   { transform: scale(1) translateY(0); opacity: 1; }
+  60%  { transform: scale(1.05) translateY(-6px); opacity: 1; }
+  100% { transform: scale(0.8) translateY(10px); opacity: 0; }
+}
 
   .numbers-player-text {
     font-size: .85rem;
@@ -376,13 +377,6 @@ body.dark .numbers-progress-track {
 }
 
 #numbersCard { position: relative; }
-
-.boss-arena{
-  display:flex;
-  align-items:flex-end;
-  justify-content:center;
-  gap: 16px;
-}
 
 .numbers-hero-graphic{
   width: 90px;
@@ -2091,14 +2085,12 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback ok";
       }
 
-    // Shake the boss on every hit (robust restart)
-    // IMPORTANT: shake the wrapper, not the SVG, so we don't fight SVG scale transforms
-    const shakeEl = numbersBossGraphicWrapper || numbersBossGraphic;
-    if (shakeEl) {
-      shakeEl.classList.remove("numbers-boss-hit");
+    // Shake the boss on every hit (wrapper only)
+    if (numbersBossGraphicWrapper) {
+      numbersBossGraphicWrapper.classList.remove("numbers-boss-hit");
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          shakeEl.classList.add("numbers-boss-hit");
+          numbersBossGraphicWrapper.classList.add("numbers-boss-hit");
         });
       });
     }
@@ -2596,6 +2588,9 @@ if (numbersModeTabs && numbersModeTabs.length) {
         } else if (numbersGameMode === "boss") {
           // Prepare boss mode
           resetBossState();        // this calls updateBossUI() too
+          if (numbersBossGraphic) {
+          numbersBossGraphic.classList.remove("numbers-boss-taunt");
+        }
           bossActive = false;      // battle not started until first click
           if (currentQuestionEl) {
             currentQuestionEl.textContent = "Press start to challenge the boss.";
