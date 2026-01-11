@@ -497,6 +497,23 @@ body.dark .big-banner.win .big-banner-text {
   0% { transform: scale(0.92); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
+    /* Boss form toggles */
+#numbersBossGraphic .boss-form { display: none; }
+#numbersBossGraphic.show-normal .boss-normal { display: inline; }
+#numbersBossGraphic.show-colossus .boss-colossus { display: inline; }
+
+/* Make the colossus feel like a FINAL boss */
+#numbersBossGraphic.show-colossus {
+  transform: scale(1.35);
+  transform-origin: 60px 90px;
+  filter: drop-shadow(0 12px 22px rgba(0,0,0,.38));
+}
+
+/* Optional: slightly shrink normal boss so colossus contrast is bigger */
+#numbersBossGraphic.show-normal {
+  transform: scale(1.0);
+  transform-origin: 60px 90px;
+}
   </style>
 </head>
 <body>
@@ -665,68 +682,96 @@ body.dark .big-banner.win .big-banner-text {
             fill="#f97316"></rect>
     </svg>
 
-    <!-- BOSS: Prime Colossus (SVG only, keeps the same id + class for your CSS/JS) -->
     <svg id="numbersBossGraphic" class="numbers-boss-graphic"
          viewBox="0 0 120 120" aria-hidden="true">
-
-      <!-- ===== PRIME COLOSSUS BODY (still uses .boss-body so your skins work) ===== -->
-      <!-- Shadow base -->
-      <ellipse cx="62" cy="100" rx="34" ry="7" fill="rgba(0,0,0,0.18)"></ellipse>
-
-      <!-- Core torso -->
-      <rect class="boss-body" x="28" y="28" width="68" height="66" rx="18" ry="18"
-            fill="#4f46e5" stroke="#312e81" stroke-width="4"></rect>
-
-      <!-- Shoulder plates -->
-      <path d="M28 40 L18 52 L28 56 Z" fill="#1f2937" stroke="#f59e0b" stroke-width="3"></path>
-      <path d="M96 40 L106 52 L96 56 Z" fill="#1f2937" stroke="#f59e0b" stroke-width="3"></path>
-
-      <!-- Arm blocks -->
-      <rect x="14" y="56" width="18" height="26" rx="8"
-            fill="#111827" stroke="#f59e0b" stroke-width="3"></rect>
-      <rect x="92" y="56" width="18" height="26" rx="8"
-            fill="#111827" stroke="#f59e0b" stroke-width="3"></rect>
-
-      <!-- Chest plate (gold trim) -->
-      <rect x="38" y="44" width="48" height="40" rx="12"
-            fill="#111827" stroke="#f59e0b" stroke-width="3"></rect>
-
-      <!-- Prime core (glow-y look without filters) -->
-      <circle cx="62" cy="64" r="10" fill="#0ea5e9" opacity="0.25"></circle>
-      <circle cx="62" cy="64" r="7" fill="#60a5fa" opacity="0.35"></circle>
-      <circle cx="62" cy="64" r="4" fill="#fbbf24"></circle>
-
-      <!-- Face window -->
-      <rect x="40" y="32" width="44" height="18" rx="9"
-            fill="#0b1220" stroke="#f59e0b" stroke-width="3"></rect>
-
-      <!-- Eyes -->
-      <circle cx="52" cy="41" r="5.2" fill="white"></circle>
-      <circle cx="72" cy="41" r="5.2" fill="white"></circle>
-      <circle cx="52" cy="41" r="2.6" fill="#111827"></circle>
-      <circle cx="72" cy="41" r="2.6" fill="#111827"></circle>
-
-      <!-- Mouth grille -->
-      <rect x="46" y="74" width="32" height="12" rx="5"
-            fill="#0b1220" stroke="#f59e0b" stroke-width="3"></rect>
-      <rect x="49" y="77" width="4" height="6" fill="#f59e0b"></rect>
-      <rect x="56" y="77" width="4" height="6" fill="#f59e0b"></rect>
-      <rect x="63" y="77" width="4" height="6" fill="#f59e0b"></rect>
-      <rect x="70" y="77" width="4" height="6" fill="#f59e0b"></rect>
-
-      <!-- Crown / horns -->
-      <path d="M44 28 L52 16 L58 28" fill="#111827" stroke="#f59e0b" stroke-width="3"></path>
-      <path d="M80 28 L72 16 L66 28" fill="#111827" stroke="#f59e0b" stroke-width="3"></path>
-      <path d="M58 28 L62 18 L66 28" fill="#111827" stroke="#f59e0b" stroke-width="3"></path>
-
-      <!-- Rune marks (these will pop with your .prime-colossus text styling too) -->
-      <text x="34" y="58" font-size="12" font-weight="900" fill="#fbbf24">∑</text>
-      <text x="88" y="58" font-size="12" font-weight="900" fill="#fbbf24">π</text>
-      <text x="36" y="92" font-size="12" font-weight="900" fill="#fbbf24">√</text>
-      <text x="86" y="92" font-size="12" font-weight="900" fill="#fbbf24">∞</text>
-
-      <!-- Taunt (keep class name so your taunt toggle works) -->
-      <text x="62" y="14" text-anchor="middle"
+    
+      <!-- =========================
+           NORMAL BOSS (DEFAULT)
+           ========================= -->
+      <g class="boss-form boss-normal">
+        <!-- Body -->
+        <rect class="boss-body" x="20" y="25" width="80" height="70" rx="20" ry="20"
+              fill="#4f46e5" stroke="#312e81" stroke-width="4"></rect>
+    
+        <!-- Eyes -->
+        <circle cx="45" cy="50" r="9" fill="white"></circle>
+        <circle cx="75" cy="50" r="9" fill="white"></circle>
+        <circle cx="45" cy="50" r="4" fill="#111827"></circle>
+        <circle cx="75" cy="50" r="4" fill="#111827"></circle>
+    
+        <!-- Mouth -->
+        <rect x="40" y="65" width="40" height="14" rx="4" ry="4"
+              fill="#111827"></rect>
+        <rect x="44" y="67" width="6" height="4" fill="#f97316"></rect>
+        <rect x="52" y="67" width="6" height="4" fill="#f97316"></rect>
+        <rect x="60" y="67" width="6" height="4" fill="#f97316"></rect>
+        <rect x="68" y="67" width="6" height="4" fill="#f97316"></rect>
+    
+        <!-- Maths symbols -->
+        <text x="32" y="40" font-size="10" fill="#e5e7eb">+</text>
+        <text x="88" y="40" font-size="10" fill="#e5e7eb">−</text>
+        <text x="32" y="80" font-size="10" fill="#e5e7eb">×</text>
+        <text x="88" y="80" font-size="10" fill="#e5e7eb">÷</text>
+    
+        <!-- Horns -->
+        <path d="M30 25 L22 15 L28 25" fill="#fbbf24"></path>
+        <path d="M90 25 L98 15 L92 25" fill="#fbbf24"></path>
+      </g>
+    
+      <!-- =========================
+           PRIME COLOSSUS (HIDDEN UNTIL FINAL)
+           ========================= -->
+      <g class="boss-form boss-colossus">
+        <!-- Shadow base -->
+        <ellipse cx="62" cy="100" rx="34" ry="7" fill="rgba(0,0,0,0.18)"></ellipse>
+    
+        <!-- Core torso -->
+        <rect class="boss-body" x="28" y="28" width="68" height="66" rx="18" ry="18"
+              fill="#111827" stroke="#f59e0b" stroke-width="4"></rect>
+    
+        <!-- Shoulder plates -->
+        <path d="M28 40 L18 52 L28 56 Z" fill="#1f2937" stroke="#f59e0b" stroke-width="3"></path>
+        <path d="M96 40 L106 52 L96 56 Z" fill="#1f2937" stroke="#f59e0b" stroke-width="3"></path>
+    
+        <!-- Arm blocks -->
+        <rect x="14" y="56" width="18" height="26" rx="8"
+              fill="#111827" stroke="#f59e0b" stroke-width="3"></rect>
+        <rect x="92" y="56" width="18" height="26" rx="8"
+              fill="#111827" stroke="#f59e0b" stroke-width="3"></rect>
+    
+        <!-- Chest plate -->
+        <rect x="38" y="44" width="48" height="40" rx="12"
+              fill="#0b1220" stroke="#f59e0b" stroke-width="3"></rect>
+    
+        <!-- Prime core -->
+        <circle cx="62" cy="64" r="10" fill="#0ea5e9" opacity="0.25"></circle>
+        <circle cx="62" cy="64" r="7" fill="#60a5fa" opacity="0.35"></circle>
+        <circle cx="62" cy="64" r="4" fill="#fbbf24"></circle>
+    
+        <!-- Face window -->
+        <rect x="40" y="32" width="44" height="18" rx="9"
+              fill="#0b1220" stroke="#f59e0b" stroke-width="3"></rect>
+    
+        <!-- Eyes -->
+        <circle cx="52" cy="41" r="5.2" fill="white"></circle>
+        <circle cx="72" cy="41" r="5.2" fill="white"></circle>
+        <circle cx="52" cy="41" r="2.6" fill="#111827"></circle>
+        <circle cx="72" cy="41" r="2.6" fill="#111827"></circle>
+    
+        <!-- Crown -->
+        <path d="M44 28 L52 16 L58 28" fill="#111827" stroke="#f59e0b" stroke-width="3"></path>
+        <path d="M80 28 L72 16 L66 28" fill="#111827" stroke="#f59e0b" stroke-width="3"></path>
+        <path d="M58 28 L62 18 L66 28" fill="#111827" stroke="#f59e0b" stroke-width="3"></path>
+    
+        <!-- Runes -->
+        <text x="34" y="58" font-size="12" font-weight="900" fill="#fbbf24">∑</text>
+        <text x="88" y="58" font-size="12" font-weight="900" fill="#fbbf24">π</text>
+        <text x="36" y="92" font-size="12" font-weight="900" fill="#fbbf24">√</text>
+        <text x="86" y="92" font-size="12" font-weight="900" fill="#fbbf24">∞</text>
+      </g>
+    
+      <!-- Taunt (shared) -->
+      <text x="60" y="20" text-anchor="middle"
             font-size="12" fill="#f97316"
             class="boss-taunt">Ha ha!</text>
     </svg>
@@ -1343,21 +1388,46 @@ function registerCorrectAnswerForCurrentLevel(word) {
 
 function updateBossUI() {
   if (numbersGameMode === "boss") {
+
+    // Show the arena
     if (numbersBossGraphicWrapper) {
       numbersBossGraphicWrapper.style.display = "block";
     }
 
+    // ===== PRIME COLOSSUS / NORMAL BOSS TOGGLE =====
+    if (numbersBossGraphic) {
+      numbersBossGraphic.classList.remove("show-normal", "show-colossus");
+
+      if (finalBossActive) {
+        numbersBossGraphic.classList.add("show-colossus");
+      } else {
+        numbersBossGraphic.classList.add("show-normal");
+      }
+
+      // Gold skin only applies to the normal boss and gold boss, not the colossus
+      if (!finalBossActive && goldBossActive) {
+        numbersBossGraphic.classList.add("gold-boss");
+      } else {
+        numbersBossGraphic.classList.remove("gold-boss");
+      }
+    }
+    // ==============================================
+
+    // Work out which max HP we are using (for bar + text)
     const maxHP = finalBossActive
-    ? FINAL_BOSS_MAX_HEALTH
-    : (goldBossActive ? GOLD_BOSS_MAX_HEALTH : BOSS_MAX_HEALTH);
+      ? FINAL_BOSS_MAX_HEALTH
+      : (goldBossActive ? GOLD_BOSS_MAX_HEALTH : BOSS_MAX_HEALTH);
 
-
+    // Boss label
     if (numbersBossText) {
-      const title = finalBossActive ? "Prime Colossus" : (goldBossActive ? "Gold Boss" : "Boss");
-      numbersBossText.textContent =
-        title + " HP: " + bossHealth + " / " + maxHP;
+      const title = finalBossActive
+        ? "Prime Colossus"
+        : (goldBossActive ? "Gold Boss" : "Boss");
+
+      numbersBossText.textContent = title + " HP: " + bossHealth + " / " + maxHP;
     }
 
+    // Lives label
     if (numbersPlayerText) {
       let hearts = "";
       for (let i = 0; i < playerLives; i++) {
@@ -1367,24 +1437,31 @@ function updateBossUI() {
       numbersPlayerText.textContent = "Your lives: " + hearts;
     }
 
+    // HP bar
     if (numbersProgressFill) {
       const pct = (bossHealth / maxHP) * 100;
       numbersProgressFill.style.width = pct + "%";
     }
+
   } else {
+    // Not boss mode: hide and clean up
     if (numbersBossText) numbersBossText.textContent = "";
     if (numbersPlayerText) numbersPlayerText.textContent = "";
 
     if (numbersBossGraphicWrapper) {
       numbersBossGraphicWrapper.style.display = "none";
     }
+
     if (numbersBossGraphic) {
       numbersBossGraphic.classList.remove(
-        "numbers-boss-hit",
         "numbers-boss-defeated",
         "numbers-boss-taunt",
-        "gold-boss"
+        "gold-boss",
+        "show-normal",
+        "show-colossus"
       );
+      // Optional default so it doesn't get stuck showing colossus next time
+      numbersBossGraphic.classList.add("show-normal");
     }
   }
 }
