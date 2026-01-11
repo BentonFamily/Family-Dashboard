@@ -290,9 +290,10 @@ body.dark .numbers-progress-track {
 
 /* ===== Boss shake + defeat (FIXED) ===== */
 
-/* Shake the WRAPPER (so flex/layout doesn’t fight transforms) */
-#numbersBossGraphicWrapper.numbers-boss-hit{
+/* Shake ONLY the boss */
+#numbersBossGraphic.numbers-boss-hit{
   animation: numbersBossHit .3s ease;
+  will-change: transform;
 }
 
 @keyframes numbersBossHit {
@@ -2085,16 +2086,16 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback ok";
       }
 
-    // Shake the boss on every hit (wrapper only)
-    if (numbersBossGraphicWrapper) {
-      numbersBossGraphicWrapper.classList.remove("numbers-boss-hit");
+    // Shake the boss on every hit (BOSS ONLY, not hero)
+    if (numbersBossGraphic) {
+      numbersBossGraphic.classList.remove("numbers-boss-hit");
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          numbersBossGraphicWrapper.classList.add("numbers-boss-hit");
+          numbersBossGraphic.classList.add("numbers-boss-hit");
         });
       });
     }
-      
+
       triggerHeroAttack();
   } else {
       sessionStreak = 0;
