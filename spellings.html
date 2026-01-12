@@ -338,18 +338,36 @@ body.dark .numbers-progress-track {
   body.dark #numbersCard.numbers-damage-flash {
     background-color: rgba(127, 29, 29, 0.5);
   }
-      .numbers-boss-graphic .boss-taunt {
+  /* ===== Taunt text: hidden normally, PULSES when boss is taunting ===== */
+  .numbers-boss-graphic .boss-taunt {
     opacity: 0;
-    transition: opacity .25s ease;
   }
-
+  
+  /* When boss is taunting, show + pulse the text */
   .numbers-boss-graphic.numbers-boss-taunt .boss-taunt {
     opacity: 1;
+  
+    /* Make SVG text transform properly */
+    transform-box: fill-box;
+    transform-origin: center;
+  
+    animation: tauntPulse .55s ease-in-out infinite;
   }
-
+  
+  @keyframes tauntPulse {
+    0%, 100% { transform: scale(1); opacity: 0.65; }
+    50%      { transform: scale(1.18); opacity: 1; }
+  }
+  
+  /* Boss body can still "laugh" if you want */
   .numbers-boss-graphic.numbers-boss-taunt {
     animation: numbersBossLaugh .6s ease-in-out infinite alternate;
   }
+  
+  @keyframes numbersBossLaugh {
+    0%   { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-4px) scale(1.03); }
+}
 
   @keyframes numbersBossLaugh {
     0%   { transform: translateY(0) scale(1); }
@@ -513,6 +531,11 @@ body.dark .big-banner.win .big-banner-text {
 #numbersBossGraphic.show-normal {
   transform: scale(1.0);
   transform-origin: 60px 90px;
+}
+
+/* Lift taunt a bit for colossus */
+#numbersBossGraphic.show-colossus .boss-taunt {
+  transform: translateY(-6px) scale(1);
 }
   </style>
 </head>
@@ -2146,10 +2169,7 @@ function handleNumbersAnswer() {
           "⚔️ PRIME COLOSSUS",
           "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
         );
-      } else {
-        finalBossActive = false;
       }
-
       resetBossState();
       bossActive = true;
 
@@ -2170,10 +2190,7 @@ function handleNumbersAnswer() {
           "⚔️ PRIME COLOSSUS",
           "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
         );
-      } else {
-        finalBossActive = false;
       }
-
       resetBossState();
       bossActive = true;
 
@@ -2210,15 +2227,15 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback ok";
       }
 
-      // Shake boss on hit
-      if (numbersBossGraphic) {
-        numbersBossGraphic.classList.remove("numbers-boss-hit");
+      // Shake the boss (wrapper only, keeps colossus scale)
+    if (numbersBossGraphicWrapper) {
+      numbersBossGraphicWrapper.classList.remove("numbers-boss-hit");
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            numbersBossGraphic.classList.add("numbers-boss-hit");
-          });
+          numbersBossGraphicWrapper.classList.add("numbers-boss-hit");
         });
-      }
+      });
+    }
 
       triggerHeroAttack();
     } else {
