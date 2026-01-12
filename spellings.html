@@ -2085,7 +2085,8 @@ function handleNumbersAnswer() {
     }
 
     // Normal answer during speed round
-    const qIndex = (speedQuestionIndex - 1 + numbersQuestions.length) % numbersQuestions.length;
+    const qIndex =
+      (speedQuestionIndex - 1 + numbersQuestions.length) % numbersQuestions.length;
     const q = numbersQuestions[qIndex];
     const guessRaw = numbersAnswerInput ? numbersAnswerInput.value.trim() : "";
     if (!guessRaw) {
@@ -2131,52 +2132,57 @@ function handleNumbersAnswer() {
     return;
   }
 
+  // BOSS MODE
+  if (numbersGameMode === "boss") {
     // Start battle (first click)
     if (!bossActive && bossAttempts === 0) {
-    
       // Activate queued final boss (if any)
       if (finalBossQueued) {
         finalBossActive = true;
         finalBossQueued = false;
-    
+
         showBigBanner(
           "gold",
           "⚔️ PRIME COLOSSUS",
           "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
         );
+      } else {
+        finalBossActive = false;
       }
-    
+
       resetBossState();
       bossActive = true;
-    
-      if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Attack!";
-      showBossQuestion();
-      return;
-    }
-    
-    if (!bossActive) {
-      // Battle finished, clicking "Fight again"
-    
-      // Activate queued final boss here too (important)
-      if (finalBossQueued) {
-        finalBossActive = true;
-        finalBossQueued = false;
-    
-        showBigBanner(
-          "gold",
-          "⚔️ PRIME COLOSSUS",
-          "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
-        );
-      }
-    
-      resetBossState();
-      bossActive = true;
-    
+
       if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Attack!";
       showBossQuestion();
       return;
     }
 
+    // Battle finished, clicking "Fight again"
+    if (!bossActive) {
+      // Activate queued final boss here too
+      if (finalBossQueued) {
+        finalBossActive = true;
+        finalBossQueued = false;
+
+        showBigBanner(
+          "gold",
+          "⚔️ PRIME COLOSSUS",
+          "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
+        );
+      } else {
+        finalBossActive = false;
+      }
+
+      resetBossState();
+      bossActive = true;
+
+      if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Attack!";
+      showBossQuestion();
+      return;
+    }
+
+    // Active battle: check answer
     const q = numbersQuestions[bossCurrentIndex];
     const guessRaw = numbersAnswerInput ? numbersAnswerInput.value.trim() : "";
     if (!guessRaw) {
@@ -2197,25 +2203,25 @@ function handleNumbersAnswer() {
       sessionCorrect++;
       sessionStreak++;
       bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
-      sessionXP += 15; // extra XP for boss hits
+      sessionXP += 15;
 
       if (numbersFeedback) {
         numbersFeedback.textContent = "Hit! The boss takes damage.";
         numbersFeedback.className = "feedback ok";
       }
 
-    // Shake the boss on every hit (BOSS ONLY, not hero)
-    if (numbersBossGraphic) {
-      numbersBossGraphic.classList.remove("numbers-boss-hit");
-      requestAnimationFrame(() => {
+      // Shake boss on hit
+      if (numbersBossGraphic) {
+        numbersBossGraphic.classList.remove("numbers-boss-hit");
         requestAnimationFrame(() => {
-          numbersBossGraphic.classList.add("numbers-boss-hit");
+          requestAnimationFrame(() => {
+            numbersBossGraphic.classList.add("numbers-boss-hit");
+          });
         });
-      });
-    }
+      }
 
       triggerHeroAttack();
-  } else {
+    } else {
       sessionStreak = 0;
       playerLives = Math.max(0, playerLives - 1);
 
@@ -2225,159 +2231,120 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback bad";
       }
 
-      // Flash the card to show damage taken (quick pulse, then clear)
       const card = document.getElementById("numbersCard");
       if (card) {
         card.classList.add("numbers-damage-flash");
-        setTimeout(() => {
-          card.classList.remove("numbers-damage-flash");
-        }, 250);
+        setTimeout(() => card.classList.remove("numbers-damage-flash"), 250);
       }
-    triggerBossAttack();
-    triggerHeroHurt();
+
+      triggerBossAttack();
+      triggerHeroHurt();
     }
 
     refreshStatsUI();
     updateBossUI();
 
-    // Check player defeat first
+    // Player defeat
     if (playerLives <= 0) {
       bossActive = false;
-      if (currentQuestionEl) currentQuestionEl.textContent = "You were defeated!";
-      if (numbersBossText) {
-        numbersBossText.textContent = "The boss wins this time. Try again!";
-      }
-      if (numbersCheckButtonLabel) {
-        numbersCheckButtonLabel.textContent = "Try again";
-      }
 
-      // Boss taunts you
+      if (currentQuestionEl) currentQuestionEl.textContent = "You were defeated!";
+      if (numbersBossText) numbersBossText.textContent = "The boss wins this time. Try again!";
+      if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Try again";
+
       if (numbersBossGraphic) {
         numbersBossGraphic.classList.remove("numbers-boss-hit", "numbers-boss-defeated");
         numbersBossGraphic.classList.add("numbers-boss-taunt");
       }
 
-  // Losing breaks the normal win streak
-  bossWinStreak = 0;
-
-  // If this is a gold boss attempt, it stays gold until beaten
-  // (so we do NOT set goldBossActive = false here)
-      // No confetti on player defeat
+      bossWinStreak = 0;
       return;
     }
 
-    // Then check boss defeat
+    // Boss defeat
     if (bossHealth <= 0) {
       bossActive = false;
-      // ---- Gold Boss progression ----
-  if (goldBossActive) {
-  // We just beat the gold boss
-  goldBossActive = false;
-  bossWinStreak = 0;
 
-  finalBossQueued = true;
+      if (goldBossActive) {
+        goldBossActive = false;
+        bossWinStreak = 0;
+        finalBossQueued = true;
+        if (numbersBossText) numbersBossText.textContent += " Gold Boss beaten! 🏆";
+      } else {
+        bossWinStreak++;
 
-  if (numbersBossText) {
-    numbersBossText.textContent += " Gold Boss beaten! 🏆";
-  }
-} else {
-  // Normal boss win
-  bossWinStreak++;
+        // After 2 normal wins, NEXT boss becomes gold
+        if (bossWinStreak === 2) {
+          goldBossActive = true;
+          showBigBanner(
+            "gold",
+            "⚠️ A GREATER CHALLENGE AWAKENS",
+            "You’ve beaten two bosses.\nKeep going and you won’t face just a Gold Boss…\nSomething bigger is coming."
+          );
+        }
+      }
 
-  // After 2 normal wins, the NEXT boss becomes gold
-  if (bossWinStreak === 2) {
-    goldBossActive = true;
+      // “Gold beaten” banner (bossWinStreak will be 0 only in that path)
+      if (!goldBossActive && bossWinStreak === 0) {
+        showBigBanner(
+          "win",
+          "YOU FEEL THE GROUND TREMBLE",
+          "The Gold Boss is defeated…\nBut something far stronger has awakened.\nKeep playing to challenge it."
+        );
+      }
 
-    // Big tease banner (this is the “keep playing” hook)
-    showBigBanner(
-      "gold",
-      "⚠️ A GREATER CHALLENGE AWAKENS",
-      "You’ve beaten two bosses.\nKeep going and you won’t face just a Gold Boss…\nSomething bigger is coming."
-    );
-  }
-}
-// ---- End Gold Boss progression ----
-      
-      // ===== Section 6: Big WIN banner (only when Gold Boss was beaten) =====
-if (!goldBossActive && bossWinStreak === 0) {
-  showBigBanner(
-    "win",
-    "YOU FEEL THE GROUND TREMBLE",
-    "The Gold Boss is defeated…\nBut something far stronger has awakened.\nKeep playing to challenge it."
-  );
-}
+      try {
+        if (typeof confetti === "function") {
+          confetti({ particleCount: 220, spread: 80, origin: { y: 0.7 } });
+          setTimeout(() => confetti({ particleCount: 180, spread: 70, origin: { y: 0.7 } }), 250);
+          setTimeout(() => confetti({ particleCount: 140, spread: 65, origin: { y: 0.7 } }), 500);
+        }
+      } catch {}
 
-  // Extra confetti blasts (you already use confetti() below)
-  try {
-    if (typeof confetti === "function") {
-      confetti({ particleCount: 220, spread: 80, origin: { y: 0.7 } });
-      setTimeout(() => confetti({ particleCount: 180, spread: 70, origin: { y: 0.7 } }), 250);
-      setTimeout(() => confetti({ particleCount: 140, spread: 65, origin: { y: 0.7 } }), 500);
-    }
-  } catch {}
       if (currentQuestionEl) currentQuestionEl.textContent = "Boss defeated!";
+
       const wrong = bossAttempts - bossCorrect;
       if (numbersBossText) {
-        // Stats first
         numbersBossText.textContent =
           "You beat the boss with " + bossCorrect + " hits and " + wrong + " misses.";
-      
-        // Then teaser (depends what just happened)
+
         if (bossWinStreak === 1 && !goldBossActive) {
           numbersBossText.textContent += " The boss trembles… something stronger has noticed you.";
         }
-      
         if (goldBossActive) {
-          // This line will only show during the moment goldBossActive is still true
           numbersBossText.textContent += " ⚠️ A greater challenge is waking up…";
         }
-      
         if (!goldBossActive && bossWinStreak === 0) {
-          // This is your “just beat the Gold Boss” state
           numbersBossText.textContent += " You feel the ground tremble… something far stronger has awakened.";
         }
       }
-      // Basic "medal" for boss if needed later
+
       let tier = 0;
-      if (bossCorrect >= 10 && wrong === 0) {
-        tier = 3;
-      } else if (bossCorrect >= 10) {
-        tier = 2;
-      } else if (bossCorrect >= 5) {
-        tier = 1;
-      }
+      if (bossCorrect >= 10 && wrong === 0) tier = 3;
+      else if (bossCorrect >= 10) tier = 2;
+      else if (bossCorrect >= 5) tier = 1;
       numbersBestMedal.boss = Math.max(numbersBestMedal.boss, tier);
 
-      // Defeat animation
       if (numbersBossGraphic) {
         numbersBossGraphic.classList.remove("numbers-boss-hit", "numbers-boss-taunt");
         numbersBossGraphic.classList.add("numbers-boss-defeated");
       }
 
       if (typeof confetti === "function") {
-        confetti({
-          particleCount: 180,
-          spread: 70,
-          origin: { y: 0.7 }
-        });
+        confetti({ particleCount: 180, spread: 70, origin: { y: 0.7 } });
       }
 
-      if (numbersCheckButtonLabel) {
-        numbersCheckButtonLabel.textContent = "Fight again";
-      }
+      if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Fight again";
       return;
     }
 
-    // Continue battle: next question
+    // Continue battle
     showBossQuestion();
     return;
   }
 
   // PRACTICE / STREAK MODE BELOW
-
-  // If we are waiting for "Next question" OR "Again"
   if (numbersAwaitingNext) {
-    // Finished the round, "Again" clicked
     if (numbersIndex >= numbersQuestions.length) {
       numbersIndex = 0;
       shuffleArray(numbersQuestions);
@@ -2393,14 +2360,12 @@ if (!goldBossActive && bossWinStreak === 0) {
       return;
     }
 
-    // Mid-round: move on to the next question
     numbersAwaitingNext = false;
     numbersIndex++;
     showCurrentNumberQuestion();
     return;
   }
 
-  // Normal case: checking the current answer (practice / streak)
   const q = numbersQuestions[numbersIndex];
   const guessRaw = numbersAnswerInput ? numbersAnswerInput.value.trim() : "";
   if (!guessRaw) {
@@ -2411,7 +2376,6 @@ if (!goldBossActive && bossWinStreak === 0) {
     return;
   }
 
-  // Shared stats
   sessionTotal++;
 
   const correct = q.answer.trim();
@@ -2435,16 +2399,12 @@ if (!goldBossActive && bossWinStreak === 0) {
 
   refreshStatsUI();
 
-  // If this was the last question, go straight to summary
   if (numbersIndex >= numbersQuestions.length - 1) {
     numbersIndex++;
     showCurrentNumberQuestion();
   } else {
-    // Otherwise, wait for "Next question"
     numbersAwaitingNext = true;
-    if (numbersCheckButtonLabel) {
-      numbersCheckButtonLabel.textContent = "Next question";
-    }
+    if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Next question";
   }
 }
   
