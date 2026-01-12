@@ -1476,16 +1476,20 @@ function resetBossState() {
     ? FINAL_PLAYER_MAX_LIVES
     : (goldBossActive ? GOLD_PLAYER_MAX_LIVES : PLAYER_MAX_LIVES);
 
-  bossHealth = maxHP;
-  bossActive = false;
-  bossQuestionIndex = 0;
-  bossCurrentIndex = 0;
-  bossCorrect = 0;
-  bossAttempts = 0;
-
-  playerLives = maxLives;
-
-  updateBossUI();
+    bossHealth = maxHP;
+    bossActive = false;
+    bossQuestionIndex = 0;
+    bossCurrentIndex = 0;
+    bossCorrect = 0;
+    bossAttempts = 0;
+    
+    playerLives = maxLives;
+    
+    // Randomise boss question order each new battle
+    shuffleArray(numbersQuestions);
+    bossCurrentIndex = 0;
+    
+    updateBossUI();
 
   // Show the hard-mode warning ONLY when gold boss is active
   if (goldBossActive) {
@@ -2127,38 +2131,48 @@ function handleNumbersAnswer() {
     return;
   }
 
-    // BOSS MODE
-    if (numbersGameMode === "boss") {
-      // Start battle
-      if (!bossActive && bossAttempts === 0) {
-          if (finalBossQueued) {
-      finalBossActive = true;
-      finalBossQueued = false;
-  
-      showBigBanner(
-        "gold",
-        "⚔️ PRIME COLOSSUS",
-        "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
-      );
-    } else {
-    finalBossActive = false;
-  }
+    // Start battle (first click)
+    if (!bossActive && bossAttempts === 0) {
+    
+      // Activate queued final boss (if any)
+      if (finalBossQueued) {
+        finalBossActive = true;
+        finalBossQueued = false;
+    
+        showBigBanner(
+          "gold",
+          "⚔️ PRIME COLOSSUS",
+          "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
+        );
+      }
+    
       resetBossState();
       bossActive = true;
-      if (numbersCheckButtonLabel) {
-        numbersCheckButtonLabel.textContent = "Attack!";
-      }
+    
+      if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Attack!";
       showBossQuestion();
       return;
     }
-
+    
     if (!bossActive) {
       // Battle finished, clicking "Fight again"
+    
+      // Activate queued final boss here too (important)
+      if (finalBossQueued) {
+        finalBossActive = true;
+        finalBossQueued = false;
+    
+        showBigBanner(
+          "gold",
+          "⚔️ PRIME COLOSSUS",
+          "A towering enemy of PRIME power arrives.\nTwo lives only. Stay sharp!"
+        );
+      }
+    
       resetBossState();
       bossActive = true;
-      if (numbersCheckButtonLabel) {
-        numbersCheckButtonLabel.textContent = "Attack!";
-      }
+    
+      if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Attack!";
       showBossQuestion();
       return;
     }
@@ -2271,7 +2285,7 @@ function handleNumbersAnswer() {
   bossWinStreak++;
 
   // After 2 normal wins, the NEXT boss becomes gold
-  if (bossWinStreak >= 2) {
+  if (bossWinStreak === 2) {
     goldBossActive = true;
 
     // Big tease banner (this is the “keep playing” hook)
