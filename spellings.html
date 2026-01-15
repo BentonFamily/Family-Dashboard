@@ -443,6 +443,20 @@ body.dark .numbers-progress-track {
   50% { transform: translateX(3px); }
   100% { transform: translateX(0); }
 }
+
+/* ===== Hero death (visual only) ===== */
+.numbers-hero-graphic.hero-death{
+  animation: heroDeath .75s ease forwards;
+  transform-origin: 40px 70px;
+  filter: grayscale(1);
+  opacity: 1;
+}
+
+@keyframes heroDeath{
+  0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  35%  { transform: translateY(4px) rotate(-12deg) scale(1.02); opacity: 1; }
+  100% { transform: translateY(26px) rotate(-78deg) scale(0.92); opacity: 0.15; }
+}
 /* ===== Big centre banner overlay ===== */
 .big-banner.hidden { display: none; }
 
@@ -1119,6 +1133,13 @@ let speedCorrectThisRound = 0;
 let speedAttemptedThisRound = 0;
 let speedQuestionIndex = 0;
 
+/* ===== Prime Colossus timed mechanic ===== */
+const COLOSSUS_START_SECONDS = 60;
+const COLOSSUS_BONUS_SECONDS = 3;
+
+let colossusTimerId = null;
+let colossusTimeRemaining = 0;
+
 if (numbersBigBannerClose) {
   numbersBigBannerClose.addEventListener("click", hideBigBanner);
 }
@@ -1556,14 +1577,31 @@ if (numbersBossGraphic) {
   if (card) {
     card.classList.remove("numbers-damage-flash");
   }
+  
+// Always clear hero visuals when (re)starting a fight
+if (numbersHeroGraphic) {
+  numbersHeroGraphic.classList.remove("hero-death", "hero-hurt", "hero-attack");
+}
 
+// Prime Colossus timer: prep the UI (do not start ticking here)
+if (finalBossActive) {
+  stopColossusTimer();
+  colossusTimeRemaining = COLOSSUS_START_SECONDS;
+  updateColossusTimerUI();
+} else {
+  stopColossusTimer();
+  colossusTimeRemaining = 0;
+}
+  
   if (numbersFeedback) {
     numbersFeedback.textContent = "";
     numbersFeedback.className = "feedback";
   }
   if (numbersMedalText) numbersMedalText.textContent = "";
   if (numbersStreakSummary) numbersStreakSummary.textContent = "";
-  if (numbersTimerText) numbersTimerText.textContent = "";
+  if (numbersTimerText) {
+  if (finalBossActive) updateColossusTimerUI();
+  else numbersTimerText.textContent = "";
 }
   
 function showBossQuestion() {
@@ -1624,7 +1662,49 @@ function triggerHeroHurt() {
   });
 }
 
-/* ========== Word list & practice (spellings) ========== */
+function triggerHeroDeath() {
+  if (!numbersHeroGraphic) return;
+
+  // Clear other anim states so death is unmissable
+  numbersHeroGraphic.classList.remove("hero-attack", "hero-hurt");
+  numbersHeroGraphic.classList.remove("hero-death");
+
+  requestAnimationFrame(() => {
+    numbersHeroGraphic.classList.add("hero-death");
+  });
+}
+
+// Centralised “defeat” so both lives==0 and timer==0 look the same
+function applyBossDefeatUI(reasonText) {
+  bossActive = false;
+
+  if (currentQuestionEl) currentQuestionEl.textContent = "You were defeated!";
+  if (numbersBossText) numbersBossText.textContent = reasonText || "The boss wins this time. Try again!";
+  if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Try again";
+
+  // Boss taunts
+  if (numbersBossGraphic) {
+    numbersBossGraphic.classList.remove("numbers-boss-hit", "numbers-boss-defeated");
+    numbersBossGraphic.classList.add("numbers-boss-taunt");
+  }
+
+  // Stop Colossus timer if running
+  stopColossusTimer();
+
+  // Reset normal boss streak on defeat
+  bossWinStreak = 0;
+
+  // Visual-only hero death
+  triggerHeroDeath();
+}
+
+function handleColossusTimeoutDefeat() {
+  // Only valid during an active Prime Colossus fight
+  if (!(numbersGameMode === "boss" && finalBossActive && bossActive)) return;
+
+  applyBossDefeatUI("⏳ Time’s up! The Prime Colossus crushes you. Try again!");
+}
+
 /* ========== Word list & practice (spellings) ========== */
 function getWordList() {
   if (currentContentMode === "robin") {
@@ -1774,6 +1854,42 @@ function updateNumbersModeDescription() {
   }
 }
 
+function updateColossusTimerUI() {
+  if (!numbersTimerText) return;
+
+  // Only show in boss mode while Prime Colossus is active
+  if (numbersGameMode === "boss" && finalBossActive && bossActive) {
+    numbersTimerText.textContent = `⏳ Colossus: ${Math.max(0, colossusTimeRemaining)}s`;
+  } else if (numbersGameMode === "boss" && finalBossActive && !bossActive) {
+    // Pre-fight / paused
+    numbersTimerText.textContent = `⏳ Colossus ready – ${COLOSSUS_START_SECONDS}s`;
+  }
+}
+
+function stopColossusTimer() {
+  if (colossusTimerId !== null) {
+    clearInterval(colossusTimerId);
+    colossusTimerId = null;
+  }
+}
+
+function startColossusTimer() {
+  stopColossusTimer();
+  colossusTimeRemaining = COLOSSUS_START_SECONDS;
+  updateColossusTimerUI();
+
+  colossusTimerId = setInterval(() => {
+    colossusTimeRemaining--;
+    if (colossusTimeRemaining <= 0) {
+      colossusTimeRemaining = 0;
+      updateColossusTimerUI();
+      handleColossusTimeoutDefeat();
+    } else {
+      updateColossusTimerUI();
+    }
+  }, 1000);
+} 
+  
 function updateSpeedTimerUI() {
   if (!numbersTimerText) return;
   numbersTimerText.textContent = `⏱ ${Math.max(0, speedTimeRemaining)}s left`;
@@ -2182,6 +2298,10 @@ function handleNumbersAnswer() {
       }
       resetBossState();
       bossActive = true;
+      // Start Prime Colossus timer only when the fight begins
+      if (finalBossActive) {
+        startColossusTimer();
+      }
 
       if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Attack!";
       showBossQuestion();
@@ -2203,6 +2323,10 @@ function handleNumbersAnswer() {
       }
       resetBossState();
       bossActive = true;
+      // Start Prime Colossus timer only when the fight begins
+    if (finalBossActive) {
+      startColossusTimer();
+    }
 
       if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Attack!";
       showBossQuestion();
@@ -2235,6 +2359,17 @@ function handleNumbersAnswer() {
       if (numbersFeedback) {
         numbersFeedback.textContent = "Hit! The boss takes damage.";
         numbersFeedback.className = "feedback ok";
+      }
+
+            // Prime Colossus timed bonus: +3s per correct
+      if (finalBossActive) {
+        colossusTimeRemaining += COLOSSUS_BONUS_SECONDS;
+      
+        // Optional soft cap so it doesn’t balloon forever
+        const cap = COLOSSUS_START_SECONDS + 30;
+        if (colossusTimeRemaining > cap) colossusTimeRemaining = cap;
+      
+        updateColossusTimerUI();
       }
 
     // Shake ONLY the boss (not the hero) and retrigger reliably
@@ -2276,24 +2411,15 @@ function handleNumbersAnswer() {
 
     // Player defeat
     if (playerLives <= 0) {
-      bossActive = false;
-
-      if (currentQuestionEl) currentQuestionEl.textContent = "You were defeated!";
-      if (numbersBossText) numbersBossText.textContent = "The boss wins this time. Try again!";
-      if (numbersCheckButtonLabel) numbersCheckButtonLabel.textContent = "Try again";
-
-      if (numbersBossGraphic) {
-        numbersBossGraphic.classList.remove("numbers-boss-hit", "numbers-boss-defeated");
-        numbersBossGraphic.classList.add("numbers-boss-taunt");
-      }
-
-      bossWinStreak = 0;
+      applyBossDefeatUI("💀 You ran out of lives. Try again!");
       return;
     }
 
     // Boss defeat
     if (bossHealth <= 0) {
       bossActive = false;
+      // Stop Prime Colossus timer on victory
+      stopColossusTimer();
 
       if (goldBossActive) {
         goldBossActive = false;
@@ -2649,10 +2775,16 @@ if (numbersModeTabs && numbersModeTabs.length) {
         numbersFeedback.textContent = "";
         numbersFeedback.className = "feedback";
       }
-      if (numbersTimerText) numbersTimerText.textContent = "";
+      if (numbersTimerText) {
+      if (mode === "boss" && finalBossActive) updateColossusTimerUI();
+      else numbersTimerText.textContent = "";
+      }
 
       // Stop any running speed round
       stopSpeedRound(false);
+      // Stop Prime Colossus timer when switching modes
+      stopColossusTimer();
+      colossusTimeRemaining = 0;
 
       // Reset shared stats for this run
       sessionTotal = 0;
