@@ -290,8 +290,8 @@ body.dark .numbers-progress-track {
 
 /* ===== Boss shake + defeat (FIXED) ===== */
 
-/* Shake the whole arena wrapper (boss + hero stays positioned properly) */
-#numbersBossGraphicWrapper.numbers-boss-hit{
+/* Shake ONLY the boss (not the hero) */
+#numbersBossWrap.numbers-boss-hit{
   animation: numbersBossHit .3s ease;
   will-change: transform;
 }
@@ -707,9 +707,13 @@ body.dark .big-banner.win .big-banner-text {
             fill="#f97316"></rect>
     </svg>
 
-    <svg id="numbersBossGraphic" class="numbers-boss-graphic"
-         viewBox="0 0 120 120" aria-hidden="true">
-    
+    <!-- BOSS -->
+    <div id="numbersBossWrap">
+      <svg id="numbersBossGraphic" class="numbers-boss-graphic"
+           viewBox="0 0 120 120" aria-hidden="true">
+        <!-- KEEP YOUR EXISTING BOSS SVG CONTENT BELOW -->
+        <!-- (boss-normal / boss-colossus groups, body, eyes, etc.) -->
+
       <!-- =========================
            NORMAL BOSS (DEFAULT)
            ========================= -->
@@ -1602,10 +1606,13 @@ function showBossQuestion() {
 }
 
 function triggerBossAttack() {
-  if (!numbersBossGraphicWrapper) return;
-  numbersBossGraphicWrapper.classList.remove("boss-attack");
+  const bossWrap = document.getElementById("numbersBossWrap");
+  if (!bossWrap) return;
+
+  bossWrap.classList.remove("boss-attack");
   requestAnimationFrame(() => {
-    numbersBossGraphicWrapper.classList.add("boss-attack");
+    bossWrap.classList.add("boss-attack");
+    setTimeout(() => bossWrap.classList.remove("boss-attack"), 400);
   });
 }
 
@@ -2230,12 +2237,15 @@ function handleNumbersAnswer() {
         numbersFeedback.className = "feedback ok";
       }
 
-      // Shake the boss (wrapper only, keeps colossus scale)
-    if (numbersBossGraphicWrapper) {
-      numbersBossGraphicWrapper.classList.remove("numbers-boss-hit");
+    // Shake ONLY the boss (not the hero) and retrigger reliably
+    const bossWrap = document.getElementById("numbersBossWrap");
+    if (bossWrap) {
+      bossWrap.classList.remove("numbers-boss-hit");
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          numbersBossGraphicWrapper.classList.add("numbers-boss-hit");
+          bossWrap.classList.add("numbers-boss-hit");
+          // auto-clear so it works every hit
+          setTimeout(() => bossWrap.classList.remove("numbers-boss-hit"), 350);
         });
       });
     }
