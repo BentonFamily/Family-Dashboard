@@ -290,8 +290,8 @@ body.dark .numbers-progress-track {
 
 /* ===== Boss shake + defeat (FIXED) ===== */
 
-/* Shake ONLY the boss */
-#numbersBossGraphic.numbers-boss-hit{
+/* Shake the whole arena wrapper (boss + hero stays positioned properly) */
+#numbersBossGraphicWrapper.numbers-boss-hit{
   animation: numbersBossHit .3s ease;
   will-change: transform;
 }
@@ -360,19 +360,21 @@ body.dark .numbers-progress-track {
   }
   
   /* Boss body can still "laugh" if you want */
-  .numbers-boss-graphic.numbers-boss-taunt {
+  /* Make the WRAPPER laugh so SVG scale is preserved */
+  #numbersBossGraphicWrapper.numbers-boss-taunt {
     animation: numbersBossLaugh .6s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  
+  @keyframes numbersBossLaugh {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(-4px); }
   }
   
   @keyframes numbersBossLaugh {
     0%   { transform: translateY(0) scale(1); }
     100% { transform: translateY(-4px) scale(1.03); }
 }
-
-  @keyframes numbersBossLaugh {
-    0%   { transform: translateY(0) scale(1); }
-    100% { transform: translateY(-4px) scale(1.03); }
-  }
     
 .numbers-boss-graphic.gold-boss .boss-body {
   fill: #facc15;   /* gold */
@@ -419,16 +421,16 @@ body.dark .numbers-progress-track {
   100% { transform: rotate(0deg) translateX(0); }
 }
 
-/* --- Boss attack animation (bigger than hit shake) --- */
-.numbers-boss-graphic.boss-attack{
+/* Boss attack animation: move wrapper so we don't overwrite SVG scaling */
+#numbersBossGraphicWrapper.boss-attack{
   animation: bossLunge .35s ease-in-out;
-  transform-origin: 60px 80px;
+  will-change: transform;
 }
 
 @keyframes bossLunge{
-  0%   { transform: translateX(0) scale(1); }
-  35%  { transform: translateX(-8px) scale(1.05); }
-  100% { transform: translateX(0) scale(1); }
+  0%   { transform: translateX(0); }
+  35%  { transform: translateX(-8px); }
+  100% { transform: translateX(0); }
 }
 
 /* Optional: hero takes damage */
@@ -1086,8 +1088,9 @@ const GOLD_PLAYER_MAX_LIVES = 1;   // the real “peril” lever
 const FINAL_BOSS_MAX_HEALTH = 18;   // Prime Colossus: chunkier
 const FINAL_PLAYER_MAX_LIVES = 2;   // still hard, but not cruel
 
-let finalBossActive = false;        // true when fighting the Prime Colossus
 let finalBossQueued = false;        // becomes true after Gold Boss is beaten
+let finalBossActive = false;        // true when fighting the Prime Colossus
+let finalBossUnlocked = false; // once true, colossus stays for the session
 
 let bossHealth = BOSS_MAX_HEALTH;
 let bossActive = false;
@@ -1599,10 +1602,10 @@ function showBossQuestion() {
 }
 
 function triggerBossAttack() {
-  if (!numbersBossGraphic) return;
-  numbersBossGraphic.classList.remove("boss-attack");
+  if (!numbersBossGraphicWrapper) return;
+  numbersBossGraphicWrapper.classList.remove("boss-attack");
   requestAnimationFrame(() => {
-    numbersBossGraphic.classList.add("boss-attack");
+    numbersBossGraphicWrapper.classList.add("boss-attack");
   });
 }
 
@@ -2286,6 +2289,7 @@ function handleNumbersAnswer() {
         goldBossActive = false;
         bossWinStreak = 0;
         finalBossQueued = true;
+        finalBossUnlocked = true;
         if (numbersBossText) numbersBossText.textContent += " Gold Boss beaten! 🏆";
       } else {
         bossWinStreak++;
