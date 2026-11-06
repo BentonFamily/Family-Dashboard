@@ -459,34 +459,72 @@ setInitialTheme();
       });
   }
 
-  function postBook(payload) {
+  // A single FIFO queue for every write to the Books sheet. Without this,
+  // adding a book and then quickly dragging it could fire two overlapping
+  // requests for the same row, and the second could reach the sheet before
+  // the first had finished writing it, creating a duplicate half-written
+  // row. Each call now waits for the previous one to actually finish
+  // (fetch resolves once the server has responded, even in no-cors mode)
+  // before the next is sent.
+  var postQueue = Promise.resolve();
+  function enqueuePost(fn) {
+    var result = postQueue.then(fn, fn);
+    postQueue = result.catch(function () {});
+    return result;
+  }
+
+  function sendForm(payload) {
     var body = new URLSearchParams();
-    body.set('action', 'book');
     Object.keys(payload).forEach(function (k) {
       var v = payload[k];
       if (v === null || v === undefined) return;
       body.set(k, String(v));
     });
-    fetch(window.config.bookChartUrl, {
+    return fetch(window.config.bookChartUrl, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString()
-    }).catch(function () {});
-    // Reconcile with the sheet shortly after, in case anything else changed it too.
-    setTimeout(function () { fetchBooks(); }, 1200);
+    });
+  }
+
+  function postBook(payload) {
+    var full = Object.assign({ action: 'book' }, payload);
+    enqueuePost(function () { return sendForm(full); })
+      .catch(function () {})
+      .then(function () { fetchBooks(); });
+  }
+
+  function uploadCover(bookId, coverDataUrl) {
+    enqueuePost(function () { return sendForm({ action: 'uploadCover', bookId: bookId, coverData: coverDataUrl }); })
+      .catch(function () {})
+      .then(function () { fetchBooks(); });
   }
 
   function deleteBookRemote(bookId) {
-    var body = new URLSearchParams();
-    body.set('action', 'deleteBook');
-    body.set('bookId', bookId);
-    fetch(window.config.bookChartUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
-    }).catch(function () {});
+    enqueuePost(function () { return sendForm({ action: 'deleteBook', bookId: bookId }); })
+      .catch(function () {})
+      .then(function () { fetchBooks(); });
+  }
+
+  // Shrink a photo client-side before it goes anywhere: keeps the upload
+  // quick on mobile data and keeps Drive storage sensible. maxDim is the
+  // longest side in pixels.
+  function resizeImage(dataUrl, maxDim, quality, cb) {
+    var img = new Image();
+    img.onload = function () {
+      var w = img.width, h = img.height;
+      var scale = Math.min(1, maxDim / Math.max(w, h));
+      var cw = Math.max(1, Math.round(w * scale));
+      var ch = Math.max(1, Math.round(h * scale));
+      var canvas = document.createElement('canvas');
+      canvas.width = cw; canvas.height = ch;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, cw, ch);
+      cb(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = function () { cb(dataUrl); };
+    img.src = dataUrl;
   }
 
   function genId() {
@@ -965,11 +1003,13 @@ setInitialTheme();
   var sheetInner = document.getElementById("sheetInner");
   var editingId = null;
   var pendingCover = null;
+  var pendingCoverChanged = false;
   var pendingCategory = "chapter";
 
   document.getElementById("openAdd").addEventListener("click", function () {
     editingId = null;
     pendingCover = null;
+    pendingCoverChanged = false;
     pendingCategory = (ui.tab === "favourites") ? "chapter" : ui.tab;
     renderSheet();
     overlay.hidden = false;
@@ -980,6 +1020,7 @@ setInitialTheme();
     var book = books.find(function (b) { return b.id === id; });
     if (!book) return;
     pendingCover = book.cover || null;
+    pendingCoverChanged = false;
     pendingCategory = book.category;
     renderSheet();
     overlay.hidden = false;
@@ -1006,7 +1047,7 @@ setInitialTheme();
       '<div class="photo-preview" id="photoPreview"' + (pendingCover ? ' style="background-image:url(' + pendingCover + ');background-size:cover;background-position:center;"' : '') + '>' + (pendingCover ? '' : 'No photo') + '</div>' +
       '<button class="photo-btn" id="photoBtn" type="button">Take or choose photo</button>' +
       '<input type="file" accept="image/*" capture="environment" id="photoInput" hidden>' +
-      '<span class="photo-note">Just to help with typing in the title and author, the photo itself isn’t saved.</span>' +
+      '<span class="photo-note">Saved to the family Google Drive and linked to this book.</span>' +
       '</div></div>';
     html += '<div class="field"><div class="check-row"><input type="checkbox" id="chkLibrary"' + (fromLibrary ? " checked" : "") + '><label for="chkLibrary" style="text-transform:none;font-weight:500;font-size:0.86rem;margin:0;">From the library</label></div></div>';
     html += '<div class="field" id="newAuthorField"' + (pendingCategory === "chapter" ? "" : " hidden") + '><div class="check-row"><input type="checkbox" id="chkNewAuthor"' + (newAuthor ? " checked" : "") + '><label for="chkNewAuthor" style="text-transform:none;font-weight:500;font-size:0.86rem;margin:0;">New author for Robin</label></div></div>';
@@ -1059,12 +1100,15 @@ setInitialTheme();
       if (!file) return;
       var reader = new FileReader();
       reader.onload = function (ev) {
-        pendingCover = ev.target.result;
-        var preview = document.getElementById("photoPreview");
-        preview.textContent = "";
-        preview.style.backgroundImage = "url(" + pendingCover + ")";
-        preview.style.backgroundSize = "cover";
-        preview.style.backgroundPosition = "center";
+        resizeImage(ev.target.result, 480, 0.72, function (resized) {
+          pendingCover = resized;
+          pendingCoverChanged = true;
+          var preview = document.getElementById("photoPreview");
+          preview.textContent = "";
+          preview.style.backgroundImage = "url(" + pendingCover + ")";
+          preview.style.backgroundSize = "cover";
+          preview.style.backgroundPosition = "center";
+        });
       };
       reader.readAsDataURL(file);
     });
@@ -1159,6 +1203,7 @@ setInitialTheme();
           fromLibrary: book.fromLibrary, newAuthor: book.newAuthor,
           review: reviewEl ? reviewVal : undefined
         });
+        if (pendingCoverChanged && pendingCover) uploadCover(book.id, pendingCover);
       } else {
         var id = genId();
         var newBook = {
@@ -1175,6 +1220,7 @@ setInitialTheme();
           status: "to-read", added: newBook.added, fromLibrary: libraryVal, newAuthor: newAuthorVal,
           favourite: false, review: ""
         });
+        if (pendingCoverChanged && pendingCover) uploadCover(id, pendingCover);
       }
       overlay.hidden = true;
       renderAll();
