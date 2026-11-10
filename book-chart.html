@@ -496,8 +496,32 @@ setInitialTheme();
   }
 
   function uploadCover(bookId, coverDataUrl) {
-    enqueuePost(function () { return sendForm({ action: 'uploadCover', bookId: bookId, coverData: coverDataUrl }); })
-      .catch(function () {})
+    // Diagnostic version: reads the real response instead of firing blind
+    // with no-cors, so a failure shows up as a toast on the page itself.
+    enqueuePost(function () {
+      var body = new URLSearchParams();
+      body.set('action', 'uploadCover');
+      body.set('bookId', bookId);
+      body.set('coverData', coverDataUrl);
+      return fetch(window.config.bookChartUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+      }).then(function (res) {
+        return res.text().then(function (text) {
+          console.log('uploadCover response:', text);
+          try {
+            var json = JSON.parse(text);
+            if (!json.ok) showToast('Cover failed: ' + (json.error || 'unknown error'));
+          } catch (parseErr) {
+            showToast('Cover failed: unexpected response (see console)');
+          }
+        });
+      }).catch(function (err) {
+        console.log('uploadCover network/CORS error:', err);
+        showToast('Cover failed: network/CORS error (see console)');
+      });
+    })
       .then(function () { fetchBooks(); });
   }
 
