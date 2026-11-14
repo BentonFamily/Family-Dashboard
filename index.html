@@ -19,10 +19,18 @@
 
     ul { list-style: none; padding: 0; margin: 0; }
     li button {
-      margin: 4px 0; padding: 0.55rem 1rem; font: 600 0.95rem inherit; border: 1px solid var(--border-strong);
-      border-radius: 999px; background: var(--surface-sunken); color: var(--fg); cursor: pointer;
+      margin: 4px 0; padding: 0.6rem 1.1rem; font: 600 0.95rem inherit;
+      border: 1px solid var(--border-strong); border-left: 4px solid var(--c, var(--r-blue));
+      border-radius: 999px; background: var(--surface); color: var(--fg); cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
     }
-    li button:hover { background: var(--border); }
+    li button:hover { background: var(--surface-sunken); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.14); }
+    li:nth-child(1) button { --c: var(--r-red); }
+    li:nth-child(2) button { --c: var(--r-orange); }
+    li:nth-child(3) button { --c: var(--r-yellow); }
+    li:nth-child(4) button { --c: var(--r-green); }
+    li:nth-child(5) button { --c: var(--r-blue); }
+    li:nth-child(6) button { --c: var(--r-violet); }
 
     .qr-output { margin-top: 0.75rem; }
     .qr-output canvas { border-radius: 10px; }
@@ -40,10 +48,12 @@
     .modal { display: none; position: fixed; inset: 0; background: rgba(20,16,28,.55); z-index: 1000; align-items: center; justify-content: center; }
     .modal .content { background: var(--surface); color: var(--fg); padding: 22px; border-radius: 16px; width: 90%; max-width: 400px; box-shadow: 0 10px 28px rgba(0,0,0,.25); }
     .modal .title {
-      font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; text-align: center; padding: 10px 12px; color: var(--on-fg);
-      border-radius: 10px; margin: -22px -22px 16px -22px; background: var(--fg);
+      font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; text-align: center; padding: 12px;
+      color: #fff; border-radius: 16px 16px 0 0; margin: -22px -22px 16px -22px; background: var(--rainbow);
     }
     .modal .actions { margin-top: 14px; display: flex; gap: 10px; justify-content: flex-end; }
+    #submitBtn { background: var(--r-green); }
+    #submitBtn:hover { opacity: 0.88; }
   </style>
 </head>
 <body>
