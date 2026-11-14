@@ -10,98 +10,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
   <style>
     :root {
-      --bg: #FBF3E6;
-      --on-fg: #FDFBF6;
-      --surface: #FFFBF2;
-      --surface-sunken: #F4E9D7;
-      --fg: #3A3550;
-      --muted: #7D7891;
-      --border: #ECE0CA;
-      --border-strong: #DECBA8;
-
-      --r-red: #F2545B;
-      --r-orange: #F28C3E;
-      --r-yellow: #F0C244;
-      --r-green: #5FBF8B;
-      --r-blue: #3FA9D6;
-      --r-indigo: #5B6EE8;
-      --r-violet: #B86AD9;
-
       --cat-chapter: var(--r-orange);
       --cat-picture: var(--r-red);
       --cat-nonfiction: var(--r-yellow);
-
-      --font-display: "Baloo 2", "Segoe UI Rounded", system-ui, sans-serif;
-      --font-body: "Inter", system-ui, -apple-system, sans-serif;
     }
-    body.dark {
-      --bg: #17141F;
-      --on-fg: #17141F;
-      --surface: #201C2C;
-      --surface-sunken: #1B1826;
-      --fg: #F4F2FA;
-      --muted: #A49FB8;
-      --border: #332E42;
-      --border-strong: #433C56;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font-family: var(--font-body);
-      padding-left: max(16px, env(safe-area-inset-left, 0px));
-      padding-right: max(16px, env(safe-area-inset-right, 0px));
-      line-height: 1.5;
-    }
-    h1, h2, h3 { font-family: var(--font-display); margin: 0; }
-    button { font-family: inherit; }
-    textarea { font-family: inherit; }
-
-    .wrap { max-width: 1040px; margin: 0 auto; padding-block: 0 56px; }
-
-    /* ---------- Header ---------- */
-    .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 16px; }
-    .back-link {
-      font-size: 0.86rem; text-decoration: none; padding: 7px 14px;
-      border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--fg);
-    }
-    header.top { padding-block: 10px 6px; position: relative; }
-    .rainbow-rule {
-      height: 4px;
-      border-radius: 2px;
-      margin-bottom: 16px;
-      background: linear-gradient(90deg, var(--r-red), var(--r-orange), var(--r-yellow), var(--r-green), var(--r-blue), var(--r-indigo), var(--r-violet));
-    }
-    .titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .titlebar h1 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem); font-weight: 800; letter-spacing: -0.01em; }
-    .titlebar h1 span {
-      background: linear-gradient(90deg, var(--r-red), var(--r-orange), var(--r-yellow), var(--r-green), var(--r-blue), var(--r-indigo), var(--r-violet));
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-    }
-    .subtitle { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
-
-    .add-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--fg); color: var(--on-fg); border: none; border-radius: 999px;
-      padding: 11px 20px; font-weight: 700; font-size: 0.95rem; cursor: pointer; white-space: nowrap;
-    }
-    .add-btn:hover { opacity: 0.88; }
-    .add-btn:focus-visible, button:focus-visible, input:focus-visible, a:focus-visible, textarea:focus-visible {
-      outline: 2px solid var(--r-blue); outline-offset: 2px;
-    }
-
-    /* Floating dark-mode toggle, matching the rest of the dashboard */
-    .toggle-mode {
-      position: fixed; bottom: 1rem; right: 1rem; width: 50px; height: 50px;
-      background: #000; color: #fff; border: 0; border-radius: 50%; font-size: 24px;
-      cursor: pointer; z-index: 999; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,.3);
-    }
-    .toggle-mode.sun { background: #ffd700; color: #333; }
 
     /* ---------- Rings + legend ---------- */
     .rings-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: 16px; }
@@ -269,15 +184,6 @@
     .cancel-btn { background: transparent; border: 1px solid var(--border-strong); color: var(--fg); }
     .save-btn { background: var(--fg); color: var(--on-fg); border: none; }
     .delete-btn { background: transparent; border: 1px solid var(--r-red); color: var(--r-red); flex: none !important; padding: 11px 16px !important; }
-
-    .toast {
-      position: fixed; left: 50%; bottom: max(80px, calc(env(safe-area-inset-bottom, 0px) + 80px)); transform: translateX(-50%);
-      background: var(--fg); color: var(--on-fg); padding: 10px 18px; border-radius: 999px; font-size: 0.85rem; font-weight: 600;
-      z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; max-width: 86vw; text-align: center;
-    }
-    .toast.show { opacity: 1; }
-
-    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
