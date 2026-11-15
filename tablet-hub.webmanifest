@@ -1,0 +1,12 @@
+{
+  "name": "Family Hub Wall Display",
+  "short_name": "Family Hub",
+  "start_url": "tablet-hub.html?home=benton",
+  "scope": ".",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#1B1625",
+  "theme_color": "#1B1625",
+  "icons": []
+}
