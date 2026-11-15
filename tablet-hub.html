@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Family Hub · Wall Display</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    /* ---------- Page-specific layout only — everything else comes from shared.css ---------- */
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 6px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .tile {
+      background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--c, var(--r-blue));
+      border-radius: 16px; padding: 18px; text-align: left; cursor: pointer; color: var(--fg); font: inherit;
+      display: flex; flex-direction: column; gap: 8px; min-height: 104px; position: relative;
+    }
+    .tile:hover { background: var(--surface-sunken); }
+    .tile.wide { grid-column: span 2; }
+    .tile[data-tile="wifi"]     { --c: var(--r-red); }
+    .tile[data-tile="calendar"] { --c: var(--r-orange); }
+    .tile[data-tile="chore"]    { --c: var(--r-yellow); }
+    .tile[data-tile="meal"]     { --c: var(--r-green); }
+    .tile[data-tile="heating"]  { --c: var(--r-blue); }
+    .tile-head { display: flex; align-items: center; gap: 9px; }
+    .tile-icon { font-size: 1.2rem; }
+    .tile-label { font-family: var(--font-display); font-weight: 700; font-size: 0.98rem; }
+    .tile-preview { font-size: 0.82rem; color: var(--muted); }
+    .needs-setup {
+      position: absolute; top: 12px; right: 12px; font-size: 0.62rem; letter-spacing: 0.04em; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px; background: var(--r-orange); color: #fff;
+    }
+
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 500; }
+    .modal { background: var(--surface); border-radius: 18px; padding: 22px; max-width: 480px; width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+    .modal.wide { max-width: 760px; }
+    .modal .modal-title {
+      font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; text-align: center; padding: 12px;
+      color: #fff; border-radius: 16px 16px 0 0; margin: -22px -22px 16px -22px; background: var(--rainbow);
+    }
+    .modal-close { float: right; margin-top: -40px; background: none; border: none; color: #fff; font-size: 1.3rem; cursor: pointer; }
+    .modal-frame { border: 0; width: 100%; border-radius: 10px; }
+
+    .qr-output { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .qr-output canvas { border-radius: 10px; }
+
+    .mode-row { display: flex; gap: 8px; }
+    .mode-pill {
+      border: 1px solid var(--border-strong); background: var(--surface); color: var(--muted);
+      border-radius: 999px; padding: 8px 16px; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .mode-pill.active { color: #fff; border-color: transparent; }
+    .mode-pill.active[data-mode="Heat"] { background: var(--r-orange); }
+    .mode-pill.active[data-mode="Eco"]  { background: var(--r-green); }
+    .mode-pill.active[data-mode="Off"]  { background: var(--muted); }
+    .temp-row { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+    .temp-row button {
+      width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--border-strong);
+      background: var(--surface-sunken); color: var(--fg); font-size: 1.1rem; cursor: pointer;
+    }
+    .temp-label { text-align: center; min-width: 76px; }
+    .temp-label .num { font-family: var(--font-display); font-weight: 700; font-size: 1.8rem; color: var(--r-orange); }
+    .temp-label .unit-label { font-size: 0.68rem; letter-spacing: 0.04em; color: var(--muted); }
+
+    .chore-group h3 { font-family: var(--font-display); margin: 12px 0 6px; }
+    .chore-group ul { list-style: none; padding: 0; margin: 0; }
+    .chore-group li button {
+      margin: 4px 0; padding: 0.55rem 1rem; font: 600 0.9rem inherit;
+      border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--fg); cursor: pointer;
+    }
+    .chore-group li button:hover { background: var(--surface-sunken); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-bar">
+    <a href="index.html?home=benton" class="back-link">⬅ Back to Dashboard</a>
+  </div>
+  <header class="top">
+    <div class="rainbow-rule"></div>
+    <div class="titlebar">
+      <div>
+        <h1><span>Family Hub · Wall Display</span></h1>
+        <div class="subtitle">A separate page for the kitchen tablet — the main dashboard is untouched</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid" id="tileGrid"></div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" id="modalInner"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<button class="toggle-mode" id="modeToggle">🌙</button>
+
+<script>
+/* ========== Theme — same "theme" key as index/meal-plan, so it stays in sync ========== */
+const modeBtn = document.getElementById('modeToggle');
+function setInitialTheme(){
+  const stored = localStorage.getItem('theme');
+  const dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.body.classList.toggle('dark', dark);
+  modeBtn.textContent = dark ? '☀️' : '🌙';
+  modeBtn.classList.toggle('sun', dark);
+}
+modeBtn.onclick = () => {
+  const dark = !document.body.classList.contains('dark');
+  document.body.classList.toggle('dark', dark);
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  modeBtn.textContent = dark ? '☀️' : '🌙';
+  modeBtn.classList.toggle('sun', dark);
+};
+setInitialTheme();
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Toast ----------
+  var toastTimer = null;
+  function showToast(msg) {
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2400);
+  }
+
+  // ---------- Modal ----------
+  function openModal(html, wide) {
+    var el = document.getElementById('modalInner');
+    el.className = 'modal' + (wide ? ' wide' : '');
+    el.innerHTML = '<button class="modal-close" id="modalCloseBtn" aria-label="Close">&times;</button>' + html;
+    document.getElementById('overlay').hidden = false;
+    document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+  }
+  function closeModal() {
+    document.getElementById('overlay').hidden = true;
+    document.getElementById('modalInner').innerHTML = '';
+  }
+  document.getElementById('overlay').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+
+  // ---------- Heating (Nest) — mock until NEST_API_BASE below is wired to a real proxy ----------
+  // Once you've done the Google Device Access registration we discussed, point this at your
+  // backend proxy (e.g. a Cloudflare Worker) and swap the two commented fetch() calls in.
+  var NEST_API_BASE = '';
+  var heating = { mode: 'Heat', target: 21, current: 19.5 };
+
+  function heatingPreview() { return heating.current + '° → ' + heating.target + '°'; }
+
+  function openHeatingModal() {
+    openModal(
+      '<div class="modal-title">🔥 Heating · Nest</div>' +
+      '<div class="mode-row">' +
+        '<button class="mode-pill" data-mode="Heat">Heat</button>' +
+        '<button class="mode-pill" data-mode="Eco">Eco</button>' +
+        '<button class="mode-pill" data-mode="Off">Off</button>' +
+      '</div>' +
+      '<div class="temp-row">' +
+        '<button id="decTemp" aria-label="Lower target">&minus;</button>' +
+        '<div class="temp-label"><div class="unit-label">TARGET</div><div class="num" id="targetNum"></div></div>' +
+        '<button id="incTemp" aria-label="Raise target">+</button>' +
+      '</div>' +
+      '<p style="color:var(--muted);font-size:0.85rem;margin-top:14px;">Current ' + heating.current + '°</p>' +
+      '<p style="color:var(--muted);font-size:0.78rem;">' + (NEST_API_BASE ? 'Connected to your Nest.' : 'Demo mode — add your Device Access proxy URL to make this live.') + '</p>'
+    );
+    refreshHeatingModal();
+    document.querySelectorAll('.mode-pill').forEach(function (btn) {
+      btn.addEventListener('click', function () { setHeatingMode(btn.dataset.mode); refreshHeatingModal(); });
+    });
+    document.getElementById('incTemp').addEventListener('click', function () { setHeatingTarget(Math.min(30, heating.target + 0.5)); refreshHeatingModal(); });
+    document.getElementById('decTemp').addEventListener('click', function () { setHeatingTarget(Math.max(5, heating.target - 0.5)); refreshHeatingModal(); });
+  }
+  function refreshHeatingModal() {
+    document.getElementById('targetNum').textContent = heating.target + '°';
+    document.querySelectorAll('.mode-pill').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.mode === heating.mode);
+    });
+  }
+  function setHeatingMode(mode) {
+    heating.mode = mode;
+    if (NEST_API_BASE) { /* fetch(NEST_API_BASE + '/mode', { method: 'POST', body: JSON.stringify({ mode: mode }) }); */ }
+    renderTiles();
+  }
+  function setHeatingTarget(target) {
+    heating.target = target;
+    if (NEST_API_BASE) { /* fetch(NEST_API_BASE + '/setpoint', { method: 'POST', body: JSON.stringify({ target: target }) }); */ }
+    renderTiles();
+  }
+
+  // ---------- Wi-Fi QR — real, using the same QRious + config.js as the main dashboard ----------
+  function openWifiModal() {
+    var cfg = window.config || {};
+    if (!cfg.wifiName) {
+      openModal('<div class="modal-title">📶 Wi-Fi QR Code</div><p style="color:var(--muted);">wifiName / wifiPassword aren’t set in config.js.</p>');
+      return;
+    }
+    openModal(
+      '<div class="modal-title">📶 Wi-Fi QR Code</div>' +
+      '<div class="qr-output"><canvas id="qrcode"></canvas><div>Network: ' + cfg.wifiName + '</div></div>'
+    );
+    new QRious({
+      element: document.getElementById('qrcode'),
+      size: 220,
+      value: 'WIFI:S:' + cfg.wifiName + ';T:WPA;P:' + cfg.wifiPassword + ';;'
+    });
+  }
+
+  // ---------- Calendar — real embed, same as the main dashboard ----------
+  function openCalendarModal() {
+    var cfg = window.config || {};
+    if (!cfg.calendarEmail) {
+      openModal('<div class="modal-title">📅 Family Calendar</div><p style="color:var(--muted);">calendarEmail isn’t set in config.js.</p>');
+      return;
+    }
+    var src = encodeURIComponent(cfg.calendarEmail);
+    openModal(
+      '<div class="modal-title">📅 Family Calendar</div>' +
+      '<iframe class="modal-frame" style="height:420px;" frameborder="0" scrolling="no" ' +
+      'src="https://calendar.google.com/calendar/embed?height=420&wkst=1&bgcolor=%23ffffff&ctz=Europe/London&showTitle=0&showNav=1&mode=AGENDA&src=' + src + '"></iframe>'
+    );
+  }
+
+  // ---------- Meal Plan — the real page, full-featured, just popped out instead of navigated to ----------
+  function openMealModal() {
+    openModal(
+      '<div class="modal-title">🍽️ Meal Plan</div>' +
+      '<iframe class="modal-frame" style="height:70vh;" frameborder="0" src="meal-plan.html?home=benton"></iframe>',
+      true
+    );
+  }
+
+  // ---------- Chores — same logic as the main dashboard, same endpoint ----------
+  var CHORES = {
+    "Robin": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"],
+    "Méabh": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"]
+  };
+  function openChoreModal() {
+    var html = '<div class="modal-title">🧽 Log a Chore</div>';
+    Object.keys(CHORES).forEach(function (name) {
+      html += '<div class="chore-group"><h3>' + name + '</h3><ul>' +
+        CHORES[name].map(function (chore) {
+          return '<li><button data-child="' + name + '" data-chore="' + chore + '">' + chore + '</button></li>';
+        }).join('') + '</ul></div>';
+    });
+    openModal(html);
+    document.querySelectorAll('.chore-group button').forEach(function (btn) {
+      btn.addEventListener('click', function () { submitChore(btn.dataset.child, btn.dataset.chore); });
+    });
+  }
+  function submitChore(child, chore) {
+    var cfg = window.config || {};
+    if (!cfg.choreSubmitUrl) { showToast('choreSubmitUrl isn’t set in config.js'); return; }
+    var body = new URLSearchParams();
+    body.set('child', child); body.set('chore', chore); body.set('ts', Date.now());
+    fetch(cfg.choreSubmitUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() }).catch(function () {});
+    showToast(chore + ' logged for ' + child);
+    closeModal();
+  }
+
+  // ---------- Tile grid ----------
+  var TILES = [
+    { id: 'wifi',     icon: '📶', label: 'Wi-Fi QR',  open: openWifiModal,     preview: function () { return 'Tap to show'; }, needsSetup: function () { return !(window.config && window.config.wifiName); } },
+    { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: function () { return 'Family calendar'; }, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
+    { id: 'chore',    icon: '🧽', label: 'Chores',    open: openChoreModal,    preview: function () { return 'Tap to log'; }, needsSetup: function () { return !(window.config && window.config.choreSubmitUrl); } },
+    { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: function () { return 'Opens the full planner'; }, wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
+    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return !NEST_API_BASE; } }
+  ];
+  function renderTiles() {
+    var grid = document.getElementById('tileGrid');
+    grid.innerHTML = '';
+    TILES.forEach(function (t) {
+      var btn = document.createElement('button');
+      btn.className = 'tile' + (t.wide ? ' wide' : '');
+      btn.setAttribute('data-tile', t.id);
+      btn.innerHTML =
+        (t.needsSetup() ? '<span class="needs-setup">SET UP</span>' : '') +
+        '<div class="tile-head"><span class="tile-icon">' + t.icon + '</span><span class="tile-label">' + t.label + '</span></div>' +
+        '<div class="tile-preview">' + t.preview() + '</div>';
+      btn.addEventListener('click', t.open);
+      grid.appendChild(btn);
+    });
+  }
+
+  renderTiles();
+})();
+</script>
+</body>
+</html>
