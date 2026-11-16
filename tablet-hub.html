@@ -74,6 +74,10 @@
       position: absolute; top: 14px; right: 14px; font-size: 0.62rem; letter-spacing: 0.04em; font-weight: 700;
       padding: 2px 8px; border-radius: 999px; background: var(--r-orange); color: #fff;
     }
+    .status-badge {
+      position: absolute; top: 14px; left: 14px; font-size: 0.62rem; letter-spacing: 0.04em; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px; background: var(--r-red); color: #fff;
+    }
 
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 500; }
     .modal { background: var(--surface); border-radius: 18px; padding: 22px; max-width: 480px; width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
@@ -389,7 +393,7 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
     { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: function () { return 'Family calendar'; }, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
     { id: 'chore',    icon: '🧽', label: 'Chores',    open: openChoreModal,    preview: function () { return 'Tap to log'; }, needsSetup: function () { return !(window.config && window.config.choreSubmitUrl); } },
     { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: function () { return 'Opens the full planner'; }, wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
-    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; } }
+    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; }, badge: function () { return heating.hvacStatus === 'HEATING' ? '🔥 On' : ''; } }
   ];
   function renderTiles() {
     var grid = document.getElementById('tileGrid');
@@ -398,8 +402,10 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
       var btn = document.createElement('button');
       btn.className = 'tile' + (t.wide ? ' wide' : '');
       btn.setAttribute('data-tile', t.id);
+      var badgeText = t.badge ? t.badge() : '';
       btn.innerHTML =
         (t.needsSetup() ? '<span class="needs-setup">SET UP</span>' : '') +
+        (badgeText ? '<span class="status-badge">' + badgeText + '</span>' : '') +
         '<div class="tile-head"><span class="tile-icon">' + t.icon + '</span><span class="tile-label">' + t.label + '</span></div>' +
         '<div class="tile-preview">' + t.preview() + '</div>';
       btn.addEventListener('click', t.open);
