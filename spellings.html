@@ -50,6 +50,10 @@
     .start-btn:hover {
       opacity: .88;
     }
+    .start-btn[disabled] {
+      opacity: .5;
+      cursor: not-allowed;
+    }
 
     .stats-row { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:.5rem; }
     .stat-box { flex:1 1 80px; padding:.4rem .5rem; border-radius:10px; background:var(--surface); border:1px solid var(--border); font-size:.8rem; }
@@ -93,6 +97,30 @@
     .feedback.bad{ color:#dc2626; }
 
     .small-link{ margin-top:.35rem; font-size:.8rem; text-align:right; text-decoration:underline; cursor:pointer; }
+
+    /* ===== Avatar + coin shop ===== */
+    .avatar-preview-wrap { text-align:center; margin-bottom:.4rem; }
+    .avatar-shop { margin-top:.6rem; max-height:280px; overflow-y:auto; }
+    .avatar-shop-group { margin-bottom:.6rem; }
+    .avatar-shop-group h4 { font-size:.8rem; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); margin:0 0 .3rem; }
+    .avatar-shop-item {
+      display:flex; align-items:center; gap:.5rem;
+      padding:.35rem .4rem; border-radius:10px; border:1px solid var(--border);
+      margin-bottom:.3rem; background:var(--surface-sunken);
+    }
+    .avatar-shop-item.equipped { border-color:#22c55e; box-shadow:0 0 0 1px #22c55e inset; }
+    .avatar-swatch {
+      width:20px; height:20px; border-radius:50%; flex:0 0 auto;
+      border:1px solid rgba(0,0,0,.25);
+    }
+    .avatar-shop-item-label { flex:1 1 auto; font-size:.85rem; }
+    .avatar-shop-item-btn {
+      font-size:.75rem; font-weight:700; padding:.3rem .6rem; border-radius:999px;
+      border:1px solid var(--border-strong); background:var(--surface); color:var(--fg);
+      cursor:pointer; white-space:nowrap;
+    }
+    .avatar-shop-item-btn.equipped-btn { background:#22c55e; border-color:#16a34a; color:#fff; cursor:default; }
+    .avatar-shop-item-btn[disabled] { opacity:.45; cursor:not-allowed; }
 
     /* Word search styles */
     #wordsearchStep { margin-top:1rem; }
@@ -568,7 +596,8 @@ body.dark .big-banner.win .big-banner-text {
         <select id="phaseSelect">
           <option value="">Select…</option>
           <option value="eyfs">EYFS</option>
-          <option value="y3">Year 3</option>
+          <option value="y1">Year 1</option>
+          <option value="y4">Year 4</option>
         </select>
 
         <p class="note">Your score and streak are for this session only.</p>
@@ -578,13 +607,13 @@ body.dark .big-banner.win .big-banner-text {
         <h3>What are you practising?</h3>
         <div class="mode-options">
         <label id="robinModeOption">
-          <input type="radio" name="contentMode" value="robin" checked> Weekly spellings (Year 3)
+          <input type="radio" name="contentMode" value="robin" checked> Weekly spellings (Year 4)
         </label>
         <label id="eyfsModeOption">
           <input type="radio" name="contentMode" value="eyfs"> EYFS sound blending
         </label>
         <label id="numbersModeOption" style="display:none;">
-          <input type="radio" name="contentMode" value="numbers"> Numbers practice (Year 3)
+          <input type="radio" name="contentMode" value="numbers"> Numbers practice (Year 4)
         </label>
       </div>
 
@@ -593,7 +622,19 @@ body.dark .big-banner.win .big-banner-text {
           <select id="eyfsSetSelect"></select>
         </div>
 
+        <p class="note" id="noActivityNote" style="display:none;">Nothing set up for Year 1 yet &mdash; check back once there are spellings or times tables to practise.</p>
+
         <button class="start-btn" id="startPracticeBtn">Start practising ▶️</button>
+      </div>
+
+      <div class="identity-card" id="avatarCard">
+        <h3>Your Avatar</h3>
+        <div class="avatar-preview-wrap">
+          <svg id="avatarSVG" viewBox="0 0 120 140" width="110" height="128" aria-hidden="true"></svg>
+        </div>
+        <p class="note" id="avatarCoinsNote">🪙 0 coins &mdash; type a name to see your avatar</p>
+        <button type="button" class="secondary-btn" id="openShopBtn">🛍️ Open shop</button>
+        <div id="avatarShopPanel" class="avatar-shop" style="display:none;"></div>
       </div>
     </div>
 
@@ -617,6 +658,15 @@ body.dark .big-banner.win .big-banner-text {
           <div class="stat-box">
             <div class="stat-label">Total</div>
             <div class="stat-main"><span id="statCorrect">0</span> / <span id="statTotal">0</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">All-time best</div>
+            <div class="stat-main">🔥 <span id="statAllTimeStreak">0</span></div>
+            <div class="stat-label"><span id="statAllTimeXP">0</span> XP ever</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Coins</div>
+            <div class="stat-main">🪙 <span id="statCoins">0</span></div>
           </div>
         </div>
     
@@ -645,6 +695,7 @@ body.dark .big-banner.win .big-banner-text {
   <p style="font-size:.85rem; color:#666;" id="numbersListLabel">
     Using this week’s numbers.
   </p>
+  <p style="font-size:.85rem; font-weight:600;" id="numbersCoinsText">🪙 0 coins</p>
 
   <!-- Numbers mode tabs: Practice / Streak / Speed / Boss -->
   <div class="numbers-mode-tabs">
@@ -945,6 +996,7 @@ if (!isHomeMode && backLink) backLink.style.display = "none";
 const startPracticeBtn = document.getElementById("startPracticeBtn");
 const eyfsSetRow = document.getElementById("eyfsSetRow");
 const eyfsSetSelect = document.getElementById("eyfsSetSelect");
+const noActivityNote = document.getElementById("noActivityNote");
 
 const activeLearnerTitle = document.getElementById("activeLearnerTitle");
 const listLabel = document.getElementById("listLabel");
@@ -954,6 +1006,14 @@ const statStreak = document.getElementById("statStreak");
 const statBestStreak = document.getElementById("statBestStreak");
 const statCorrect = document.getElementById("statCorrect");
 const statTotal = document.getElementById("statTotal");
+const statAllTimeStreak = document.getElementById("statAllTimeStreak");
+const statAllTimeXP = document.getElementById("statAllTimeXP");
+const statCoins = document.getElementById("statCoins");
+
+const avatarSVG = document.getElementById("avatarSVG");
+const avatarCoinsNote = document.getElementById("avatarCoinsNote");
+const openShopBtn = document.getElementById("openShopBtn");
+const avatarShopPanel = document.getElementById("avatarShopPanel");
 
 const modeTabs = document.querySelectorAll(".mode-tab");
 const currentWordEl = document.getElementById("currentWord");
@@ -980,6 +1040,7 @@ const numbersModeOption = document.getElementById("numbersModeOption");
 
 const numbersTitle = document.getElementById("numbersTitle");
 const numbersListLabel = document.getElementById("numbersListLabel");
+const numbersCoinsText = document.getElementById("numbersCoinsText");
 const numbersProgressText = document.getElementById("numbersProgressText");
 const numbersProgressFill = document.getElementById("numbersProgressFill");
 const currentQuestionEl = document.getElementById("currentQuestion");
@@ -1047,6 +1108,310 @@ let sessionCorrect = 0;
 let sessionStreak = 0;
 let bestSessionStreak = 0;
 let sessionXP = 0;
+
+// All-time stats for spellings (Robin/EYFS), kept per learner name in this browser
+let allTimeBestStreak = 0;
+let allTimeXP = 0;
+
+function allTimeStorageKey(name) {
+  return "spellingsAllTime_" + String(name || "").trim().toLowerCase();
+}
+
+function loadAllTimeProgress(name) {
+  try {
+    const raw = localStorage.getItem(allTimeStorageKey(name));
+    if (!raw) return { bestStreak: 0, xp: 0 };
+    const data = JSON.parse(raw);
+    return {
+      bestStreak: Number(data.bestStreak) || 0,
+      xp: Number(data.xp) || 0
+    };
+  } catch (err) {
+    return { bestStreak: 0, xp: 0 };
+  }
+}
+
+function saveAllTimeProgress(name) {
+  try {
+    localStorage.setItem(allTimeStorageKey(name), JSON.stringify({
+      bestStreak: allTimeBestStreak,
+      xp: allTimeXP
+    }));
+  } catch (err) {
+    // localStorage unavailable (e.g. private browsing) - all-time tracking just won't persist
+  }
+}
+
+function refreshAllTimeUI() {
+  if (statAllTimeStreak) statAllTimeStreak.textContent = allTimeBestStreak;
+  if (statAllTimeXP) statAllTimeXP.textContent = allTimeXP;
+}
+
+/* ========== Coins & Avatar shop ========== */
+/* Everyone starts with one free option per category; everything else is
+   unlocked permanently by spending coins earned from correct answers
+   (spellings AND numbers both pay out). Skin tone is free either way -
+   it's not a reward, just a choice. */
+const AVATAR_CATALOG = {
+  skin: [
+    { id: "skin_light", label: "Light skin",  color: "#fde68a", cost: 0, default: true },
+    { id: "skin_tan",   label: "Tan skin",     color: "#eab676", cost: 0 },
+    { id: "skin_deep",  label: "Deep skin",    color: "#92623f", cost: 0 }
+  ],
+  hat: [
+    { id: "cap_red",    label: "Red cap",     shape: "cap",    color: "#ef4444", cost: 0, default: true },
+    { id: "cap_blue",   label: "Blue cap",    shape: "cap",    color: "#3b82f6", cost: 10 },
+    { id: "cap_green",  label: "Green cap",   shape: "cap",    color: "#22c55e", cost: 10 },
+    { id: "cap_purple", label: "Purple cap",  shape: "cap",    color: "#a855f7", cost: 20 },
+    { id: "hat_wizard", label: "Wizard hat",  shape: "wizard", color: "#4338ca", cost: 60 },
+    { id: "crown_gold", label: "Gold crown",  shape: "crown",  color: "#fbbf24", cost: 90 }
+  ],
+  outfit: [
+    { id: "shirt_blue",    label: "Blue shirt",    color: "#60a5fa", cost: 0, default: true },
+    { id: "shirt_orange",  label: "Orange shirt",  color: "#fb923c", cost: 10 },
+    { id: "shirt_pink",    label: "Pink shirt",    color: "#f472b6", cost: 10 },
+    { id: "shirt_green",   label: "Green shirt",   color: "#34d399", cost: 10 },
+    { id: "shirt_rainbow", label: "Rainbow shirt", color: "rainbow", cost: 70 }
+  ],
+  accessory: [
+    { id: "acc_none",    label: "No accessory",   cost: 0, default: true },
+    { id: "acc_badge",   label: "Star badge",     color: "#fbbf24", cost: 15 },
+    { id: "acc_glasses", label: "Cool shades",    color: "#111827", cost: 25 },
+    { id: "acc_cape",    label: "Superhero cape", color: "#dc2626", cost: 45 }
+  ]
+};
+const AVATAR_CATEGORY_LABELS = { skin: "Skin tone", hat: "Hats", outfit: "Outfits", accessory: "Accessories" };
+
+function avatarStorageKey(name) {
+  return "spellingsAvatar_" + String(name || "").trim().toLowerCase();
+}
+
+function defaultAvatarData() {
+  const data = { coins: 0, unlocked: {}, equipped: {} };
+  Object.keys(AVATAR_CATALOG).forEach(cat => {
+    data.unlocked[cat] = AVATAR_CATALOG[cat].filter(i => i.cost === 0).map(i => i.id);
+    const def = AVATAR_CATALOG[cat].find(i => i.default) || AVATAR_CATALOG[cat][0];
+    data.equipped[cat] = def ? def.id : null;
+  });
+  return data;
+}
+
+function loadAvatarData(name) {
+  const base = defaultAvatarData();
+  if (!name) return base;
+  try {
+    const raw = localStorage.getItem(avatarStorageKey(name));
+    if (!raw) return base;
+    const saved = JSON.parse(raw);
+    const data = { coins: Number(saved.coins) || 0, unlocked: {}, equipped: {} };
+    Object.keys(AVATAR_CATALOG).forEach(cat => {
+      const savedList = (saved.unlocked && Array.isArray(saved.unlocked[cat])) ? saved.unlocked[cat] : [];
+      // Merge: anything free is always unlocked, plus whatever was actually bought before
+      const freeIds = base.unlocked[cat];
+      data.unlocked[cat] = Array.from(new Set([...freeIds, ...savedList]));
+      const savedEquip = saved.equipped && saved.equipped[cat];
+      data.equipped[cat] = (savedEquip && data.unlocked[cat].includes(savedEquip)) ? savedEquip : base.equipped[cat];
+    });
+    return data;
+  } catch (err) {
+    return base;
+  }
+}
+
+function saveAvatarData(name, data) {
+  if (!name) return;
+  try {
+    localStorage.setItem(avatarStorageKey(name), JSON.stringify(data));
+  } catch (err) {
+    // localStorage unavailable - coins/avatar just won't persist this session
+  }
+}
+
+let avatarData = defaultAvatarData();
+
+function earnCoins(amount) {
+  if (!currentLearner) return;
+  avatarData.coins += amount;
+  saveAvatarData(currentLearner, avatarData);
+  refreshAvatarUI();
+}
+
+function catalogItem(category, id) {
+  const list = AVATAR_CATALOG[category] || [];
+  return list.find(i => i.id === id) || list[0];
+}
+
+function buildAvatarSvgMarkup() {
+  const skin = catalogItem("skin", avatarData.equipped.skin);
+  const outfit = catalogItem("outfit", avatarData.equipped.outfit);
+  const hat = catalogItem("hat", avatarData.equipped.hat);
+  const accessory = catalogItem("accessory", avatarData.equipped.accessory);
+
+  const outfitFill = outfit.color === "rainbow" ? "url(#avatarRainbow)" : outfit.color;
+
+  let hatMarkup = "";
+  if (hat.shape === "wizard") {
+    hatMarkup = `
+      <path d="M60 4 L80 42 L40 42 Z" fill="${hat.color}" stroke="#1f2937" stroke-width="2"></path>
+      <ellipse cx="60" cy="42" rx="26" ry="6" fill="${hat.color}" stroke="#1f2937" stroke-width="2"></ellipse>`;
+  } else if (hat.shape === "crown") {
+    hatMarkup = `
+      <path d="M34 40 L40 18 L50 34 L60 14 L70 34 L80 18 L86 40 Z" fill="${hat.color}" stroke="#92400e" stroke-width="2"></path>
+      <rect x="34" y="38" width="52" height="8" rx="2" fill="${hat.color}" stroke="#92400e" stroke-width="2"></rect>`;
+  } else {
+    // default: cap
+    hatMarkup = `
+      <path d="M34 38 A26 26 0 0 1 86 38 Z" fill="${hat.color}" stroke="#1f2937" stroke-width="2"></path>
+      <rect x="60" y="30" width="26" height="8" rx="4" fill="${hat.color}" stroke="#1f2937" stroke-width="2"></rect>`;
+  }
+
+  let accessoryMarkup = "";
+  if (accessory.id === "acc_glasses") {
+    accessoryMarkup = `
+      <circle cx="50" cy="58" r="7" fill="#bae6fd" stroke="${accessory.color}" stroke-width="3"></circle>
+      <circle cx="70" cy="58" r="7" fill="#bae6fd" stroke="${accessory.color}" stroke-width="3"></circle>
+      <rect x="57" y="56" width="6" height="3" fill="${accessory.color}"></rect>`;
+  } else if (accessory.id === "acc_badge") {
+    accessoryMarkup = `
+      <path d="M60 92 L63 99 L71 99 L64.5 104 L67 112 L60 107 L53 112 L55.5 104 L49 99 L57 99 Z"
+            fill="${accessory.color}" stroke="#92400e" stroke-width="1.5"></path>`;
+  }
+
+  // Cape sits behind the body, so it's drawn first when equipped
+  const capeMarkup = (accessory.id === "acc_cape")
+    ? `<path d="M40 76 L26 128 L60 118 L94 128 L80 76 Z" fill="${accessory.color}" stroke="#7f1d1d" stroke-width="2" opacity="0.9"></path>`
+    : "";
+
+  return `
+    <defs>
+      <linearGradient id="avatarRainbow" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#f87171"></stop>
+        <stop offset="25%" stop-color="#fb923c"></stop>
+        <stop offset="50%" stop-color="#facc15"></stop>
+        <stop offset="75%" stop-color="#4ade80"></stop>
+        <stop offset="100%" stop-color="#60a5fa"></stop>
+      </linearGradient>
+    </defs>
+    ${capeMarkup}
+    <!-- Arms -->
+    <rect x="26" y="78" width="12" height="32" rx="6" fill="${skin.color}" stroke="#92400e" stroke-width="2"></rect>
+    <rect x="82" y="78" width="12" height="32" rx="6" fill="${skin.color}" stroke="#92400e" stroke-width="2"></rect>
+    <!-- Body -->
+    <rect x="38" y="74" width="44" height="46" rx="12" fill="${outfitFill}" stroke="#1f2937" stroke-width="2"></rect>
+    ${accessoryMarkup}
+    <!-- Head -->
+    <circle cx="60" cy="52" r="26" fill="${skin.color}" stroke="#92400e" stroke-width="2"></circle>
+    <!-- Eyes -->
+    <circle cx="51" cy="52" r="3" fill="#1f2937"></circle>
+    <circle cx="69" cy="52" r="3" fill="#1f2937"></circle>
+    <!-- Smile -->
+    <path d="M48 60 Q60 70 72 60" fill="none" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round"></path>
+    <!-- Hat -->
+    ${hatMarkup}
+  `;
+}
+
+function renderAvatarSvg() {
+  if (!avatarSVG) return;
+  avatarSVG.innerHTML = buildAvatarSvgMarkup();
+}
+
+function renderAvatarShop() {
+  if (!avatarShopPanel) return;
+  const coins = avatarData.coins;
+
+  let html = "";
+  Object.keys(AVATAR_CATALOG).forEach(category => {
+    html += `<div class="avatar-shop-group"><h4>${AVATAR_CATEGORY_LABELS[category] || category}</h4>`;
+    AVATAR_CATALOG[category].forEach(item => {
+      const isUnlocked = avatarData.unlocked[category].includes(item.id);
+      const isEquipped = avatarData.equipped[category] === item.id;
+      const canAfford = coins >= item.cost;
+      const swatchColor = item.color === "rainbow" ? "linear-gradient(90deg,#f87171,#fb923c,#facc15,#4ade80,#60a5fa)" : (item.color || "#e5e7eb");
+
+      let btnLabel, btnDisabled, btnClass;
+      if (isEquipped) {
+        btnLabel = "Equipped ✓";
+        btnDisabled = true;
+        btnClass = "equipped-btn";
+      } else if (isUnlocked) {
+        btnLabel = "Equip";
+        btnDisabled = false;
+        btnClass = "";
+      } else {
+        btnLabel = `Unlock 🪙${item.cost}`;
+        btnDisabled = !canAfford;
+        btnClass = "";
+      }
+
+      html += `
+        <div class="avatar-shop-item${isEquipped ? " equipped" : ""}">
+          <span class="avatar-swatch" style="background:${swatchColor};"></span>
+          <span class="avatar-shop-item-label">${item.label}</span>
+          <button type="button" class="avatar-shop-item-btn ${btnClass}"
+            data-category="${category}" data-id="${item.id}" data-unlocked="${isUnlocked}"
+            ${btnDisabled ? "disabled" : ""}>${btnLabel}</button>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+
+  avatarShopPanel.innerHTML = html;
+}
+
+function refreshAvatarUI() {
+  if (avatarCoinsNote) {
+    avatarCoinsNote.textContent = currentLearner
+      ? `🪙 ${avatarData.coins} coins`
+      : "🪙 0 coins — type a name to see your avatar";
+  }
+  if (statCoins) statCoins.textContent = avatarData.coins;
+  if (numbersCoinsText) numbersCoinsText.textContent = `🪙 ${avatarData.coins} coins`;
+  renderAvatarSvg();
+  renderAvatarShop();
+}
+
+function refreshAvatarForTypedName() {
+  const name = learnerNameInput.value.trim();
+  avatarData = name ? loadAvatarData(name) : defaultAvatarData();
+  refreshAvatarUI();
+}
+
+if (learnerNameInput) {
+  learnerNameInput.addEventListener("input", refreshAvatarForTypedName);
+}
+
+if (openShopBtn) {
+  openShopBtn.addEventListener("click", () => {
+    if (!avatarShopPanel) return;
+    const showing = avatarShopPanel.style.display !== "none";
+    avatarShopPanel.style.display = showing ? "none" : "block";
+    openShopBtn.textContent = showing ? "🛍️ Open shop" : "🛍️ Close shop";
+    if (!showing) renderAvatarShop();
+  });
+}
+
+if (avatarShopPanel) {
+  avatarShopPanel.addEventListener("click", (e) => {
+    const btn = e.target.closest(".avatar-shop-item-btn");
+    if (!btn || btn.disabled) return;
+
+    const category = btn.dataset.category;
+    const id = btn.dataset.id;
+    const alreadyUnlocked = btn.dataset.unlocked === "true";
+    const item = catalogItem(category, id);
+    if (!item) return;
+
+    if (!alreadyUnlocked) {
+      if (avatarData.coins < item.cost) return; // shouldn't happen, button would be disabled
+      avatarData.coins -= item.cost;
+      avatarData.unlocked[category].push(id);
+    }
+    avatarData.equipped[category] = id;
+    saveAvatarData(currentLearner || learnerNameInput.value.trim(), avatarData);
+    refreshAvatarUI();
+  });
+}
 
 // Level progression: one cycle of up to 6 words per level (spellings only)
 const LEVEL_TARGET_MAX = 6;
@@ -1218,7 +1583,7 @@ function maskWordForLevel2(word) {
     return chars.join("");
   }
 
-  // Robin (Y3): keep your existing increasing-difficulty behaviour
+  // Robin (Y4): keep your existing increasing-difficulty behaviour
   if (chars.length <= 2) {
     if (chars.length === 2) chars[1] = "_";
     return chars.join("");
@@ -1707,7 +2072,7 @@ function handleColossusTimeoutDefeat() {
 /* ========== Word list & practice (spellings) ========== */
 function getWordList() {
   if (currentContentMode === "robin") {
-    // Robin (Y3): prefer Sheet, fall back to local list
+    // Robin (Y4): prefer Sheet, fall back to local list
     const fromSheet = robinWordsRemote.length ? robinWordsRemote : null;
     const source = fromSheet || CURRENT_WEEK_SPELLINGS;
     return source.slice();
@@ -1776,6 +2141,12 @@ function handleAnswer() {
     sessionStreak++;
     bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
     sessionXP += 10;
+
+    allTimeXP += 10;
+    allTimeBestStreak = Math.max(allTimeBestStreak, sessionStreak);
+    saveAllTimeProgress(currentLearner);
+    refreshAllTimeUI();
+    earnCoins(1);
 
     feedbackEl.textContent = "Nice, that’s correct! 🎉";
     feedbackEl.className = "feedback ok";
@@ -2255,6 +2626,7 @@ function handleNumbersAnswer() {
       sessionStreak++;
       bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
       sessionXP += 10;
+      earnCoins(1);
 
       // Add bonus time
       speedTimeRemaining += SPEED_BONUS_SECONDS;
@@ -2354,6 +2726,7 @@ function handleNumbersAnswer() {
       sessionStreak++;
       bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
       sessionXP += 15;
+      earnCoins(2);
 
       if (numbersFeedback) {
         numbersFeedback.textContent = "Hit! The boss takes damage.";
@@ -2540,6 +2913,7 @@ function handleNumbersAnswer() {
     sessionStreak++;
     bestSessionStreak = Math.max(bestSessionStreak, sessionStreak);
     sessionXP += 10;
+    earnCoins(1);
 
     if (numbersFeedback) {
       numbersFeedback.textContent = "Correct! 🎉";
@@ -2638,6 +3012,22 @@ function initEYFSSelect() {
 phaseSelect.addEventListener("change", () => {
   const phase = phaseSelect.value;
 
+  // Reset the "nothing set up yet" state each time; the y1 branch below re-applies it.
+  if (noActivityNote) noActivityNote.style.display = "none";
+  if (startPracticeBtn) startPracticeBtn.disabled = false;
+
+  if (phase === "y1") {
+    // Year 1 (Meabh): no activities set up yet, so hide every option and block starting.
+    if (robinModeOption)   robinModeOption.style.display = "none";
+    if (numbersModeOption) numbersModeOption.style.display = "none";
+    if (eyfsModeOption)    eyfsModeOption.style.display = "none";
+    if (eyfsSetRow) eyfsSetRow.style.display = "none";
+
+    if (noActivityNote) noActivityNote.style.display = "block";
+    if (startPracticeBtn) startPracticeBtn.disabled = true;
+    return;
+  }
+
   const robinRadio   = document.querySelector('input[name="contentMode"][value="robin"]');
   const eyfsRadio    = document.querySelector('input[name="contentMode"][value="eyfs"]');
   const numbersRadio = document.querySelector('input[name="contentMode"][value="numbers"]');
@@ -2655,8 +3045,8 @@ phaseSelect.addEventListener("change", () => {
     return;
   }
 
-  if (phase === "y3") {
-    // Year 3: show Robin + Numbers, hide EYFS
+  if (phase === "y4") {
+    // Year 4: show Robin + Numbers, hide EYFS
     if (robinModeOption)  robinModeOption.style.display = "block";
     if (numbersModeOption) numbersModeOption.style.display = "block";
     if (eyfsModeOption)   eyfsModeOption.style.display = "none";
@@ -2883,6 +3273,16 @@ startPracticeBtn.addEventListener("click",()=>{
   bestSessionStreak = 0;
   sessionXP = 0;
   refreshStatsUI();
+
+  // All-time stats carry over between sessions for this learner (spellings only)
+  const loadedAllTime = loadAllTimeProgress(name);
+  allTimeBestStreak = loadedAllTime.bestStreak;
+  allTimeXP = loadedAllTime.xp;
+  refreshAllTimeUI();
+
+  // Coins/avatar carry over between sessions too, and work for numbers as well as spellings
+  avatarData = loadAvatarData(name);
+  refreshAvatarUI();
 
   // Reset level progression
   levelCompletion = { 1:false, 2:false, 3:false };
@@ -3320,6 +3720,7 @@ window.addEventListener("load", () => {
   updateWordsearchLockUI();
   updateNumbersModeDescription();
   updateNumbersModeLocks();
+  refreshAvatarForTypedName();
 });
 </script>
 </body>
