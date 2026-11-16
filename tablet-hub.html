@@ -213,50 +213,104 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
   }
   document.getElementById('overlay').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
 
-  // ---------- Heating (Nest) — mock until NEST_API_BASE below is wired to a real proxy ----------
-  var NEST_API_BASE = '';
-  var heating = { mode: 'Heat', target: 21, current: 19.5 };
+  // ---------- Heating (Nest) — live via the Apps Script endpoints added to the same backend ----------
+  var heating = { mode: 'OFF', ecoMode: 'OFF', target: null, current: null, hvacStatus: '', connectivity: '', loaded: false };
 
-  function heatingPreview() { return heating.current + '° → ' + heating.target + '°'; }
+  function heatingPreview() {
+    if (!heating.loaded) return 'Tap to open';
+    if (heating.current == null) return 'Unavailable right now';
+    return heating.current.toFixed(1) + '°C' + (heating.target != null ? ' → ' + heating.target.toFixed(1) + '°C' : '');
+  }
+
+  function fetchNestStatus(cb) {
+    var cfg = window.config || {};
+    if (!cfg.summaryUrl) { cb && cb(false); return; }
+    var sep = cfg.summaryUrl.indexOf('?') >= 0 ? '&' : '?';
+    fetch(cfg.summaryUrl + sep + 'feed=nestStatus&ts=' + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok) {
+          heating.mode = data.mode || 'OFF';
+          heating.ecoMode = data.ecoMode || 'OFF';
+          heating.target = typeof data.heatSetpointCelsius === 'number' ? data.heatSetpointCelsius : null;
+          heating.current = typeof data.ambientTempCelsius === 'number' ? data.ambientTempCelsius : null;
+          heating.hvacStatus = data.hvacStatus || '';
+          heating.connectivity = data.connectivity || '';
+        }
+        heating.loaded = true;
+        cb && cb(!!(data && data.ok));
+      })
+      .catch(function () { heating.loaded = true; cb && cb(false); });
+  }
 
   function openHeatingModal() {
     openModal(
       '<div class="modal-title">🔥 Heating · Nest</div>' +
       '<div class="mode-row">' +
-        '<button class="mode-pill" data-mode="Heat">Heat</button>' +
-        '<button class="mode-pill" data-mode="Eco">Eco</button>' +
-        '<button class="mode-pill" data-mode="Off">Off</button>' +
+        '<button class="mode-pill" data-mode="HEAT">Heat</button>' +
+        '<button class="mode-pill" data-mode="OFF">Off</button>' +
       '</div>' +
+      '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:0.85rem;color:var(--muted);">' +
+        '<input type="checkbox" id="ecoToggle"> Eco mode' +
+      '</label>' +
       '<div class="temp-row">' +
         '<button id="decTemp" aria-label="Lower target">&minus;</button>' +
-        '<div class="temp-label"><div class="unit-label">TARGET</div><div class="num" id="targetNum"></div></div>' +
+        '<div class="temp-label"><div class="unit-label">TARGET</div><div class="num" id="targetNum">--</div></div>' +
         '<button id="incTemp" aria-label="Raise target">+</button>' +
       '</div>' +
-      '<p style="color:var(--muted);font-size:0.85rem;margin-top:14px;">Current ' + heating.current + '°</p>' +
-      '<p style="color:var(--muted);font-size:0.78rem;">' + (NEST_API_BASE ? 'Connected to your Nest.' : 'Demo mode — add your Device Access proxy URL to make this live.') + '</p>'
+      '<p style="color:var(--muted);font-size:0.85rem;margin-top:14px;" id="currentTempLine">Loading current reading…</p>'
     );
-    refreshHeatingModal();
     document.querySelectorAll('.mode-pill').forEach(function (btn) {
-      btn.addEventListener('click', function () { setHeatingMode(btn.dataset.mode); refreshHeatingModal(); });
+      btn.addEventListener('click', function () { setHeatingMode(btn.dataset.mode); });
     });
-    document.getElementById('incTemp').addEventListener('click', function () { setHeatingTarget(Math.min(30, heating.target + 0.5)); refreshHeatingModal(); });
-    document.getElementById('decTemp').addEventListener('click', function () { setHeatingTarget(Math.max(5, heating.target - 0.5)); refreshHeatingModal(); });
+    document.getElementById('ecoToggle').addEventListener('change', function (e) { setHeatingEco(e.target.checked); });
+    document.getElementById('incTemp').addEventListener('click', function () { if (heating.target != null) setHeatingTarget(Math.min(25, heating.target + 0.5)); });
+    document.getElementById('decTemp').addEventListener('click', function () { if (heating.target != null) setHeatingTarget(Math.max(9, heating.target - 0.5)); });
+    fetchNestStatus(function () { refreshHeatingModal(); renderTiles(); });
   }
+
   function refreshHeatingModal() {
-    document.getElementById('targetNum').textContent = heating.target + '°';
+    var targetEl = document.getElementById('targetNum');
+    if (!targetEl) return; // modal already closed by the time a fetch resolves
+    targetEl.textContent = heating.target != null ? heating.target.toFixed(1) + '°C' : '--';
     document.querySelectorAll('.mode-pill').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.mode === heating.mode);
     });
+    var ecoBox = document.getElementById('ecoToggle');
+    if (ecoBox) ecoBox.checked = heating.ecoMode === 'MANUAL_ECO';
+    var currentEl = document.getElementById('currentTempLine');
+    if (currentEl) {
+      currentEl.textContent = heating.current != null
+        ? 'Current ' + heating.current.toFixed(1) + '°C · ' + (heating.hvacStatus || '')
+        : 'Could not read the thermostat right now.';
+    }
+  }
+
+  function postNestAction(params) {
+    var cfg = window.config || {};
+    if (!cfg.choreSubmitUrl) { showToast('choreSubmitUrl isn’t set in config.js'); return; }
+    var body = new URLSearchParams(params);
+    fetch(cfg.choreSubmitUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
+      .catch(function () {})
+      .then(function () {
+        // no-cors means we can't read the response, so re-fetch real state shortly after to confirm what actually happened
+        setTimeout(function () { fetchNestStatus(function () { refreshHeatingModal(); renderTiles(); }); }, 1500);
+      });
   }
   function setHeatingMode(mode) {
-    heating.mode = mode;
-    if (NEST_API_BASE) { /* fetch(NEST_API_BASE + '/mode', { method: 'POST', body: JSON.stringify({ mode: mode }) }); */ }
-    renderTiles();
+    heating.mode = mode; // optimistic UI update, corrected by the re-fetch above
+    refreshHeatingModal();
+    postNestAction({ action: 'nestSetMode', mode: mode });
+  }
+  function setHeatingEco(on) {
+    heating.ecoMode = on ? 'MANUAL_ECO' : 'OFF';
+    refreshHeatingModal();
+    postNestAction({ action: 'nestSetEco', mode: on ? 'MANUAL_ECO' : 'OFF' });
   }
   function setHeatingTarget(target) {
-    heating.target = target;
-    if (NEST_API_BASE) { /* fetch(NEST_API_BASE + '/setpoint', { method: 'POST', body: JSON.stringify({ target: target }) }); */ }
-    renderTiles();
+    heating.target = target; // optimistic
+    refreshHeatingModal();
+    postNestAction({ action: 'nestSetTemp', tempCelsius: target });
   }
 
   // ---------- Wi-Fi QR — real, using the same QRious + config.js as the main dashboard ----------
@@ -335,7 +389,7 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
     { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: function () { return 'Family calendar'; }, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
     { id: 'chore',    icon: '🧽', label: 'Chores',    open: openChoreModal,    preview: function () { return 'Tap to log'; }, needsSetup: function () { return !(window.config && window.config.choreSubmitUrl); } },
     { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: function () { return 'Opens the full planner'; }, wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
-    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return !NEST_API_BASE; } }
+    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; } }
   ];
   function renderTiles() {
     var grid = document.getElementById('tileGrid');
@@ -354,6 +408,8 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
   }
 
   renderTiles();
+  fetchNestStatus(function () { renderTiles(); }); // get real heating data on load, not just when the tile is tapped
+  setInterval(function () { fetchNestStatus(function () { renderTiles(); refreshHeatingModal(); }); }, 5 * 60 * 1000); // keep it fresh every 5 minutes
 })();
 </script>
 </body>
