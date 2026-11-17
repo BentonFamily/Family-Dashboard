@@ -1223,8 +1223,82 @@ function saveAvatarData(name, data) {
   try {
     localStorage.setItem(avatarStorageKey(name), JSON.stringify(data));
   } catch (err) {
-    // localStorage unavailable - coins/avatar just won't persist this session
+    // localStorage unavailable - the Sheet copy (below) is the durable one
   }
+}
+
+/* ===== Avatar/coins: Google Sheet backup, so it survives a cleared cache
+   or a different device, not just this browser's localStorage. The local
+   copy above stays the instant, always-available source for the UI; the
+   Sheet is synced in the background so there's nothing for the kids to
+   wait on. */
+let avatarSyncTimer = null;
+
+function scheduleAvatarServerSync(name) {
+  if (!name) return;
+  if (avatarSyncTimer) clearTimeout(avatarSyncTimer);
+  avatarSyncTimer = setTimeout(() => {
+    avatarSyncTimer = null;
+    saveAvatarToServer(name, avatarData);
+  }, 1000);
+}
+
+function saveAvatarToServer(name, data) {
+  try {
+    if (!window.config || !window.config.spellingsUrl || !name) return;
+    const body = new URLSearchParams({
+      action: "saveAvatar",
+      name: name,
+      coins: String(data.coins),
+      unlocked: JSON.stringify(data.unlocked),
+      equipped: JSON.stringify(data.equipped)
+    });
+    fetch(window.config.spellingsUrl, { method: "POST", body: body })
+      .catch(err => console.error("Error saving avatar to Sheet", err));
+  } catch (err) {
+    console.error("Error saving avatar to Sheet", err);
+  }
+}
+
+async function fetchAvatarFromServer(name) {
+  try {
+    if (!window.config || !window.config.spellingsUrl || !name) return null;
+    const url = window.config.spellingsUrl + "?mode=avatar&name=" + encodeURIComponent(name) + "&t=" + Date.now();
+    const resp = await fetch(url, { cache: "no-store" });
+    return await resp.json(); // { coins, unlocked, equipped }
+  } catch (err) {
+    console.error("Error loading avatar from Sheet", err);
+    return null;
+  }
+}
+
+/* Pulls this learner's Sheet-backed progress in and reconciles it with
+   whatever's showing locally. Fire-and-forget: the local copy (loaded
+   synchronously elsewhere) is already on screen, this just corrects it
+   once the network reply lands - important when the browser's own
+   storage has been wiped since last time. */
+async function syncAvatarFromServer(name) {
+  if (!name) return;
+  const server = await fetchAvatarFromServer(name);
+  if (!server) return; // offline or request failed - keep the local copy
+
+  // The typed name may have changed while this request was in flight
+  const stillCurrent = learnerNameInput.value.trim().toLowerCase() === name.toLowerCase();
+  if (!stillCurrent) return;
+
+  const base = defaultAvatarData();
+  const merged = { coins: Number(server.coins) || 0, unlocked: {}, equipped: {} };
+  Object.keys(AVATAR_CATALOG).forEach(cat => {
+    const freeIds = base.unlocked[cat];
+    const serverList = (server.unlocked && Array.isArray(server.unlocked[cat])) ? server.unlocked[cat] : [];
+    merged.unlocked[cat] = Array.from(new Set([...freeIds, ...serverList]));
+    const serverEquip = server.equipped && server.equipped[cat];
+    merged.equipped[cat] = (serverEquip && merged.unlocked[cat].includes(serverEquip)) ? serverEquip : base.equipped[cat];
+  });
+
+  avatarData = merged;
+  try { localStorage.setItem(avatarStorageKey(name), JSON.stringify(avatarData)); } catch (err) {}
+  refreshAvatarUI();
 }
 
 let avatarData = defaultAvatarData();
@@ -1233,6 +1307,7 @@ function earnCoins(amount) {
   if (!currentLearner) return;
   avatarData.coins += amount;
   saveAvatarData(currentLearner, avatarData);
+  scheduleAvatarServerSync(currentLearner);
   refreshAvatarUI();
 }
 
@@ -1361,7 +1436,8 @@ function renderAvatarShop() {
 
 function refreshAvatarUI() {
   if (avatarCoinsNote) {
-    avatarCoinsNote.textContent = currentLearner
+    const typedName = learnerNameInput ? learnerNameInput.value.trim() : "";
+    avatarCoinsNote.textContent = (currentLearner || typedName)
       ? `🪙 ${avatarData.coins} coins`
       : "🪙 0 coins — type a name to see your avatar";
   }
@@ -1375,6 +1451,7 @@ function refreshAvatarForTypedName() {
   const name = learnerNameInput.value.trim();
   avatarData = name ? loadAvatarData(name) : defaultAvatarData();
   refreshAvatarUI();
+  if (name) syncAvatarFromServer(name); // fire-and-forget: corrects the above once it lands
 }
 
 if (learnerNameInput) {
@@ -1408,7 +1485,9 @@ if (avatarShopPanel) {
       avatarData.unlocked[category].push(id);
     }
     avatarData.equipped[category] = id;
-    saveAvatarData(currentLearner || learnerNameInput.value.trim(), avatarData);
+    const nameForSave = currentLearner || learnerNameInput.value.trim();
+    saveAvatarData(nameForSave, avatarData);
+    scheduleAvatarServerSync(nameForSave);
     refreshAvatarUI();
   });
 }
@@ -3283,6 +3362,7 @@ startPracticeBtn.addEventListener("click",()=>{
   // Coins/avatar carry over between sessions too, and work for numbers as well as spellings
   avatarData = loadAvatarData(name);
   refreshAvatarUI();
+  syncAvatarFromServer(name); // fire-and-forget: corrects the above once it lands
 
   // Reset level progression
   levelCompletion = { 1:false, 2:false, 3:false };
