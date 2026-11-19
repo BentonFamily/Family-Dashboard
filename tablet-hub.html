@@ -90,6 +90,12 @@
     .tile-small .tile-icon { font-size: 1.3rem; }
     .tile-small[data-tile="wifi"] { --c: var(--r-red); }
     .tile-small[data-tile="bins"] { --c: var(--r-indigo); }
+    .tile-small.expanded {
+      width: auto; height: auto; padding: 10px 16px; gap: 10px; justify-content: flex-start;
+    }
+    .tile-small.expanded .tile-icon { font-size: 1.1rem; }
+    .tile-small .bin-text { font-size: clamp(0.8rem, 1vw, 0.92rem); white-space: nowrap; }
+    .tile-small .bin-text strong { font-family: var(--font-display); }
     .tile-small .small-dot {
       position: absolute; top: -3px; right: -3px; width: 12px; height: 12px; border-radius: 999px;
       background: var(--r-orange); border: 2px solid var(--surface);
@@ -591,9 +597,21 @@ document.addEventListener('click', () => {
     if (wifiNeedsSetup) wifiBtn.insertAdjacentHTML('beforeend', '<span class="small-dot"></span>');
     wifiBtn.onclick = openWifiModal;
 
+    // Bins: a small icon square most days, but expands to show the actual collection
+    // info on Wednesday and Thursday — the only days it's genuinely worth a glance at.
     var binBtn = document.getElementById('binSmall');
-    binBtn.querySelector('.small-dot') && binBtn.querySelector('.small-dot').remove();
-    if (nextBinCollection().pastKnownCalendar) binBtn.insertAdjacentHTML('beforeend', '<span class="small-dot"></span>');
+    var info = nextBinCollection();
+    var dow = new Date().getDay(); // 0=Sun..6=Sat
+    var expand = (dow === 3 || dow === 4); // Wed or Thu
+    binBtn.classList.toggle('expanded', expand);
+    var warnDot = info.pastKnownCalendar ? '<span class="small-dot"></span>' : '';
+    if (expand) {
+      var label = info.type === 'recycling' ? 'Recycling & Glass' : 'Rubbish';
+      var when = info.isToday ? 'Today' : formatBinDate(info.date);
+      binBtn.innerHTML = '<span class="tile-icon">🗑️</span><span class="bin-text"><strong>' + when + '</strong> — ' + label + ' (+ food)</span>' + warnDot;
+    } else {
+      binBtn.innerHTML = '<span class="tile-icon">🗑️</span>' + warnDot;
+    }
     binBtn.onclick = openBinsModal;
   }
 
