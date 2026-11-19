@@ -68,6 +68,7 @@
     .tile[data-tile="heating"]  { --c: var(--r-blue); }
     .tile-head { display: flex; align-items: center; gap: 10px; }
     .tile-icon { font-size: clamp(1.3rem, 2vw, 1.8rem); }
+    .tile[data-tile="wifi"] .tile-icon { font-size: clamp(1rem, 1.4vw, 1.3rem); }
     .tile-label { font-family: var(--font-display); font-weight: 700; font-size: clamp(1rem, 1.4vw, 1.25rem); }
     .tile-preview { font-size: clamp(0.82rem, 1.1vw, 1rem); color: var(--muted); }
     .needs-setup {
@@ -93,7 +94,7 @@
 
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 500; }
     .modal { background: var(--surface); border-radius: 18px; padding: 22px; max-width: 480px; width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
-    .modal.wide { max-width: 760px; }
+    .modal.wide { max-width: 920px; }
     .modal .modal-title {
       font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; text-align: center; padding: 12px;
       color: #fff; border-radius: 16px 16px 0 0; margin: -22px -22px 16px -22px; background: var(--rainbow);
@@ -201,6 +202,23 @@ document.addEventListener('webkitfullscreenchange', updateFsLabel);
 if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches) {
   fsBtn.style.display = 'none';
 }
+
+/* ========== Quietly recover lost full screen on the very next tap ==========
+   This tablet runs on battery most of the time, woken up occasionally rather than
+   kept permanently on — so forcing the screen to stay on (a wake lock) would just
+   burn through charge for no benefit. The actual annoyance is that whatever tap
+   wakes the tablet doesn't also restore full screen, so you're left looking at
+   browser chrome until you find and press the button again.
+   Browsers only grant full screen from a real tap, but they don't care which
+   element was tapped — so this makes EVERY tap on the page re-request full screen
+   if it isn't already active. The tap that wakes the tablet and lands anywhere on
+   the dashboard quietly puts it back into full screen, with nothing extra to do. */
+document.addEventListener('click', () => {
+  if (!isFullscreen()) {
+    const el = document.documentElement;
+    (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+  }
+}, true);
 </script>
 
 <script>
@@ -349,7 +367,30 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
     });
   }
 
-  // ---------- Calendar — real embed, same as the main dashboard ----------
+  // ---------- Calendar — real embed, same as the main dashboard, plus headline events for the tile/modal ----------
+  // Needs a `feed=calendarEvents` endpoint added to the Apps Script backend (see the note sent
+  // alongside this file) — until that's added, calEvents.loaded stays false and the preview
+  // just falls back to "Family calendar" as before, same as it always did.
+  var calEvents = { loaded: false, items: [] };
+  function fetchCalendarEvents(cb) {
+    var cfg = window.config || {};
+    if (!cfg.summaryUrl || !cfg.calendarEmail) { cb && cb(false); return; }
+    var sep = cfg.summaryUrl.indexOf('?') >= 0 ? '&' : '?';
+    fetch(cfg.summaryUrl + sep + 'feed=calendarEvents&calendarId=' + encodeURIComponent(cfg.calendarEmail) + '&ts=' + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        calEvents.items = (data && data.ok && Array.isArray(data.events)) ? data.events : [];
+        calEvents.loaded = true;
+        cb && cb(!!(data && data.ok));
+      })
+      .catch(function () { calEvents.loaded = true; cb && cb(false); });
+  }
+  function calendarPreview() {
+    if (!calEvents.loaded || !calEvents.items.length) return 'Family calendar';
+    var e = calEvents.items[0];
+    var when = new Date(e.start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    return 'Next: ' + e.title + ' (' + when + ')';
+  }
   function openCalendarModal() {
     var cfg = window.config || {};
     if (!cfg.calendarEmail) {
@@ -357,18 +398,67 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
       return;
     }
     var src = encodeURIComponent(cfg.calendarEmail);
+    var headlineHtml = '';
+    if (calEvents.loaded && calEvents.items.length) {
+      headlineHtml = '<div style="margin-bottom:12px;">' +
+        calEvents.items.slice(0, 5).map(function (e) {
+          var when = new Date(e.start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+          return '<div style="padding:6px 0;border-bottom:1px solid var(--border);"><strong>' + when + '</strong> — ' + e.title + '</div>';
+        }).join('') +
+      '</div>';
+    }
     openModal(
       '<div class="modal-title">📅 Family Calendar</div>' +
-      '<iframe class="modal-frame" style="height:420px;" frameborder="0" scrolling="no" ' +
-      'src="https://calendar.google.com/calendar/embed?height=420&wkst=1&bgcolor=%23ffffff&ctz=Europe/London&showTitle=0&showNav=1&mode=AGENDA&src=' + src + '"></iframe>'
+      headlineHtml +
+      '<iframe class="modal-frame" style="height:600px;" frameborder="0" scrolling="no" ' +
+      'src="https://calendar.google.com/calendar/embed?height=600&wkst=1&bgcolor=%23ffffff&ctz=Europe/London&showTitle=0&showNav=1&mode=AGENDA&src=' + src + '"></iframe>',
+      true
     );
   }
 
   // ---------- Meal Plan — the real page, full-featured, just popped out instead of navigated to ----------
+  // Headline preview reuses meal-plan.html's own feed=mealplan endpoint (nothing new needed
+  // in the Apps Script backend — this one's already there).
+  var DAY_ORDER_TH = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; // matches JS Date#getDay() (0=Sun)
+  var mealToday = { loaded: false, label: null };
+  function mondayOfTH(date) {
+    var d = new Date(date);
+    var dow = d.getDay();
+    var diff = dow === 0 ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  function toISODateTH(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function fetchMealToday(cb) {
+    var cfg = window.config || {};
+    if (!cfg.mealPlanUrl) { cb && cb(false); return; }
+    var base = String(cfg.mealPlanUrl).split('#')[0].split('?')[0];
+    var monday = mondayOfTH(new Date());
+    fetch(base + '?feed=mealplan&weekStart=' + toISODateTH(monday) + '&t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var days = (data && Array.isArray(data.days)) ? data.days : [];
+        var todayKey = DAY_ORDER_TH[new Date().getDay()]; // 'Mon'..'Sun'
+        var entry = days.find(function (d) { return d.day === todayKey; });
+        if (entry && entry.recipe) mealToday.label = entry.recipe.name;
+        else if (entry && entry.customText) mealToday.label = entry.customText;
+        else mealToday.label = null;
+        mealToday.loaded = true;
+        cb && cb(true);
+      })
+      .catch(function () { mealToday.loaded = true; cb && cb(false); });
+  }
+  function mealPreview() {
+    if (!mealToday.loaded) return 'Opens the full planner';
+    return mealToday.label ? 'Tonight: ' + mealToday.label : 'Nothing planned for tonight yet';
+  }
   function openMealModal() {
     openModal(
       '<div class="modal-title">🍽️ Meal Plan</div>' +
-      '<iframe class="modal-frame" style="height:70vh;" frameborder="0" src="meal-plan.html?home=benton"></iframe>',
+      '<iframe class="modal-frame" style="height:80vh;" frameborder="0" src="meal-plan.html?home=benton"></iframe>',
       true
     );
   }
@@ -465,9 +555,9 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
   // ---------- Tile grid ----------
   var TILES = [
     { id: 'wifi',     icon: '📶', label: 'Wi-Fi QR',  open: openWifiModal,     preview: function () { return 'Tap to show'; }, needsSetup: function () { return !(window.config && window.config.wifiName); } },
-    { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: function () { return 'Family calendar'; }, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
+    { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: calendarPreview, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
     { id: 'chore',    icon: '🧽', label: 'Chores',    open: openChoreModal,    preview: function () { return 'Tap to log'; }, needsSetup: function () { return !(window.config && window.config.choreSubmitUrl); } },
-    { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: function () { return 'Opens the full planner'; }, wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
+    { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: mealPreview,   wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
     { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; }, badge: function () { return heating.hvacStatus === 'HEATING' ? '🔥 On' : ''; } }
   ];
   function renderTiles() {
@@ -503,7 +593,11 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
   renderTiles();
   renderBinBar();
   fetchNestStatus(function () { renderTiles(); }); // get real heating data on load, not just when the tile is tapped
+  fetchCalendarEvents(function () { renderTiles(); });
+  fetchMealToday(function () { renderTiles(); });
   setInterval(function () { fetchNestStatus(function () { renderTiles(); refreshHeatingModal(); }); }, 5 * 60 * 1000); // keep it fresh every 5 minutes
+  setInterval(function () { fetchCalendarEvents(function () { renderTiles(); }); }, 30 * 60 * 1000); // every 30 min — events don't change that often
+  setInterval(function () { fetchMealToday(function () { renderTiles(); }); }, 30 * 60 * 1000);
   setInterval(renderBinBar, 60 * 60 * 1000); // refresh at the hour boundary so it rolls over to "Today" / the next date correctly
 })();
 </script>
