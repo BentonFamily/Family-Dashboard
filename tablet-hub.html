@@ -68,7 +68,6 @@
     .tile[data-tile="heating"]  { --c: var(--r-blue); }
     .tile-head { display: flex; align-items: center; gap: 10px; }
     .tile-icon { font-size: clamp(1.3rem, 2vw, 1.8rem); }
-    .tile[data-tile="wifi"] .tile-icon { font-size: clamp(0.8rem, 1vw, 1rem); }
     .tile-label { font-family: var(--font-display); font-weight: 700; font-size: clamp(1rem, 1.4vw, 1.25rem); }
     .tile-preview { font-size: clamp(0.82rem, 1.1vw, 1rem); color: var(--muted); }
     .needs-setup {
@@ -80,17 +79,21 @@
       padding: 2px 8px; border-radius: 999px; background: var(--r-red); color: #fff; margin-top: 2px;
     }
 
-    .bin-bar {
-      display: flex; align-items: center; gap: 10px; width: 100%;
-      background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--r-indigo);
-      border-radius: 12px; padding: 10px 16px; margin-bottom: clamp(12px, 1.6vw, 20px);
-      cursor: pointer; text-align: left; font: inherit; color: var(--fg);
+    .small-tiles { display: flex; gap: 10px; margin-bottom: clamp(12px, 1.6vw, 20px); }
+    .tile-small {
+      width: 56px; height: 56px; flex-shrink: 0;
+      background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--c, var(--r-blue));
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; position: relative; padding: 0;
     }
-    .bin-bar:hover { background: var(--surface-sunken); }
-    .bin-bar .bin-icon { font-size: clamp(0.8rem, 1vw, 1rem); flex-shrink: 0; }
-    .bin-bar .bin-text { font-size: clamp(0.82rem, 1vw, 0.95rem); }
-    .bin-bar .bin-text strong { font-family: var(--font-display); }
-    .bin-bar .bin-warn { margin-left: auto; font-size: 0.7rem; color: var(--r-orange); font-weight: 700; flex-shrink: 0; }
+    .tile-small:hover { background: var(--surface-sunken); }
+    .tile-small .tile-icon { font-size: 1.3rem; }
+    .tile-small[data-tile="wifi"] { --c: var(--r-red); }
+    .tile-small[data-tile="bins"] { --c: var(--r-indigo); }
+    .tile-small .small-dot {
+      position: absolute; top: -3px; right: -3px; width: 12px; height: 12px; border-radius: 999px;
+      background: var(--r-orange); border: 2px solid var(--surface);
+    }
 
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 500; }
     .modal { background: var(--surface); border-radius: 18px; padding: 22px; max-width: 480px; width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
@@ -148,7 +151,10 @@
     </div>
   </header>
 
-  <button class="bin-bar" id="binBar"></button>
+  <div class="small-tiles">
+    <button class="tile-small" id="wifiSmall" data-tile="wifi"><span class="tile-icon">📶</span></button>
+    <button class="tile-small" id="binSmall" data-tile="bins"><span class="tile-icon">🗑️</span></button>
+  </div>
 
   <div class="grid" id="tileGrid"></div>
 </div>
@@ -554,7 +560,6 @@ document.addEventListener('click', () => {
 
   // ---------- Tile grid ----------
   var TILES = [
-    { id: 'wifi',     icon: '📶', label: 'Wi-Fi QR',  open: openWifiModal,     preview: function () { return 'Tap to show'; }, needsSetup: function () { return !(window.config && window.config.wifiName); } },
     { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: calendarPreview, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
     { id: 'chore',    icon: '🧽', label: 'Chores',    open: openChoreModal,    preview: function () { return 'Tap to log'; }, needsSetup: function () { return !(window.config && window.config.choreSubmitUrl); } },
     { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: mealPreview,   wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
@@ -578,27 +583,29 @@ document.addEventListener('click', () => {
     });
   }
 
-  function renderBinBar() {
-    var info = nextBinCollection();
-    var label = info.type === 'recycling' ? '♻️ Recycling &amp; Glass' : '🗑️ Rubbish';
-    var when = info.isToday ? 'Today' : formatBinDate(info.date);
-    var bar = document.getElementById('binBar');
-    bar.innerHTML =
-      '<span class="bin-icon">🗑️</span>' +
-      '<span class="bin-text"><strong>' + when + '</strong> — ' + label + ' (plus food waste)</span>' +
-      (info.pastKnownCalendar ? '<span class="bin-warn">⚠️ check calendar</span>' : '');
-    bar.onclick = openBinsModal;
+  // ---------- Small-square tiles: Wi-Fi + Bins — icon only, detail lives in the modal ----------
+  function renderSmallTiles() {
+    var wifiBtn = document.getElementById('wifiSmall');
+    var wifiNeedsSetup = !(window.config && window.config.wifiName);
+    wifiBtn.querySelector('.small-dot') && wifiBtn.querySelector('.small-dot').remove();
+    if (wifiNeedsSetup) wifiBtn.insertAdjacentHTML('beforeend', '<span class="small-dot"></span>');
+    wifiBtn.onclick = openWifiModal;
+
+    var binBtn = document.getElementById('binSmall');
+    binBtn.querySelector('.small-dot') && binBtn.querySelector('.small-dot').remove();
+    if (nextBinCollection().pastKnownCalendar) binBtn.insertAdjacentHTML('beforeend', '<span class="small-dot"></span>');
+    binBtn.onclick = openBinsModal;
   }
 
   renderTiles();
-  renderBinBar();
+  renderSmallTiles();
   fetchNestStatus(function () { renderTiles(); }); // get real heating data on load, not just when the tile is tapped
   fetchCalendarEvents(function () { renderTiles(); });
   fetchMealToday(function () { renderTiles(); });
   setInterval(function () { fetchNestStatus(function () { renderTiles(); refreshHeatingModal(); }); }, 5 * 60 * 1000); // keep it fresh every 5 minutes
   setInterval(function () { fetchCalendarEvents(function () { renderTiles(); }); }, 30 * 60 * 1000); // every 30 min — events don't change that often
   setInterval(function () { fetchMealToday(function () { renderTiles(); }); }, 30 * 60 * 1000);
-  setInterval(renderBinBar, 60 * 60 * 1000); // refresh at the hour boundary so it rolls over to "Today" / the next date correctly
+  setInterval(renderSmallTiles, 60 * 60 * 1000); // refresh at the hour boundary so the bin warning-dot stays accurate
 })();
 </script>
 </body>
