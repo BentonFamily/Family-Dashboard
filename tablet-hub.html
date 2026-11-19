@@ -79,6 +79,18 @@
       padding: 2px 8px; border-radius: 999px; background: var(--r-red); color: #fff; margin-top: 2px;
     }
 
+    .bin-bar {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--r-indigo);
+      border-radius: 12px; padding: 10px 16px; margin-bottom: clamp(12px, 1.6vw, 20px);
+      cursor: pointer; text-align: left; font: inherit; color: var(--fg);
+    }
+    .bin-bar:hover { background: var(--surface-sunken); }
+    .bin-bar .bin-icon { font-size: clamp(1.1rem, 1.6vw, 1.4rem); flex-shrink: 0; }
+    .bin-bar .bin-text { font-size: clamp(0.82rem, 1vw, 0.95rem); }
+    .bin-bar .bin-text strong { font-family: var(--font-display); }
+    .bin-bar .bin-warn { margin-left: auto; font-size: 0.7rem; color: var(--r-orange); font-weight: 700; flex-shrink: 0; }
+
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 500; }
     .modal { background: var(--surface); border-radius: 18px; padding: 22px; max-width: 480px; width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
     .modal.wide { max-width: 760px; }
@@ -134,6 +146,8 @@
       </div>
     </div>
   </header>
+
+  <button class="bin-bar" id="binBar"></button>
 
   <div class="grid" id="tileGrid"></div>
 </div>
@@ -359,6 +373,67 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
     );
   }
 
+  // ---------- Bins — Colchester City Council collection calendar for 32 East Street, CO1 2TP ----------
+  // Collection day is always Thursday. Food waste is collected every week.
+  // Mixed recycling + glass alternate fortnightly with non-recyclable rubbish.
+  // Anchor: Thursday 19 Nov 2026 was a Recycling & Glass week (confirmed from the council's PDF calendar).
+  // Taken from the council's calendar covering 19 Nov 2026 – 13 May 2027 — after that, re-check
+  // colchester.gov.uk/your-recycling-calendar in case the pattern or day changes (e.g. Christmas shifts).
+  var BIN_RECYCLING_ANCHOR = new Date(2026, 10, 19); // 19 Nov 2026, a Thursday
+  var BIN_CALENDAR_VALID_UNTIL = new Date(2027, 4, 13); // last date confirmed on the current PDF
+
+  function nextThursdayOnOrAfter(date) {
+    var d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    var day = d.getDay(); // 0=Sun..6=Sat, Thursday=4
+    var diff = (4 - day + 7) % 7;
+    d.setDate(d.getDate() + diff);
+    return d;
+  }
+  function binWeekType(thursdayDate) {
+    var msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    var diffWeeks = Math.round((thursdayDate - BIN_RECYCLING_ANCHOR) / msPerWeek);
+    var parity = ((diffWeeks % 2) + 2) % 2;
+    return parity === 0 ? 'recycling' : 'rubbish';
+  }
+  function formatBinDate(d) {
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  function nextBinCollection() {
+    var today = new Date();
+    var thu = nextThursdayOnOrAfter(today);
+    var isToday = thu.toDateString() === new Date(today.getFullYear(), today.getMonth(), today.getDate()).toDateString();
+    return {
+      date: thu,
+      isToday: isToday,
+      type: binWeekType(thu),
+      pastKnownCalendar: thu > BIN_CALENDAR_VALID_UNTIL
+    };
+  }
+  function binsPreview() {
+    var info = nextBinCollection();
+    var label = info.type === 'recycling' ? 'Recycling & Glass' : 'Rubbish';
+    return (info.isToday ? 'Today' : formatBinDate(info.date)) + ' — ' + label;
+  }
+  function openBinsModal() {
+    var info = nextBinCollection();
+    var label = info.type === 'recycling' ? '♻️ Recycling & Glass' : '🗑️ Rubbish';
+    var afterThu = new Date(info.date);
+    afterThu.setDate(afterThu.getDate() + 7);
+    var afterLabel = binWeekType(afterThu) === 'recycling' ? '♻️ Recycling & Glass' : '🗑️ Rubbish';
+    openModal(
+      '<div class="modal-title">🗑️ Bin Day</div>' +
+      '<p style="text-align:center;font-size:1rem;margin:4px 0;">' + (info.isToday ? 'Today' : formatBinDate(info.date)) + '</p>' +
+      '<p style="text-align:center;font-weight:700;font-size:1.3rem;margin:0 0 14px;">' + label + '</p>' +
+      '<p style="color:var(--muted);font-size:0.85rem;text-align:center;">Food waste is collected every week too.</p>' +
+      '<p style="color:var(--muted);font-size:0.82rem;text-align:center;margin-top:10px;">Following week (' + formatBinDate(afterThu) + '): ' + afterLabel + '</p>' +
+      (info.pastKnownCalendar ?
+        '<p style="color:var(--r-orange);font-size:0.8rem;text-align:center;margin-top:12px;">⚠️ This is beyond the last council calendar we checked (valid to 13 May 2027) — worth confirming nothing\'s changed.</p>'
+        : '') +
+      '<p style="text-align:center;margin-top:14px;"><a href="https://www.colchester.gov.uk/your-recycling-calendar" target="_blank" rel="noopener" style="font-size:0.82rem;">Check the official council calendar ↗</a></p>'
+    );
+  }
+
   // ---------- Chores — same logic as the main dashboard, same endpoint ----------
   var CHORES = {
     "Robin": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"],
@@ -413,9 +488,23 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia
     });
   }
 
+  function renderBinBar() {
+    var info = nextBinCollection();
+    var label = info.type === 'recycling' ? '♻️ Recycling &amp; Glass' : '🗑️ Rubbish';
+    var when = info.isToday ? 'Today' : formatBinDate(info.date);
+    var bar = document.getElementById('binBar');
+    bar.innerHTML =
+      '<span class="bin-icon">🗑️</span>' +
+      '<span class="bin-text"><strong>' + when + '</strong> — ' + label + ' (plus food waste)</span>' +
+      (info.pastKnownCalendar ? '<span class="bin-warn">⚠️ check calendar</span>' : '');
+    bar.onclick = openBinsModal;
+  }
+
   renderTiles();
+  renderBinBar();
   fetchNestStatus(function () { renderTiles(); }); // get real heating data on load, not just when the tile is tapped
   setInterval(function () { fetchNestStatus(function () { renderTiles(); refreshHeatingModal(); }); }, 5 * 60 * 1000); // keep it fresh every 5 minutes
+  setInterval(renderBinBar, 60 * 60 * 1000); // refresh at the hour boundary so it rolls over to "Today" / the next date correctly
 })();
 </script>
 </body>
