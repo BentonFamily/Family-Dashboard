@@ -410,18 +410,8 @@ document.addEventListener('click', () => {
       return;
     }
     var src = encodeURIComponent(cfg.calendarEmail);
-    var headlineHtml = '';
-    if (calEvents.loaded && calEvents.items.length) {
-      headlineHtml = '<div style="margin-bottom:12px;">' +
-        calEvents.items.slice(0, 5).map(function (e) {
-          var when = new Date(e.start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-          return '<div style="padding:6px 0;border-bottom:1px solid var(--border);"><strong>' + when + '</strong> — ' + e.title + '</div>';
-        }).join('') +
-      '</div>';
-    }
     openModal(
       '<div class="modal-title">📅 Family Calendar</div>' +
-      headlineHtml +
       '<iframe class="modal-frame" style="height:600px;" frameborder="0" scrolling="no" ' +
       'src="https://calendar.google.com/calendar/embed?height=600&wkst=1&bgcolor=%23ffffff&ctz=Europe/London&showTitle=0&showNav=1&mode=AGENDA&src=' + src + '"></iframe>',
       true
