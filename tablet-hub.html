@@ -30,6 +30,7 @@
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
+      justify-content: center;
       padding: clamp(16px, 2.5vw, 36px) clamp(16px, 3vw, 44px);
     }
 
@@ -46,10 +47,10 @@
     .hub-header h1 { font-size: clamp(1.4rem, 2.6vw, 2.1rem); margin: 2px 0 0; }
 
     .grid {
-      flex: 1;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      grid-auto-rows: 1fr;
+      grid-auto-rows: auto;
+      align-content: start;
       gap: clamp(12px, 1.6vw, 22px);
     }
     @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); } }
@@ -58,6 +59,14 @@
       background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--c, var(--r-blue));
       border-radius: 18px; padding: clamp(16px, 1.8vw, 26px); text-align: left; cursor: pointer; color: var(--fg); font: inherit;
       display: flex; flex-direction: column; justify-content: center; gap: 10px; position: relative;
+      min-height: clamp(104px, 11vw, 150px);
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .tile:active { transform: scale(0.96); }
+
+    @keyframes tileIn {
+      from { opacity: 0; transform: translateY(14px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
     .tile:hover { background: var(--surface-sunken); }
     .tile.wide { grid-column: span 2; }
@@ -87,10 +96,13 @@
       background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--c, var(--r-blue));
       border-radius: 14px; display: flex; align-items: center; justify-content: center;
       cursor: pointer; position: relative; padding: 0;
+      transition: transform 0.15s ease, background 0.15s ease, width 0.25s ease, padding 0.25s ease;
     }
     .tile-small:hover { background: var(--surface-sunken); }
+    .tile-small:active { transform: scale(0.93); }
     .tile-small .tile-icon { font-size: 1.3rem; }
     .tile-small[data-tile="wifi"] { --c: var(--r-red); }
+    .tile-small[data-tile="chore"] { --c: var(--r-yellow); }
     .tile-small[data-tile="bins"] { --c: var(--r-indigo); }
     .tile-small.expanded {
       width: auto; height: auto; padding: 10px 16px; gap: 10px; justify-content: flex-start;
@@ -103,7 +115,12 @@
       background: var(--r-orange); border: 2px solid var(--surface);
     }
 
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 500; }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0); backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+      display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 500;
+      transition: background 0.28s ease, backdrop-filter 0.28s ease;
+    }
+    .overlay.open { background: rgba(0,0,0,.45); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
     .modal { background: var(--surface); border-radius: 18px; padding: 22px; max-width: 480px; width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
     .modal.wide { max-width: 920px; }
     .modal .modal-title {
@@ -161,6 +178,7 @@
 
   <div class="small-tiles">
     <button class="tile-small" id="wifiSmall" data-tile="wifi"><span class="tile-icon">📶</span></button>
+    <button class="tile-small" id="choreSmall" data-tile="chore"><span class="tile-icon">🧽</span></button>
     <button class="tile-small" id="binSmall" data-tile="bins"><span class="tile-icon">🗑️</span></button>
   </div>
 
@@ -249,17 +267,63 @@ document.addEventListener('click', () => {
     toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2400);
   }
 
-  // ---------- Modal ----------
+  // ---------- Modal — opens with a FLIP animation that morphs out of the tapped tile ----------
+  var lastTileRect = null;
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('.tile, .tile-small');
+    if (el) lastTileRect = el.getBoundingClientRect();
+  }, true);
+
   function openModal(html, wide) {
     var el = document.getElementById('modalInner');
+    var overlay = document.getElementById('overlay');
     el.className = 'modal' + (wide ? ' wide' : '');
     el.innerHTML = '<button class="modal-close" id="modalCloseBtn" aria-label="Close">&times;</button>' + html;
-    document.getElementById('overlay').hidden = false;
+    el.style.transition = 'none';
+    el.style.transform = '';
+    el.style.opacity = '';
+    overlay.hidden = false;
+    overlay.classList.add('open');
+
+    if (lastTileRect) {
+      var finalRect = el.getBoundingClientRect();
+      var dx = (lastTileRect.left + lastTileRect.width / 2) - (finalRect.left + finalRect.width / 2);
+      var dy = (lastTileRect.top + lastTileRect.height / 2) - (finalRect.top + finalRect.height / 2);
+      var sx = Math.max(lastTileRect.width / finalRect.width, 0.08);
+      var sy = Math.max(lastTileRect.height / finalRect.height, 0.08);
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')';
+      el.style.opacity = '0.35';
+      // force the browser to register the starting state before animating to the final one
+      el.getBoundingClientRect();
+      requestAnimationFrame(function () {
+        el.style.transition = 'transform 0.34s cubic-bezier(.22,.9,.32,1.1), opacity 0.22s ease';
+        el.style.transform = 'translate(0,0) scale(1,1)';
+        el.style.opacity = '1';
+      });
+    }
     document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
   }
   function closeModal() {
-    document.getElementById('overlay').hidden = true;
-    document.getElementById('modalInner').innerHTML = '';
+    var overlay = document.getElementById('overlay');
+    var el = document.getElementById('modalInner');
+    overlay.classList.remove('open');
+    if (lastTileRect) {
+      var finalRect = el.getBoundingClientRect();
+      var dx = (lastTileRect.left + lastTileRect.width / 2) - (finalRect.left + finalRect.width / 2);
+      var dy = (lastTileRect.top + lastTileRect.height / 2) - (finalRect.top + finalRect.height / 2);
+      var sx = Math.max(lastTileRect.width / finalRect.width, 0.08);
+      var sy = Math.max(lastTileRect.height / finalRect.height, 0.08);
+      el.style.transition = 'transform 0.26s cubic-bezier(.4,0,.6,1), opacity 0.2s ease';
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')';
+      el.style.opacity = '0';
+    }
+    setTimeout(function () {
+      overlay.hidden = true;
+      el.innerHTML = '';
+      el.style.transition = '';
+      el.style.transform = '';
+      el.style.opacity = '';
+    }, 260);
   }
   document.getElementById('overlay').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
 
@@ -728,16 +792,15 @@ document.addEventListener('click', () => {
   // ---------- Tile grid ----------
   var TILES = [
     { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: calendarPreview, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
-    { id: 'chore',    icon: '🧽', label: 'Chores',    open: openChoreModal,    preview: function () { return 'Tap to log'; }, needsSetup: function () { return !(window.config && window.config.choreSubmitUrl); } },
-    { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: mealPreview,   wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
-    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; }, badge: function () { return heating.hvacStatus === 'HEATING' ? '🔥 On' : ''; } },
     { id: 'weather',  icon: '🌦️', label: 'Weather',   open: openWeatherModal,  preview: weatherPreview, needsSetup: function () { return false; } },
-    { id: 'term',     icon: '🎒', label: 'School Term', open: openTermModal,    preview: termPreview,    needsSetup: function () { return false; } }
+    { id: 'term',     icon: '🎒', label: 'School Term', open: openTermModal,    preview: termPreview,    needsSetup: function () { return false; } },
+    { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: mealPreview,   wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
+    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; }, badge: function () { return heating.hvacStatus === 'HEATING' ? '🔥 On' : ''; } }
   ];
   function renderTiles() {
     var grid = document.getElementById('tileGrid');
     grid.innerHTML = '';
-    TILES.forEach(function (t) {
+    TILES.forEach(function (t, i) {
       var btn = document.createElement('button');
       btn.className = 'tile' + (t.wide ? ' wide' : '');
       btn.setAttribute('data-tile', t.id);
@@ -748,17 +811,26 @@ document.addEventListener('click', () => {
         '<div class="tile-preview">' + t.preview() + '</div>' +
         (badgeText ? '<span class="status-badge">' + badgeText + '</span>' : '');
       btn.addEventListener('click', t.open);
+      if (renderTiles.animateNext) btn.style.animation = 'tileIn 0.45s cubic-bezier(.2,.8,.3,1) ' + (i * 0.06) + 's both';
       grid.appendChild(btn);
     });
+    renderTiles.animateNext = false;
   }
+  renderTiles.animateNext = true; // the very first render gets a staggered entrance
 
-  // ---------- Small-square tiles: Wi-Fi + Bins — icon only, detail lives in the modal ----------
+  // ---------- Small-square tiles: Wi-Fi + Chores + Bins — icon only, detail lives in the modal ----------
   function renderSmallTiles() {
     var wifiBtn = document.getElementById('wifiSmall');
     var wifiNeedsSetup = !(window.config && window.config.wifiName);
     wifiBtn.querySelector('.small-dot') && wifiBtn.querySelector('.small-dot').remove();
     if (wifiNeedsSetup) wifiBtn.insertAdjacentHTML('beforeend', '<span class="small-dot"></span>');
     wifiBtn.onclick = openWifiModal;
+
+    var choreBtn = document.getElementById('choreSmall');
+    var choreNeedsSetup = !(window.config && window.config.choreSubmitUrl);
+    choreBtn.querySelector('.small-dot') && choreBtn.querySelector('.small-dot').remove();
+    if (choreNeedsSetup) choreBtn.insertAdjacentHTML('beforeend', '<span class="small-dot"></span>');
+    choreBtn.onclick = openChoreModal;
 
     // Bins: a small icon square most days, but expands to show the actual collection
     // info on Wednesday and Thursday — the only days it's genuinely worth a glance at.
@@ -776,7 +848,15 @@ document.addEventListener('click', () => {
       binBtn.innerHTML = '<span class="tile-icon">🗑️</span>' + warnDot;
     }
     binBtn.onclick = openBinsModal;
+
+    if (renderSmallTiles.animateNext) {
+      [wifiBtn, choreBtn, binBtn].forEach(function (b, i) {
+        b.style.animation = 'tileIn 0.4s cubic-bezier(.2,.8,.3,1) ' + (i * 0.06) + 's both';
+      });
+      renderSmallTiles.animateNext = false;
+    }
   }
+  renderSmallTiles.animateNext = true; // the very first render gets a staggered entrance
 
   renderTiles();
   renderSmallTiles();
