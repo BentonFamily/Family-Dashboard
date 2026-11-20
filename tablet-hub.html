@@ -66,6 +66,8 @@
     .tile[data-tile="chore"]    { --c: var(--r-yellow); }
     .tile[data-tile="meal"]     { --c: var(--r-green); }
     .tile[data-tile="heating"]  { --c: var(--r-blue); }
+    .tile[data-tile="weather"]  { --c: var(--r-violet); }
+    .tile[data-tile="term"]     { --c: var(--r-indigo); }
     .tile-head { display: flex; align-items: center; gap: 10px; }
     .tile-icon { font-size: clamp(1.3rem, 2vw, 1.8rem); }
     .tile-label { font-family: var(--font-display); font-weight: 700; font-size: clamp(1rem, 1.4vw, 1.25rem); }
@@ -152,7 +154,7 @@
     <div class="titlebar">
       <div>
         <h1><span>Family Hub · Wall Display</span></h1>
-        <div class="subtitle">A separate page for the kitchen tablet — the main dashboard is untouched</div>
+        <div class="subtitle" id="dailyGist">A separate page for the kitchen tablet — the main dashboard is untouched</div>
       </div>
     </div>
   </header>
@@ -526,6 +528,90 @@ document.addEventListener('click', () => {
     );
   }
 
+  // ---------- School Term countdown — Willow Brook Primary School & Nursery, 2026-2027 ----------
+  // Taken from the school's own published calendar (Term and Holiday Dates, Academic Year 2026-2027).
+  // Academies set their own INSET days on top of this, so the very first/last day of a term can
+  // sometimes be staff-only — worth double-checking with the school nearer the time.
+  var TERM_BREAKS = [
+    { label: 'October half term', start: '2026-10-26', end: '2026-10-30' },
+    { label: 'Christmas holidays', start: '2026-12-19', end: '2027-01-03' },
+    { label: 'February half term', start: '2027-02-15', end: '2027-02-19' },
+    { label: 'Easter holidays', start: '2027-03-26', end: '2027-04-11' },
+    { label: 'May half term', start: '2027-05-31', end: '2027-06-04' },
+    { label: 'Summer holidays', start: '2027-07-22', end: '2027-08-31' }
+  ];
+  var SCHOOL_BANK_HOLIDAYS = ['2027-05-03']; // May Day bank holiday falling in term time
+  var TERM_LAST_KNOWN_DAY = new Date(2027, 6, 21); // Wed 21 Jul 2027 — end of the published calendar
+  function parseISODate_(s) {
+    var p = s.split('-').map(Number);
+    return new Date(p[0], p[1] - 1, p[2]);
+  }
+  function toISODate_(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function isWeekend_(d) { var day = d.getDay(); return day === 0 || day === 6; }
+  function inAnyBreak_(d) {
+    return TERM_BREAKS.some(function (b) {
+      return d >= parseISODate_(b.start) && d <= parseISODate_(b.end);
+    });
+  }
+  function schoolDaysUntil_(target) {
+    var count = 0;
+    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1);
+    while (d < target) {
+      if (!isWeekend_(d) && !inAnyBreak_(d) && SCHOOL_BANK_HOLIDAYS.indexOf(toISODate_(d)) < 0) count++;
+      d.setDate(d.getDate() + 1);
+    }
+    return count;
+  }
+  function termCountdownInfo() {
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    for (var i = 0; i < TERM_BREAKS.length; i++) {
+      var b = TERM_BREAKS[i];
+      var s = parseISODate_(b.start), e = parseISODate_(b.end);
+      if (today >= s && today <= e) {
+        var back = new Date(e); back.setDate(back.getDate() + 1);
+        return { onBreak: true, label: b.label, backDate: back };
+      }
+      if (today < s) {
+        return { onBreak: false, label: b.label, startDate: s, days: schoolDaysUntil_(s) };
+      }
+    }
+    if (today > TERM_LAST_KNOWN_DAY) return null;
+    return { onBreak: false, label: 'end of term', startDate: TERM_LAST_KNOWN_DAY, days: schoolDaysUntil_(TERM_LAST_KNOWN_DAY) };
+  }
+  function termPreview() {
+    var info = termCountdownInfo();
+    if (!info) return 'No dates on file yet';
+    if (info.onBreak) {
+      return 'On ' + info.label.toLowerCase() + ' · back ' + info.backDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+    return info.days + ' school day' + (info.days === 1 ? '' : 's') + ' to ' + info.label.toLowerCase();
+  }
+  function openTermModal() {
+    var info = termCountdownInfo();
+    var headline = !info ? 'No further dates published yet.' :
+      info.onBreak ?
+        'Currently on <strong>' + info.label.toLowerCase() + '</strong><br>Back to school: ' + info.backDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) :
+        '<strong>' + info.days + '</strong> school day' + (info.days === 1 ? '' : 's') + ' until ' + info.label.toLowerCase() + '<br>(' + info.startDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) + ')';
+    var rows = [
+      ['Autumn term', '1 Sep – 18 Dec 2026', 'Half term: 26–30 Oct'],
+      ['Spring term', '4 Jan – 25 Mar 2027', 'Half term: 15–19 Feb'],
+      ['Summer term', '12 Apr – 21 Jul 2027', 'Half term: 31 May – 4 Jun']
+    ];
+    var rowsHtml = rows.map(function (r) {
+      return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--border);">' +
+        '<strong style="min-width:92px;">' + r[0] + '</strong>' +
+        '<span style="color:var(--muted);text-align:right;font-size:0.85rem;">' + r[1] + '<br>' + r[2] + '</span></div>';
+    }).join('');
+    openModal(
+      '<div class="modal-title">🎒 School Term</div>' +
+      '<p style="text-align:center;margin:4px 0 16px;">' + headline + '</p>' +
+      rowsHtml +
+      '<p style="color:var(--muted);font-size:0.78rem;text-align:center;margin-top:14px;">From Willow Brook\'s 2026–27 calendar. Academies set their own INSET days, so the exact first/last day of a term can shift — worth checking with the school nearer the time.</p>'
+    );
+  }
+
   // ---------- Chores — same logic as the main dashboard, same endpoint ----------
   var CHORES = {
     "Robin": ["Tidy Room", "Empty/Refill Dishwasher", "Set the Table", "Help with the Washing", "House Cleaning", "Other"],
@@ -554,12 +640,99 @@ document.addEventListener('click', () => {
     closeModal();
   }
 
+  // ---------- Weather — Open-Meteo (free, no API key), approximate Colchester CO1 coordinates ----------
+  var HOME_LAT = 51.8959, HOME_LON = 0.8919;
+  var weather = { loaded: false, current: null, daily: [] };
+  function weatherCodeInfo(code) {
+    var map = {
+      0: ['☀️', 'Clear sky'], 1: ['🌤️', 'Mainly clear'], 2: ['⛅', 'Partly cloudy'], 3: ['☁️', 'Overcast'],
+      45: ['🌫️', 'Fog'], 48: ['🌫️', 'Fog'],
+      51: ['🌦️', 'Light drizzle'], 53: ['🌦️', 'Drizzle'], 55: ['🌦️', 'Dense drizzle'],
+      61: ['🌧️', 'Light rain'], 63: ['🌧️', 'Rain'], 65: ['🌧️', 'Heavy rain'],
+      71: ['🌨️', 'Light snow'], 73: ['🌨️', 'Snow'], 75: ['❄️', 'Heavy snow'],
+      80: ['🌦️', 'Rain showers'], 81: ['🌧️', 'Rain showers'], 82: ['⛈️', 'Violent showers'],
+      95: ['⛈️', 'Thunderstorm'], 96: ['⛈️', 'Thunderstorm, hail'], 99: ['⛈️', 'Thunderstorm, hail']
+    };
+    return map[code] || ['🌡️', 'Weather'];
+  }
+  function fetchWeather(cb) {
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + HOME_LAT + '&longitude=' + HOME_LON +
+      '&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe%2FLondon&forecast_days=3';
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        weather.current = (data && data.current) ? { temp: data.current.temperature_2m, code: data.current.weather_code } : null;
+        weather.daily = [];
+        if (data && data.daily && data.daily.time) {
+          for (var i = 0; i < data.daily.time.length; i++) {
+            weather.daily.push({
+              date: data.daily.time[i],
+              max: data.daily.temperature_2m_max[i],
+              min: data.daily.temperature_2m_min[i],
+              code: data.daily.weather_code[i]
+            });
+          }
+        }
+        weather.loaded = true;
+        cb && cb(!!weather.current);
+      })
+      .catch(function () { weather.loaded = true; cb && cb(false); });
+  }
+  function weatherPreview() {
+    if (!weather.loaded || !weather.current) return 'Tap to check';
+    var info = weatherCodeInfo(weather.current.code);
+    return Math.round(weather.current.temp) + '°C · ' + info[1];
+  }
+  function openWeatherModal() {
+    var html = '<div class="modal-title">🌦️ Weather — Colchester</div>';
+    if (!weather.loaded || !weather.current) {
+      html += '<p style="color:var(--muted);">Couldn\'t load the forecast right now.</p>';
+    } else {
+      var cur = weatherCodeInfo(weather.current.code);
+      html += '<p style="text-align:center;font-size:2.4rem;margin:4px 0 0;">' + cur[0] + ' ' + Math.round(weather.current.temp) + '°C</p>';
+      html += '<p style="text-align:center;color:var(--muted);margin-top:-4px;">' + cur[1] + '</p>';
+      html += '<div style="display:flex;gap:16px;justify-content:center;margin-top:18px;">';
+      weather.daily.forEach(function (d, i) {
+        var info = weatherCodeInfo(d.code);
+        var label = i === 0 ? 'Today' : new Date(d.date).toLocaleDateString('en-GB', { weekday: 'short' });
+        html += '<div style="text-align:center;">' +
+          '<div style="font-weight:700;font-size:0.85rem;">' + label + '</div>' +
+          '<div style="font-size:1.6rem;">' + info[0] + '</div>' +
+          '<div style="font-size:0.82rem;color:var(--muted);">' + Math.round(d.max) + '° / ' + Math.round(d.min) + '°</div>' +
+          '</div>';
+      });
+      html += '</div>';
+    }
+    openModal(html);
+  }
+
+  // ---------- Daily gist — one glanceable line combining data the tiles already fetch ----------
+  function renderDailyGist() {
+    var el = document.getElementById('dailyGist');
+    if (!el) return;
+    var parts = [];
+    if (weather.loaded && weather.current) {
+      var w = weatherCodeInfo(weather.current.code);
+      parts.push(w[0] + ' ' + Math.round(weather.current.temp) + '°C, ' + w[1].toLowerCase());
+    }
+    if (mealToday.loaded && mealToday.label) {
+      parts.push('🍽️ Tonight: ' + mealToday.label);
+    }
+    var bin = nextBinCollection();
+    if (bin.isToday) {
+      parts.push('🗑️ Bin day: ' + (bin.type === 'recycling' ? 'Recycling & Glass' : 'Rubbish') + ' + food');
+    }
+    el.textContent = parts.length ? parts.join(' · ') : 'A separate page for the kitchen tablet — the main dashboard is untouched';
+  }
+
   // ---------- Tile grid ----------
   var TILES = [
     { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: calendarPreview, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
     { id: 'chore',    icon: '🧽', label: 'Chores',    open: openChoreModal,    preview: function () { return 'Tap to log'; }, needsSetup: function () { return !(window.config && window.config.choreSubmitUrl); } },
     { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: mealPreview,   wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
-    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; }, badge: function () { return heating.hvacStatus === 'HEATING' ? '🔥 On' : ''; } }
+    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; }, badge: function () { return heating.hvacStatus === 'HEATING' ? '🔥 On' : ''; } },
+    { id: 'weather',  icon: '🌦️', label: 'Weather',   open: openWeatherModal,  preview: weatherPreview, needsSetup: function () { return false; } },
+    { id: 'term',     icon: '🎒', label: 'School Term', open: openTermModal,    preview: termPreview,    needsSetup: function () { return false; } }
   ];
   function renderTiles() {
     var grid = document.getElementById('tileGrid');
@@ -607,13 +780,17 @@ document.addEventListener('click', () => {
 
   renderTiles();
   renderSmallTiles();
+  renderDailyGist();
   fetchNestStatus(function () { renderTiles(); }); // get real heating data on load, not just when the tile is tapped
   fetchCalendarEvents(function () { renderTiles(); });
-  fetchMealToday(function () { renderTiles(); });
+  fetchMealToday(function () { renderTiles(); renderDailyGist(); });
+  fetchWeather(function () { renderTiles(); renderDailyGist(); });
   setInterval(function () { fetchNestStatus(function () { renderTiles(); refreshHeatingModal(); }); }, 5 * 60 * 1000); // keep it fresh every 5 minutes
   setInterval(function () { fetchCalendarEvents(function () { renderTiles(); }); }, 30 * 60 * 1000); // every 30 min — events don't change that often
-  setInterval(function () { fetchMealToday(function () { renderTiles(); }); }, 30 * 60 * 1000);
+  setInterval(function () { fetchMealToday(function () { renderTiles(); renderDailyGist(); }); }, 30 * 60 * 1000);
+  setInterval(function () { fetchWeather(function () { renderTiles(); renderDailyGist(); }); }, 20 * 60 * 1000); // weather every 20 min
   setInterval(renderSmallTiles, 60 * 60 * 1000); // refresh at the hour boundary so the bin warning-dot stays accurate
+  setInterval(renderDailyGist, 60 * 60 * 1000); // bin-day line only needs an hourly refresh
 })();
 </script>
 </body>
