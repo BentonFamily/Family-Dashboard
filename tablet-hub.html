@@ -54,6 +54,7 @@
       gap: clamp(12px, 1.6vw, 22px);
     }
     @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 860px) { .grid { grid-template-columns: repeat(4, 1fr); } }
 
     .tile {
       background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--c, var(--r-blue));
@@ -77,6 +78,7 @@
     .tile[data-tile="heating"]  { --c: var(--r-blue); }
     .tile[data-tile="weather"]  { --c: var(--r-violet); }
     .tile[data-tile="term"]     { --c: var(--r-indigo); }
+    .tile[data-tile="lunch"]    { --c: var(--r-green); }
     .tile-head { display: flex; align-items: center; gap: 10px; }
     .tile-icon { font-size: clamp(1.3rem, 2vw, 1.8rem); }
     .tile-label { font-family: var(--font-display); font-weight: 700; font-size: clamp(1rem, 1.4vw, 1.25rem); }
@@ -531,6 +533,91 @@ document.addEventListener('click', () => {
     );
   }
 
+  // ---------- School Lunch Menu — Kent Autumn/Winter Menu 2026-2027, a known 3-week rotating cycle ----------
+  // The school's menu doesn't follow a simple every-3-weeks pattern (holidays skip weeks), so every
+  // Monday's week number is taken straight off the published calendar rather than computed.
+  var LUNCH_WEEK_BY_MONDAY = {
+    '2026-11-02': 1, '2026-11-09': 2, '2026-11-16': 3, '2026-11-23': 1, '2026-11-30': 2,
+    '2026-12-07': 3, '2026-12-14': 1,
+    '2027-01-04': 2, '2027-01-11': 3, '2027-01-18': 1, '2027-01-25': 2,
+    '2027-02-01': 3, '2027-02-08': 1, '2027-02-22': 2,
+    '2027-03-01': 3, '2027-03-08': 1, '2027-03-15': 2, '2027-03-22': 3
+  };
+  var LUNCH_MENU = {
+    1: [
+      { day: 'Monday', option1: 'Tomato Pasta with Garlic Bread', option2: 'Autumn Vegetable Lasagne with Garlic Bread', sides: 'Green Beans & Sweetcorn', dessert: 'Cheese and Crackers' },
+      { day: 'Tuesday', option1: 'Pork Hot Dog with Potato Wedges & Tomato Sauce', option2: 'Veggie Hotdog with Potato Wedges & Tomato Sauce', sides: 'Baked Beans & Peas', dessert: 'Apple Crumble with Cream' },
+      { day: 'Wednesday', option1: 'Roast Chicken, Stuffing, Roast Potatoes and Gravy', option2: 'Vegetarian Wellington with Roast Potatoes and Gravy', sides: 'Carrots & Swede', dessert: 'Fruit Medley' },
+      { day: 'Thursday', option1: 'Beef Tortilla Stack with Rice', option2: 'Vegetable Pasta Bake', sides: 'Vegetable Medley', dessert: 'Syrup Sponge with Custard' },
+      { day: 'Friday', option1: 'Fishfingers or Salmon Fishfingers with Chips & Tomato Sauce', option2: 'Cheese Whirl with Chips and Tomato Sauce', sides: 'Baked Beans & Peas', dessert: 'Jelly with Mandarins' }
+    ],
+    2: [
+      { day: 'Monday', option1: 'Classic Cheese and Tomato Pizza with New Potatoes', option2: 'Mild Mexican Chilli with Rice', sides: 'Baked Beans & Peas', dessert: 'Gingerbread Cookie' },
+      { day: 'Tuesday', option1: 'Spaghetti Bolognaise', option2: 'Veggie Spaghetti Bolognaise', sides: 'Sweetcorn & Green Beans', dessert: 'Chocolate Brownie with Chocolate Sauce' },
+      { day: 'Wednesday', option1: 'Roast Gammon with Roast Potatoes and Gravy', option2: 'Quorn Fillet with Roast Potatoes and Gravy', sides: 'Cabbage & Carrots', dessert: 'Fruit Salad' },
+      { day: 'Thursday', option1: 'Chicken Meatballs in Tomato Sauce with Rice', option2: 'Creamy Chickpea and Coconut Curry with Rice', sides: 'Vegetable Medley', dessert: 'Sticky Toffee Apple Crumble with Custard' },
+      { day: 'Friday', option1: 'Fishfingers with Chips and Tomato Sauce', option2: 'Veggie Sausage with Chips and Tomato Sauce', sides: 'Baked Beans & Peas', dessert: 'Golden Syrup Snap' }
+    ],
+    3: [
+      { day: 'Monday', option1: 'Macaroni Cheese', option2: 'Sweet Potato & Lentil Curry with Rice', sides: 'Green Beans & Sweetcorn', dessert: 'Oaty Cookie' },
+      { day: 'Tuesday', option1: 'Chicken Wrap with Paprika Wedges', option2: 'Vegetable Wrap with Paprika Wedges', sides: 'Vegetable Medley', dessert: 'Fruit Crumble with Custard' },
+      { day: 'Wednesday', option1: 'Sausage with Roast Potatoes and Gravy', option2: 'Veggie Sausage and Roast Potatoes and Gravy', sides: 'Carrots & Cabbage', dessert: 'Fruit Salad' },
+      { day: 'Thursday', option1: 'Chicken & Sweetcorn Pie with Crushed Potatoes & Gravy', option2: 'Tomato Pasta', sides: 'Peas & Swede', dessert: 'Ginger Cake with Custard' },
+      { day: 'Friday', option1: 'Fishfingers with Chips & Tomato Sauce', option2: 'Cheese & Bean Puff with Chips & Tomato Sauce', sides: 'Baked Beans & Peas', dessert: 'Strawberry Mousse' }
+    ]
+  };
+  var LUNCH_DAILY_EXTRAS = 'Jacket Potatoes with a choice of fillings, Salad Bar, Freshly Baked Bread, Fresh Fruit, Yoghurt';
+  function lunchMondayOf_(d) {
+    var day = d.getDay();
+    var diff = (day === 0 ? -6 : 1 - day);
+    var m = new Date(d);
+    m.setDate(m.getDate() + diff);
+    m.setHours(0, 0, 0, 0);
+    return m;
+  }
+  function lunchInfoForToday_() {
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var monday = lunchMondayOf_(today);
+    var week = LUNCH_WEEK_BY_MONDAY[toISODate_(monday)];
+    if (!week) return null;
+    var dayIdx = Math.round((today - monday) / 86400000); // 0=Mon..6=Sun
+    return { week: week, dayIdx: dayIdx, monday: monday };
+  }
+  function lunchPreview() {
+    var info = lunchInfoForToday_();
+    if (!info) return 'No menu data for this week';
+    if (info.dayIdx > 4) {
+      var nextMonday = new Date(info.monday); nextMonday.setDate(nextMonday.getDate() + 7);
+      var nextWeek = LUNCH_WEEK_BY_MONDAY[toISODate_(nextMonday)];
+      return nextWeek ? 'Back Monday: ' + LUNCH_MENU[nextWeek][0].option1 : 'No school today';
+    }
+    var dish = LUNCH_MENU[info.week][info.dayIdx];
+    return dish ? 'Today: ' + dish.option1 : 'No menu data for this week';
+  }
+  function openLunchModal() {
+    var info = lunchInfoForToday_();
+    var html = '<div class="modal-title">🍱 School Lunch Menu</div>';
+    if (!info) {
+      html += '<p style="color:var(--muted);">No menu data for this week — once the school publishes the next term\'s menu, send it over and we\'ll add it.</p>';
+    } else {
+      html += '<p style="text-align:center;color:var(--muted);margin-top:-6px;">Week ' + ['One', 'Two', 'Three'][info.week - 1] + '</p>';
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;margin-top:10px;">';
+      LUNCH_MENU[info.week].forEach(function (d, i) {
+        var isToday = (i === info.dayIdx);
+        html += '<div style="padding:10px;border-radius:10px;' + (isToday ? 'background:var(--surface-sunken);border:2px solid var(--r-green);' : 'border:1px solid var(--border);') + '">' +
+          '<div style="font-weight:700;font-size:0.85rem;margin-bottom:6px;">' + d.day + (isToday ? ' · Today' : '') + '</div>' +
+          '<div style="font-size:0.78rem;margin-bottom:4px;">' + d.option1 + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">or ' + d.option2 + '</div>' +
+          '<div style="font-size:0.72rem;color:var(--muted);">' + d.sides + '</div>' +
+          '<div style="font-size:0.72rem;color:var(--muted);">' + d.dessert + '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+      html += '<p style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:14px;">Available daily: ' + LUNCH_DAILY_EXTRAS + '</p>';
+    }
+    openModal(html, true);
+  }
+
   // ---------- Bins — Colchester City Council collection calendar for 32 East Street, CO1 2TP ----------
   // Collection day is always Thursday. Food waste is collected every week.
   // Mixed recycling + glass alternate fortnightly with non-recyclable rubbish.
@@ -794,8 +881,9 @@ document.addEventListener('click', () => {
     { id: 'calendar', icon: '📅', label: 'Calendar',  open: openCalendarModal, preview: calendarPreview, needsSetup: function () { return !(window.config && window.config.calendarEmail); } },
     { id: 'weather',  icon: '🌦️', label: 'Weather',   open: openWeatherModal,  preview: weatherPreview, needsSetup: function () { return false; } },
     { id: 'term',     icon: '🎒', label: 'School Term', open: openTermModal,    preview: termPreview,    needsSetup: function () { return false; } },
+    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; }, badge: function () { return heating.hvacStatus === 'HEATING' ? '🔥 On' : ''; } },
     { id: 'meal',     icon: '🍽️', label: 'Meal Plan', open: openMealModal,     preview: mealPreview,   wide: true, needsSetup: function () { return !(window.config && window.config.mealPlanUrl); } },
-    { id: 'heating',  icon: '🔥', label: 'Heating',   open: openHeatingModal,  preview: heatingPreview, needsSetup: function () { return heating.loaded && heating.current == null; }, badge: function () { return heating.hvacStatus === 'HEATING' ? '🔥 On' : ''; } }
+    { id: 'lunch',    icon: '🍱', label: 'Lunch Menu', open: openLunchModal,    preview: lunchPreview,  needsSetup: function () { return false; } }
   ];
   function renderTiles() {
     var grid = document.getElementById('tileGrid');
