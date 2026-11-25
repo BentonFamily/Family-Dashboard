@@ -56,6 +56,47 @@
     @media (max-width: 720px) { .grid { grid-template-columns: repeat(2, 1fr); } }
     @media (min-width: 860px) { .grid { grid-template-columns: repeat(4, 1fr); } }
 
+    /* ---------- Phone view: a Cover-Flow-style carousel instead of the tablet's grid ---------- */
+    .phone-coverflow { display: none; }
+    @media (max-width: 600px) {
+      .tablet-view { display: none; }
+      .phone-coverflow { display: block; }
+    }
+    .coverflow-stage {
+      position: relative; height: 240px; margin: 10px 0 4px;
+      perspective: 1300px; perspective-origin: 50% 50%;
+    }
+    .coverflow-track {
+      position: relative; width: 100%; height: 100%;
+      transform-style: preserve-3d; touch-action: pan-y;
+    }
+    .cf-card {
+      position: absolute; top: 0; left: 50%; width: 190px; height: 190px; margin-left: -95px;
+      background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--c, var(--r-blue));
+      border-radius: 20px; padding: 16px; text-align: center; color: var(--fg); font: inherit;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer; box-shadow: 0 14px 32px rgba(0,0,0,.2); backface-visibility: hidden;
+      transition: transform 0.4s cubic-bezier(.2,.8,.2,1), opacity 0.4s ease, box-shadow 0.3s ease;
+    }
+    .coverflow-track.is-dragging .cf-card { transition: none; }
+    .cf-card.cf-active { box-shadow: 0 18px 44px rgba(0,0,0,.3); }
+    .cf-card .cf-icon { font-size: 2.6rem; line-height: 1; }
+    .cf-card .cf-label { font-weight: 700; font-size: 0.95rem; }
+    .cf-card .cf-preview { font-size: 0.76rem; color: var(--muted); line-height: 1.3; }
+    .cf-card[data-tile="calendar"] { --c: var(--r-orange); }
+    .cf-card[data-tile="weather"]  { --c: var(--r-violet); }
+    .cf-card[data-tile="term"]     { --c: var(--r-indigo); }
+    .cf-card[data-tile="heating"]  { --c: var(--r-blue); }
+    .cf-card[data-tile="meal"]     { --c: var(--r-green); }
+    .cf-card[data-tile="lunch"]    { --c: var(--r-green); }
+    .cf-card[data-tile="wifi"]     { --c: var(--r-red); }
+    .cf-card[data-tile="chore"]    { --c: var(--r-yellow); }
+    .cf-card[data-tile="bins"]     { --c: var(--r-indigo); }
+    .coverflow-label { text-align: center; font-weight: 700; font-family: var(--font-display); margin-top: 6px; }
+    .coverflow-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+    .cf-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background 0.2s ease, transform 0.2s ease; }
+    .cf-dot.active { background: var(--r-blue); transform: scale(1.4); }
+
     .tile {
       background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--c, var(--r-blue));
       border-radius: 18px; padding: clamp(16px, 1.8vw, 26px); text-align: left; cursor: pointer; color: var(--fg); font: inherit;
@@ -178,13 +219,23 @@
     </div>
   </header>
 
-  <div class="small-tiles">
-    <button class="tile-small" id="wifiSmall" data-tile="wifi"><span class="tile-icon">📶</span></button>
-    <button class="tile-small" id="choreSmall" data-tile="chore"><span class="tile-icon">🧽</span></button>
-    <button class="tile-small" id="binSmall" data-tile="bins"><span class="tile-icon">🗑️</span></button>
+  <div class="tablet-view" id="tabletView">
+    <div class="small-tiles">
+      <button class="tile-small" id="wifiSmall" data-tile="wifi"><span class="tile-icon">📶</span></button>
+      <button class="tile-small" id="choreSmall" data-tile="chore"><span class="tile-icon">🧽</span></button>
+      <button class="tile-small" id="binSmall" data-tile="bins"><span class="tile-icon">🗑️</span></button>
+    </div>
+
+    <div class="grid" id="tileGrid"></div>
   </div>
 
-  <div class="grid" id="tileGrid"></div>
+  <div class="phone-coverflow" id="phoneCoverflow">
+    <div class="coverflow-stage">
+      <div class="coverflow-track" id="coverflowTrack"></div>
+    </div>
+    <div class="coverflow-label" id="coverflowLabel"></div>
+    <div class="coverflow-dots" id="coverflowDots"></div>
+  </div>
 </div>
 
 <div class="overlay" id="overlay" hidden>
@@ -272,7 +323,7 @@ document.addEventListener('click', () => {
   // ---------- Modal — opens with a FLIP animation that morphs out of the tapped tile ----------
   var lastTileRect = null;
   document.addEventListener('click', function (e) {
-    var el = e.target.closest('.tile, .tile-small');
+    var el = e.target.closest('.tile, .tile-small, .cf-card');
     if (el) lastTileRect = el.getBoundingClientRect();
   }, true);
 
@@ -903,6 +954,7 @@ document.addEventListener('click', () => {
       grid.appendChild(btn);
     });
     renderTiles.animateNext = false;
+    renderCoverflow();
   }
   renderTiles.animateNext = true; // the very first render gets a staggered entrance
 
@@ -945,6 +997,132 @@ document.addEventListener('click', () => {
     }
   }
   renderSmallTiles.animateNext = true; // the very first render gets a staggered entrance
+
+  // ---------- Phone view: Cover-Flow-style carousel (all tiles, since there's no separate icon row) ----------
+  var COVERFLOW_CARDS = TILES.concat([
+    {
+      id: 'wifi', icon: '📶', label: 'Wi-Fi', open: openWifiModal,
+      preview: function () { return 'Tap for the QR code'; },
+      needsSetup: function () { return !(window.config && window.config.wifiName); }
+    },
+    {
+      id: 'chore', icon: '🧽', label: 'Chores', open: openChoreModal,
+      preview: function () { return 'Tap to log one'; },
+      needsSetup: function () { return !(window.config && window.config.choreSubmitUrl); }
+    },
+    {
+      id: 'bins', icon: '🗑️', label: 'Bins', open: openBinsModal,
+      preview: function () {
+        var info = nextBinCollection();
+        var label = info.type === 'recycling' ? 'Recycling & Glass' : 'Rubbish';
+        return (info.isToday ? 'Today' : formatBinDate(info.date)) + ' — ' + label;
+      },
+      needsSetup: function () { return false; }
+    }
+  ]);
+  var cfIndex = 0;
+  var cfDragging = false, cfDragMoved = false, cfDragStartX = 0, cfDragDeltaX = 0;
+
+  function renderCoverflow() {
+    var track = document.getElementById('coverflowTrack');
+    if (!track) return;
+    track.innerHTML = '';
+    COVERFLOW_CARDS.forEach(function (t, i) {
+      var card = document.createElement('button');
+      card.className = 'cf-card';
+      card.setAttribute('data-tile', t.id);
+      card.innerHTML =
+        (t.needsSetup() ? '<span class="needs-setup">SET UP</span>' : '') +
+        '<div class="cf-icon">' + t.icon + '</div>' +
+        '<div class="cf-label">' + t.label + '</div>' +
+        '<div class="cf-preview">' + t.preview() + '</div>';
+      card.addEventListener('click', function () {
+        if (cfDragMoved) return; // a drag just ended on this card — don't treat it as a tap
+        if (i === cfIndex) { t.open(); } else { cfGoTo(i); }
+      });
+      track.appendChild(card);
+    });
+    layoutCoverflow();
+    renderCoverflowDots();
+  }
+
+  function cfGoTo(i) {
+    cfIndex = Math.max(0, Math.min(COVERFLOW_CARDS.length - 1, i));
+    layoutCoverflow();
+    renderCoverflowDots();
+  }
+
+  function layoutCoverflow() {
+    var stage = document.querySelector('.coverflow-stage');
+    var track = document.getElementById('coverflowTrack');
+    if (!stage || !track) return;
+    var spacing = stage.clientWidth * 0.34;
+    var dragOffset = (cfDragging && spacing) ? cfDragDeltaX / spacing : 0;
+    var cards = track.children;
+    for (var i = 0; i < cards.length; i++) {
+      var offset = (i - cfIndex) - dragOffset;
+      var abs = Math.abs(offset);
+      var tx = offset * spacing;
+      var rotate = Math.max(-50, Math.min(50, offset * -42));
+      var scale = Math.max(0.62, 1 - abs * 0.16);
+      var opacity = abs > 3.2 ? 0 : Math.max(0, 1 - abs * 0.3);
+      cards[i].style.transform = 'translateX(' + tx + 'px) translateZ(' + (-abs * 70) + 'px) rotateY(' + rotate + 'deg) scale(' + scale + ')';
+      cards[i].style.zIndex = String(Math.round(100 - abs * 10));
+      cards[i].style.opacity = String(opacity);
+      cards[i].style.pointerEvents = abs > 3.2 ? 'none' : 'auto';
+      cards[i].classList.toggle('cf-active', i === cfIndex && !cfDragging);
+    }
+    var label = document.getElementById('coverflowLabel');
+    if (label && COVERFLOW_CARDS[cfIndex]) label.textContent = COVERFLOW_CARDS[cfIndex].label;
+  }
+
+  function renderCoverflowDots() {
+    var dots = document.getElementById('coverflowDots');
+    if (!dots) return;
+    if (dots.children.length !== COVERFLOW_CARDS.length) {
+      dots.innerHTML = COVERFLOW_CARDS.map(function () { return '<span class="cf-dot"></span>'; }).join('');
+    }
+    for (var i = 0; i < dots.children.length; i++) {
+      dots.children[i].classList.toggle('active', i === cfIndex);
+    }
+  }
+
+  (function setUpCoverflowDrag() {
+    var track = document.getElementById('coverflowTrack');
+    if (!track) return;
+    function down(e) {
+      cfDragging = true; cfDragMoved = false;
+      cfDragStartX = (e.touches ? e.touches[0].clientX : e.clientX);
+      cfDragDeltaX = 0;
+      track.classList.add('is-dragging');
+      if (track.setPointerCapture && e.pointerId != null) { try { track.setPointerCapture(e.pointerId); } catch (err) {} }
+    }
+    function move(e) {
+      if (!cfDragging) return;
+      var x = (e.touches ? e.touches[0].clientX : e.clientX);
+      cfDragDeltaX = x - cfDragStartX;
+      if (Math.abs(cfDragDeltaX) > 4) cfDragMoved = true;
+      layoutCoverflow();
+    }
+    function up() {
+      if (!cfDragging) return;
+      cfDragging = false;
+      track.classList.remove('is-dragging');
+      var spacing = (document.querySelector('.coverflow-stage') || {}).clientWidth * 0.34 || 1;
+      var moveIdx = Math.round(-cfDragDeltaX / spacing);
+      cfIndex = Math.max(0, Math.min(COVERFLOW_CARDS.length - 1, cfIndex + moveIdx));
+      cfDragDeltaX = 0;
+      layoutCoverflow();
+      renderCoverflowDots();
+      setTimeout(function () { cfDragMoved = false; }, 60); // let the click handler see this was a drag, then reset
+    }
+    track.addEventListener('pointerdown', down);
+    track.addEventListener('pointermove', move);
+    track.addEventListener('pointerup', up);
+    track.addEventListener('pointercancel', up);
+  })();
+
+  window.addEventListener('resize', layoutCoverflow);
 
   renderTiles();
   renderSmallTiles();
