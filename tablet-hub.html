@@ -58,7 +58,9 @@
 
     /* ---------- Phone view: a Cover-Flow-style carousel instead of the tablet's grid ---------- */
     .phone-coverflow { display: none; }
-    @media (max-width: 600px) {
+    /* portrait phone (viewport narrow) OR landscape phone (viewport short) — a landscape wall tablet
+       is wide AND tall, so it never matches the second condition even though it's a landscape device too */
+    @media (max-width: 600px), (max-height: 600px) and (orientation: landscape) {
       .tablet-view { display: none; }
       .phone-coverflow { display: block; }
     }
@@ -1021,7 +1023,7 @@ document.addEventListener('click', () => {
     }
   ]);
   var cfIndex = 0;
-  var cfDragging = false, cfDragMoved = false, cfDragStartX = 0, cfDragDeltaX = 0;
+  var cfDragging = false, cfDragMoved = false, cfDragStartX = 0, cfDragDeltaX = 0, cfDragSpacing = 0, cfRafPending = false;
 
   function renderCoverflow() {
     var track = document.getElementById('coverflowTrack');
@@ -1056,11 +1058,12 @@ document.addEventListener('click', () => {
     var stage = document.querySelector('.coverflow-stage');
     var track = document.getElementById('coverflowTrack');
     if (!stage || !track) return;
-    var spacing = stage.clientWidth * 0.34;
+    var spacing = cfDragging && cfDragSpacing ? cfDragSpacing : stage.clientWidth * 0.34;
     var dragOffset = (cfDragging && spacing) ? cfDragDeltaX / spacing : 0;
     var cards = track.children;
     for (var i = 0; i < cards.length; i++) {
-      var offset = (i - cfIndex) - dragOffset;
+      // + dragOffset, not -: the cards should move WITH the finger (drag left → next card slides in from the right)
+      var offset = (i - cfIndex) + dragOffset;
       var abs = Math.abs(offset);
       var tx = offset * spacing;
       var rotate = Math.max(-50, Math.min(50, offset * -42));
@@ -1094,6 +1097,8 @@ document.addEventListener('click', () => {
       cfDragging = true; cfDragMoved = false;
       cfDragStartX = (e.touches ? e.touches[0].clientX : e.clientX);
       cfDragDeltaX = 0;
+      var stage = document.querySelector('.coverflow-stage');
+      cfDragSpacing = (stage ? stage.clientWidth : 300) * 0.34; // cache once — reading clientWidth on every move forces a layout and causes jank
       track.classList.add('is-dragging');
       if (track.setPointerCapture && e.pointerId != null) { try { track.setPointerCapture(e.pointerId); } catch (err) {} }
     }
@@ -1102,14 +1107,19 @@ document.addEventListener('click', () => {
       var x = (e.touches ? e.touches[0].clientX : e.clientX);
       cfDragDeltaX = x - cfDragStartX;
       if (Math.abs(cfDragDeltaX) > 4) cfDragMoved = true;
-      layoutCoverflow();
+      if (!cfRafPending) {
+        cfRafPending = true;
+        requestAnimationFrame(function () { cfRafPending = false; layoutCoverflow(); });
+      }
     }
     function up() {
       if (!cfDragging) return;
       cfDragging = false;
       track.classList.remove('is-dragging');
-      var spacing = (document.querySelector('.coverflow-stage') || {}).clientWidth * 0.34 || 1;
-      var moveIdx = Math.round(-cfDragDeltaX / spacing);
+      // negated relative to the live-drag formula above — this solves "which card's tx is nearest zero
+      // right now", which works out to the opposite sign of the live per-card offset. Verified by
+      // simulation: dragging left by one full spacing unit must resolve to cfIndex + 1, not - 1.
+      var moveIdx = Math.round(-cfDragDeltaX / (cfDragSpacing || 1));
       cfIndex = Math.max(0, Math.min(COVERFLOW_CARDS.length - 1, cfIndex + moveIdx));
       cfDragDeltaX = 0;
       layoutCoverflow();
